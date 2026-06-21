@@ -2,9 +2,494 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Vesta Folio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vesta Folio — Estate Film &amp; Photography · Los Angeles</title>
+  <meta name="description" content="Property film, HDR photography, and editorial staging for residences worth remembering. Los Angeles, by appointment.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Vesta Folio">
+  <meta property="og:description" content="Estate film and photography. Los Angeles.">
+  <meta property="og:image" content="https://vestafolioco.com/brand/og-image.jpg">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://vestafolioco.com/">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <!-- Favicon (placeholder references — files added when monogram SVG is ready) -->
+  <link rel="icon" href="/brand/favicon.ico" sizes="any">
+  <link rel="icon" href="/brand/vesta-folio-monogram.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/brand/favicon-192.png">
+
+  <!-- Fonts: preconnect for Google Fonts performance -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/site.css">
 </head>
+
 <body>
-  <p>Coming soon.</p>
+
+  <!-- ======================================================
+       NAVIGATION
+       ====================================================== -->
+
+  <nav class="nav" aria-label="Main navigation">
+    <div class="nav__inner">
+      <a href="/" class="nav__wordmark" aria-label="Vesta Folio — home">
+        Vesta Folio
+      </a>
+
+      <!-- Desktop links -->
+      <ul class="nav__links" role="list">
+        <li><a href="#work"     class="nav__link">Work</a></li>
+        <li><a href="#services" class="nav__link">Services</a></li>
+        <li><a href="#approach" class="nav__link">Approach</a></li>
+        <li><a href="#studio"   class="nav__link">Studio</a></li>
+        <li><a href="#inquire"  class="nav__link">Inquire</a></li>
+      </ul>
+
+      <!-- Mobile hamburger -->
+      <button class="nav__hamburger" aria-label="Open menu" aria-expanded="false">
+        <span class="nav__hamburger-line"></span>
+        <span class="nav__hamburger-line"></span>
+        <span class="nav__hamburger-line"></span>
+      </button>
+    </div>
+  </nav>
+
+
+  <!-- ======================================================
+       MOBILE MENU OVERLAY
+       ====================================================== -->
+
+  <div class="mobile-menu" role="dialog" aria-label="Navigation menu" aria-modal="true">
+    <button class="mobile-menu__close" aria-label="Close menu">&#x2715;</button>
+    <span class="mobile-menu__wordmark">Vesta Folio</span>
+    <ul class="mobile-menu__links" role="list">
+      <li><a href="#work"     class="mobile-menu__link">Work</a></li>
+      <li><a href="#services" class="mobile-menu__link">Services</a></li>
+      <li><a href="#approach" class="mobile-menu__link">Approach</a></li>
+      <li><a href="#studio"   class="mobile-menu__link">Studio</a></li>
+      <li><a href="#inquire"  class="mobile-menu__link">Inquire</a></li>
+    </ul>
+  </div>
+
+
+  <!-- ======================================================
+       SECTION 1: HERO
+       ====================================================== -->
+
+  <section class="hero" id="hero" aria-label="Hero">
+
+    <!-- Hero video / placeholder background -->
+    <!-- Replace src with /videos/hero.mp4 when real footage is ready -->
+    <!-- For now: the Forest background color is the placeholder -->
+    <!-- Uncomment the video tag below once hero.mp4 is in the repo:
+    <video
+      class="hero__video-bg"
+      src="/videos/hero.mp4"
+      autoplay
+      muted
+      loop
+      playsinline
+      aria-hidden="true"
+    ></video>
+    -->
+
+    <!-- Top right: micro-tagline -->
+    <div class="hero__top">
+      <span class="hero__tagline-top t-micro">
+        Estate Film &amp; Photography &nbsp;·&nbsp; Los Angeles
+      </span>
+    </div>
+
+    <!-- Center-bottom: display copy -->
+    <div class="hero__content">
+      <h1 class="hero__display">The estate, documented.</h1>
+      <p class="hero__sub">
+        Property film, HDR photography, and editorial staging for
+        residences worth remembering. Los Angeles, by appointment.
+      </p>
+    </div>
+
+    <!-- Scroll cue -->
+    <div class="hero__scroll-cue" aria-hidden="true">
+      <div class="hero__scroll-line"></div>
+    </div>
+
+  </section>
+
+
+  <!-- ======================================================
+       SECTION 2: SELECTED WORK
+       ====================================================== -->
+
+  <section class="work" id="work" aria-labelledby="work-heading">
+    <div class="work__header">
+      <p class="work__label t-micro">Selected Work &nbsp;·&nbsp; 2026</p>
+      <h2 class="work__heading t-display-lg" id="work-heading">Recent projects.</h2>
+    </div>
+
+    <!-- Grid is populated by site.js from projects.json -->
+    <div class="work__grid" aria-label="Portfolio projects"></div>
+
+    <div class="work__footer">
+      <a href="#inquire" class="work__all-link">
+        Inquire about your listing &nbsp;&#x2192;
+      </a>
+    </div>
+  </section>
+
+
+  <!-- ======================================================
+       SECTION 3: SERVICES
+       ====================================================== -->
+
+  <section class="services" id="services" aria-labelledby="services-heading">
+    <div class="services__header">
+      <p class="services__label t-micro">What we do</p>
+      <h2 class="services__heading t-display-lg" id="services-heading">
+        Three disciplines. One record.
+      </h2>
+    </div>
+
+    <div class="services__grid">
+
+      <div class="services__card reveal">
+        <p class="services__card-number t-micro">01</p>
+        <h3 class="services__card-title">HDR Photography</h3>
+        <p class="services__card-body">
+          Architectural photography shot in high dynamic range and
+          processed to render the property the way the architect
+          intended — not the way a camera sensor sees it by default.
+          Natural light preserved. Every room documented.
+        </p>
+      </div>
+
+      <div class="services__card reveal">
+        <p class="services__card-number t-micro">02</p>
+        <h3 class="services__card-title">Cinematic Tours</h3>
+        <p class="services__card-body">
+          Property films shot on cinema glass with intentional pacing,
+          colour grading, and original score. Not a walkthrough — a record
+          of what it feels like to move through a well-made home.
+        </p>
+      </div>
+
+      <div class="services__card reveal">
+        <p class="services__card-number t-micro">03</p>
+        <h3 class="services__card-title">Editorial AI Staging</h3>
+        <p class="services__card-body">
+          Vacant rooms staged with editorial precision using AI — furniture,
+          textiles, and objects chosen to complement the architecture, not
+          obscure it. Delivered alongside the originals.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ======================================================
+       SECTION 4: APPROACH
+       ====================================================== -->
+
+  <section class="approach" id="approach" aria-labelledby="approach-heading">
+    <div class="approach__header">
+      <p class="approach__label t-micro">How we work</p>
+      <h2 class="approach__heading t-display-lg" id="approach-heading">
+        A process built around the architect, not the deadline.
+      </h2>
+    </div>
+
+    <div class="approach__steps">
+
+      <div class="approach__step reveal">
+        <p class="approach__step-number t-micro">01</p>
+        <h3 class="approach__step-title">Inquire</h3>
+        <p class="approach__step-body">
+          Tell us about the property. We'll review the listing and respond
+          within 24 hours with availability and a preliminary scope.
+        </p>
+      </div>
+
+      <div class="approach__step reveal">
+        <p class="approach__step-number t-micro">02</p>
+        <h3 class="approach__step-title">Walk the property</h3>
+        <p class="approach__step-body">
+          Before production, we walk every room. We map the light, note
+          the architecture's strongest angles, and plan the shoot around
+          what the property actually offers.
+        </p>
+      </div>
+
+      <div class="approach__step reveal">
+        <p class="approach__step-number t-micro">03</p>
+        <h3 class="approach__step-title">Production</h3>
+        <p class="approach__step-body">
+          A focused production day — usually four to six hours. No crew
+          of ten. No chaos. The property stays composed throughout.
+        </p>
+      </div>
+
+      <div class="approach__step reveal">
+        <p class="approach__step-number t-micro">04</p>
+        <h3 class="approach__step-title">Delivery</h3>
+        <p class="approach__step-body">
+          Edited stills and film within five business days. Full-resolution
+          files, ready for MLS, print, and press. No watermarks on final
+          delivery.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ======================================================
+       SECTION 5: STUDIO
+       ====================================================== -->
+
+  <section class="studio" id="studio" aria-labelledby="studio-heading">
+    <div class="studio__inner">
+
+      <div class="studio__text">
+        <p class="studio__label t-micro">Studio</p>
+        <h2 class="studio__heading t-display-lg" id="studio-heading">
+          Vesta Folio is a property film and photography studio based in
+          Los Angeles.
+        </h2>
+        <p class="studio__body">
+          We work with agents and homeowners who understand that the
+          record of a property outlasts the sale. The images we make
+          document an address at a specific moment — the morning light
+          through a particular window, the patina on a thirty-year-old
+          floor, the garden at its peak. That moment does not repeat.
+        </p>
+
+        <div class="studio__principles">
+          <p class="studio__principle">
+            <span class="studio__principle-dash">—</span>
+            The work serves the architecture. We never compete with it.
+          </p>
+          <p class="studio__principle">
+            <span class="studio__principle-dash">—</span>
+            Every property is photographed as if it will be published.
+            Because it will.
+          </p>
+          <p class="studio__principle">
+            <span class="studio__principle-dash">—</span>
+            We keep the roster small so every client gets the full attention
+            of the studio.
+          </p>
+        </div>
+      </div>
+
+      <div class="studio__image-wrap reveal">
+        <!-- Replace with real founder/shoot image when available -->
+        <!-- <img class="studio__image" src="/images/studio/founder.webp" alt="Casey Villanueva on location"> -->
+        <div class="studio__image-placeholder">
+          <span class="studio__image-placeholder-mark">VF</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ======================================================
+       SECTION 6: INQUIRE
+       ====================================================== -->
+
+  <section class="inquire" id="inquire" aria-labelledby="inquire-heading">
+    <div class="inquire__inner">
+
+      <h2 class="inquire__heading t-display-lg" id="inquire-heading">
+        Have a listing worth remembering?
+      </h2>
+      <p class="inquire__sub">
+        Tell us about the property. We'll reply within 24 hours.
+      </p>
+
+      <form class="inquire__form" novalidate>
+
+        <div class="form__row">
+          <div class="form__field">
+            <label class="form__label" for="name">Name <span aria-hidden="true">*</span></label>
+            <input
+              class="form__input"
+              type="text"
+              id="name"
+              name="name"
+              required
+              autocomplete="name"
+              placeholder="Casey Villanueva"
+            >
+          </div>
+
+          <div class="form__field">
+            <label class="form__label" for="email">Email <span aria-hidden="true">*</span></label>
+            <input
+              class="form__input"
+              type="email"
+              id="email"
+              name="email"
+              required
+              autocomplete="email"
+              placeholder="casey@example.com"
+            >
+          </div>
+        </div>
+
+        <div class="form__row">
+          <div class="form__field">
+            <label class="form__label" for="brokerage">Brokerage</label>
+            <input
+              class="form__input"
+              type="text"
+              id="brokerage"
+              name="brokerage"
+              autocomplete="organization"
+              placeholder="Optional"
+            >
+          </div>
+
+          <div class="form__field">
+            <label class="form__label" for="listing-date">Listing date</label>
+            <input
+              class="form__input"
+              type="date"
+              id="listing-date"
+              name="listing_date"
+            >
+          </div>
+        </div>
+
+        <div class="form__field">
+          <label class="form__label" for="address">Property address <span aria-hidden="true">*</span></label>
+          <input
+            class="form__input"
+            type="text"
+            id="address"
+            name="property_address"
+            required
+            autocomplete="street-address"
+            placeholder="1234 Sunset Blvd, Los Angeles, CA 90028"
+          >
+        </div>
+
+        <div class="form__field">
+          <p class="form__label" id="services-label">Services needed</p>
+          <div class="form__checkbox-group" role="group" aria-labelledby="services-label">
+            <label class="form__checkbox-label">
+              <input class="form__checkbox" type="checkbox" name="services" value="hdr">
+              HDR Photography
+            </label>
+            <label class="form__checkbox-label">
+              <input class="form__checkbox" type="checkbox" name="services" value="cinematic">
+              Cinematic Tour
+            </label>
+            <label class="form__checkbox-label">
+              <input class="form__checkbox" type="checkbox" name="services" value="staging">
+              AI Staging
+            </label>
+          </div>
+        </div>
+
+        <div class="form__field">
+          <label class="form__label" for="notes">Notes</label>
+          <textarea
+            class="form__textarea"
+            id="notes"
+            name="notes"
+            placeholder="Anything else we should know about the property or timeline."
+          ></textarea>
+        </div>
+
+        <button class="form__submit" type="submit">
+          Submit inquiry
+        </button>
+
+      </form>
+
+      <!-- Success state (shown after submit) -->
+      <div class="inquire__success" aria-live="polite">
+        Thank you. We'll be in touch within 24 hours.
+      </div>
+
+    </div>
+  </section>
+
+
+  <!-- ======================================================
+       FOOTER
+       ====================================================== -->
+
+  <footer class="footer" aria-label="Site footer">
+    <div class="footer__inner">
+
+      <div class="footer__brand">
+        <span class="footer__wordmark">Vesta Folio</span>
+        <p class="footer__tagline">Estate film and photography. Los Angeles.</p>
+      </div>
+
+      <nav aria-label="Footer navigation">
+        <p class="footer__nav-heading">Navigate</p>
+        <ul class="footer__nav-links" role="list">
+          <li><a href="#work"     class="footer__nav-link">Work</a></li>
+          <li><a href="#services" class="footer__nav-link">Services</a></li>
+          <li><a href="#approach" class="footer__nav-link">Approach</a></li>
+          <li><a href="#studio"   class="footer__nav-link">Studio</a></li>
+          <li><a href="#inquire"  class="footer__nav-link">Inquire</a></li>
+        </ul>
+      </nav>
+
+      <div class="footer__contact">
+        <p class="footer__contact-heading">Contact</p>
+        <p class="footer__contact-line">
+          <a href="mailto:vestafolioco@gmail.com" class="footer__contact-link">
+            vestafolioco@gmail.com
+          </a>
+        </p>
+        <p class="footer__contact-line">
+          <a href="https://instagram.com/vesta.folio" class="footer__contact-link" target="_blank" rel="noopener noreferrer">
+            @vesta.folio
+          </a>
+        </p>
+      </div>
+
+    </div>
+
+    <div class="footer__bottom">
+      <p class="footer__copy">
+        &copy; 2026 Vesta Folio. All rights reserved.
+      </p>
+    </div>
+  </footer>
+
+
+  <!-- ======================================================
+       PROJECT MODAL
+       ====================================================== -->
+
+  <div class="modal-overlay" role="dialog" aria-modal="true" aria-label="Project detail">
+    <div class="modal">
+      <!-- Content injected by site.js -->
+    </div>
+  </div>
+
+
+  <!-- ======================================================
+       SCRIPTS
+       ====================================================== -->
+
+  <script type="module" src="/js/site.js"></script>
+
+  <!-- Cloudflare Web Analytics — add beacon once domain is live -->
+  <!-- <script defer src='https://static.cloudflareinsights.com/beacon.min.js'
+    data-cf-beacon='{"token": "YOUR_TOKEN_HERE"}'></script> -->
+
 </body>
 </html>
