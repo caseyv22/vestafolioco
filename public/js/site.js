@@ -62,7 +62,7 @@ function buildProjectCard(project, index) {
   // First image gets fetchpriority=high for fastest LCP
   card.innerHTML = `
     <div class="work__card-image-wrap">
-      <div class="work__card-placeholder" style="position:absolute;inset:0;display:flex;">
+      <div class="work__card-placeholder">
         <span class="work__card-placeholder-num">${num}</span>
       </div>
       <img
@@ -70,8 +70,6 @@ function buildProjectCard(project, index) {
         src="${project.hero_image}"
         alt="${project.title} — ${project.location}"
         ${isFirst ? 'fetchpriority="high"' : 'loading="lazy"'}
-        style="opacity:0;transition:opacity 400ms ease;"
-        onload="this.style.opacity='1';"
       >
     </div>
     <div class="work__card-meta">
