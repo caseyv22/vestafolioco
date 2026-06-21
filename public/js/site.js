@@ -49,6 +49,7 @@ async function loadProjects() {
 
 function buildProjectCard(project, index) {
   const num = pad(index + 1);
+  const isFirst = index === 0;
 
   const card = document.createElement('article');
   card.className = 'work__card reveal';
@@ -57,21 +58,21 @@ function buildProjectCard(project, index) {
   card.setAttribute('aria-label', `View project: ${project.title}`);
   card.dataset.slug = project.slug;
 
-  // Placeholder shown by default; image swaps in on successful load
+  // No lazy loading — images load immediately on page paint
+  // First image gets fetchpriority=high for fastest LCP
   card.innerHTML = `
     <div class="work__card-image-wrap">
+      <div class="work__card-placeholder" style="position:absolute;inset:0;display:flex;">
+        <span class="work__card-placeholder-num">${num}</span>
+      </div>
       <img
         class="work__card-image"
         src="${project.hero_image}"
         alt="${project.title} — ${project.location}"
-        loading="lazy"
-        style="display:none;"
-        onload="this.style.display='block'; this.nextElementSibling.style.display='none';"
-        onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
+        ${isFirst ? 'fetchpriority="high"' : 'loading="lazy"'}
+        style="opacity:0;transition:opacity 400ms ease;"
+        onload="this.style.opacity='1';"
       >
-      <div class="work__card-placeholder" style="display:flex;">
-        <span class="work__card-placeholder-num">${num}</span>
-      </div>
     </div>
     <div class="work__card-meta">
       <span class="work__card-number t-micro">${num}</span>
