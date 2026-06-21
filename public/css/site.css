@@ -357,6 +357,7 @@
   overflow: hidden;
   aspect-ratio: 3 / 2;
   background-color: var(--color-forest);
+  position: relative;
 }
 
 .work__card:nth-child(1) .work__card-image-wrap,
