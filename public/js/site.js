@@ -102,9 +102,6 @@ function renderWork(projects) {
       }
     });
   });
-
-  // Re-run reveal after cards are in the DOM
-  initReveal();
 }
 
 
@@ -167,38 +164,6 @@ function initModal() {
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeModal();
-  });
-}
-
-
-/* ----------------------------------------------------------
-   SCROLL REVEAL — IntersectionObserver
-   ---------------------------------------------------------- */
-
-function initReveal() {
-  const elements = $$('.reveal:not(.is-visible)');
-  if (!elements.length) return;
-
-  const observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('is-visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    },
-    { threshold: 0.05 }
-  );
-
-  elements.forEach((el) => {
-    // Immediately reveal anything already in the viewport
-    const rect = el.getBoundingClientRect();
-    if (rect.top < window.innerHeight && rect.bottom > 0) {
-      el.classList.add('is-visible');
-    } else {
-      observer.observe(el);
-    }
   });
 }
 
@@ -307,7 +272,6 @@ async function init() {
   initMobileMenu();
   initModal();
   initSmoothScroll();
-  initReveal();
 
   const projects = await loadProjects();
   renderWork(projects);
