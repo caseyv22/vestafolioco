@@ -52,7 +52,7 @@ function buildProjectCard(project, index) {
   const isFirst = index === 0;
 
   const card = document.createElement('article');
-  card.className = 'work__card reveal';
+  card.className = 'work__card';
   card.setAttribute('role', 'button');
   card.setAttribute('tabindex', '0');
   card.setAttribute('aria-label', `View project: ${project.title}`);
