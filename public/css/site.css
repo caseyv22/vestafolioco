@@ -40,14 +40,22 @@
 
 /* Wordmark stand-in (v0) */
 .nav__wordmark {
-  font-family: var(--font-wordmark);
-  font-size: var(--text-wordmark);
-  font-weight: var(--font-weight-regular);
-  letter-spacing: var(--tracking-wide);
-  color: var(--color-cream);
-  text-transform: uppercase;
-  line-height: 1;
+  display: inline-flex;
+  align-items: center;
   text-decoration: none;
+  line-height: 0;
+}
+
+.nav__wordmark-img {
+  height: 32px;
+  width: auto;
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .nav__wordmark-img {
+    height: 36px;
+  }
 }
 
 /* Nav links — always hidden by default, shown only when filled on desktop */
@@ -147,13 +155,10 @@
   pointer-events: all;
 }
 
-.mobile-menu__wordmark {
-  font-family: var(--font-wordmark);
-  font-size: clamp(1.25rem, 5vw, 2rem);
-  font-weight: var(--font-weight-regular);
-  letter-spacing: var(--tracking-wide);
-  color: var(--color-cream);
-  text-transform: uppercase;
+.mobile-menu__wordmark-img {
+  height: 48px;
+  width: auto;
+  display: block;
   margin-bottom: var(--space-10);
 }
 
@@ -1002,13 +1007,9 @@
   gap: var(--space-8);
 }
 
-.footer__wordmark {
-  font-family: var(--font-wordmark);
-  font-size: clamp(0.875rem, 2vw, 1rem);
-  font-weight: var(--font-weight-regular);
-  letter-spacing: var(--tracking-wide);
-  color: var(--color-cream);
-  text-transform: uppercase;
+.footer__wordmark-img {
+  height: 28px;
+  width: auto;
   display: block;
   margin-bottom: var(--space-2);
 }
