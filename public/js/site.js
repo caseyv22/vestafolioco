@@ -227,11 +227,19 @@ function initNav() {
   const hero = $('.hero');
   if (!hero) return;
 
+  // Apply immediately on load in case page is already scrolled
+  const applyFilled = () => {
+    const heroBottom = hero.getBoundingClientRect().bottom;
+    nav.classList.toggle('is-filled', heroBottom <= 0);
+  };
+
+  applyFilled();
+
   const observer = new IntersectionObserver(
     ([entry]) => {
       nav.classList.toggle('is-filled', !entry.isIntersecting);
     },
-    { threshold: 0, rootMargin: `-${getComputedStyle(document.documentElement).getPropertyValue('--nav-height').trim()} 0px 0px 0px` }
+    { threshold: 0, rootMargin: '0px 0px 0px 0px' }
   );
 
   observer.observe(hero);
