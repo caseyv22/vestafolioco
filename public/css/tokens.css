@@ -1,0 +1,142 @@
+/* public/css/tokens.css */
+
+/* ============================================================
+   FOREST HERITAGE — DESIGN TOKENS
+   All colors, type, spacing, and layout values live here.
+   Nothing in base.css or site.css uses hardcoded values.
+   ============================================================ */
+
+:root {
+
+  /* ----------------------------------------------------------
+     COLOR PALETTE
+     60% Cream · 30% Forest · 8% Gold · 2% Sage
+     Never use pure black, pure white, or neutral grays.
+     ---------------------------------------------------------- */
+
+  --color-forest:  #1F2E2A;
+  --color-cream:   #F2EDE3;
+  --color-gold:    #A8884E;
+  --color-sage:    #4A5C57;
+
+  --color-bg-light:   var(--color-cream);
+  --color-bg-dark:    var(--color-forest);
+  --color-accent:     var(--color-gold);
+  --color-text-body:  var(--color-sage);
+  --color-text-light: var(--color-cream);
+
+
+  /* ----------------------------------------------------------
+     TYPOGRAPHY
+     --font-display  → Cormorant Garamond (headings, taglines)
+     --font-sans     → Inter (body, micro, nav, forms)
+     --font-wordmark → Cinzel (wordmark stand-in only, v0)
+     Weights: 400 and 500 only. Never 600+.
+     ---------------------------------------------------------- */
+
+  --font-display:  'Cormorant Garamond', 'Cardo', Georgia, serif;
+  --font-sans:     'Inter', system-ui, sans-serif;
+  --font-wordmark: 'Cinzel', 'Trajan Pro', Georgia, serif;
+
+  --font-weight-regular: 400;
+  --font-weight-medium:  500;
+
+
+  /* ----------------------------------------------------------
+     TYPE SCALE
+     ---------------------------------------------------------- */
+
+  --text-display-xl: clamp(2.75rem, 6vw, 5rem);
+  --text-display-lg: clamp(2rem,    4vw, 3.25rem);
+  --text-display-md: clamp(1.375rem, 2.5vw, 2rem);
+
+  --text-body-lg:  1.125rem;
+  --text-body-md:  1rem;
+  --text-body-sm:  0.9375rem;
+
+  --text-micro:    0.6875rem;
+  --text-micro-lg: 0.75rem;
+
+  --text-wordmark: clamp(1rem, 2vw, 1.25rem);
+
+
+  /* ----------------------------------------------------------
+     LETTER SPACING
+     ---------------------------------------------------------- */
+
+  --tracking-micro:   0.20em;
+  --tracking-wide:    0.08em;
+  --tracking-display: 0.01em;
+  --tracking-normal:  0;
+
+
+  /* ----------------------------------------------------------
+     LINE HEIGHT
+     ---------------------------------------------------------- */
+
+  --leading-tight:  1.15;
+  --leading-snug:   1.35;
+  --leading-body:   1.75;
+  --leading-micro:  1.4;
+
+
+  /* ----------------------------------------------------------
+     SPACING SCALE — base unit 8px
+     ---------------------------------------------------------- */
+
+  --space-1:   0.5rem;
+  --space-2:   1rem;
+  --space-3:   1.5rem;
+  --space-4:   2rem;
+  --space-5:   2.5rem;
+  --space-6:   3rem;
+  --space-8:   4rem;
+  --space-10:  5rem;
+  --space-12:  6rem;
+  --space-16:  8rem;
+  --space-20: 10rem;
+  --space-24: 12rem;
+
+
+  /* ----------------------------------------------------------
+     LAYOUT
+     ---------------------------------------------------------- */
+
+  --max-width-content: 1200px;
+  --max-width-prose:    680px;
+  --max-width-narrow:   480px;
+
+  --gutter-mobile:  var(--space-3);
+  --gutter-desktop: var(--space-8);
+
+  --nav-height: 5rem;
+
+
+  /* ----------------------------------------------------------
+     BORDERS
+     ---------------------------------------------------------- */
+
+  --border-gold:      1px solid var(--color-gold);
+  --border-gold-dim:  1px solid color-mix(in srgb, var(--color-gold) 35%, transparent);
+  --border-radius:    0;
+
+
+  /* ----------------------------------------------------------
+     TRANSITIONS
+     ---------------------------------------------------------- */
+
+  --transition-hover:  150ms ease;
+  --transition-reveal: 700ms cubic-bezier(0.16, 1, 0.3, 1);
+
+
+  /* ----------------------------------------------------------
+     Z-INDEX
+     ---------------------------------------------------------- */
+
+  --z-base:    0;
+  --z-content: 10;
+  --z-nav:     100;
+  --z-modal:   200;
+  --z-overlay: 300;
+
+}
