@@ -14,12 +14,12 @@
   <meta property="og:url" content="https://vestafolioco.com/">
   <meta name="twitter:card" content="summary_large_image">
 
-  <!-- Favicon -->
+  <!-- Favicon (placeholder references — files added when monogram SVG is ready) -->
   <link rel="icon" href="/brand/favicon.ico" sizes="any">
   <link rel="icon" href="/brand/vesta-folio-monogram.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/brand/favicon-192.png">
 
-  <!-- Fonts -->
+  <!-- Fonts: preconnect for Google Fonts performance -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
@@ -31,19 +31,22 @@
 
 <body>
 
-  <!-- NAVIGATION -->
+  <!-- ======================================================
+       NAVIGATION
+       ====================================================== -->
+
   <nav class="nav" aria-label="Main navigation">
     <div class="nav__inner">
       <a href="/" class="nav__wordmark" aria-label="Vesta Folio — home">
         Vesta Folio
       </a>
 
-      <!-- Tagline: visible over hero only, hidden once nav fills -->
+      <!-- Hero tagline — visible over hero only, hidden once nav fills -->
       <span class="nav__hero-tagline t-micro" aria-hidden="true">
         Estate Film &amp; Photography &nbsp;·&nbsp; Los Angeles
       </span>
 
-      <!-- Desktop links: hidden over hero, visible once nav fills -->
+      <!-- Desktop links — hidden over hero, visible once nav fills -->
       <ul class="nav__links" role="list">
         <li><a href="#work"     class="nav__link">Work</a></li>
         <li><a href="#services" class="nav__link">Services</a></li>
@@ -62,7 +65,10 @@
   </nav>
 
 
-  <!-- MOBILE MENU -->
+  <!-- ======================================================
+       MOBILE MENU OVERLAY
+       ====================================================== -->
+
   <div class="mobile-menu" role="dialog" aria-label="Navigation menu" aria-modal="true">
     <button class="mobile-menu__close" aria-label="Close menu">&#x2715;</button>
     <span class="mobile-menu__wordmark">Vesta Folio</span>
@@ -76,14 +82,23 @@
   </div>
 
 
-  <!-- SECTION 1: HERO -->
+  <!-- ======================================================
+       SECTION 1: HERO
+       ====================================================== -->
+
   <section class="hero" id="hero" aria-label="Hero">
 
-    <!-- Uncomment when hero.mp4 is in the repo:
-    <video class="hero__video-bg" src="/videos/hero.mp4"
-      autoplay muted loop playsinline aria-hidden="true"></video>
-    -->
+    <video
+      class="hero__video-bg"
+      src="/videos/hero.mp4"
+      autoplay
+      muted
+      loop
+      playsinline
+      aria-hidden="true"
+    ></video>
 
+    <!-- Center-bottom: display copy -->
     <div class="hero__content">
       <h1 class="hero__display">The estate, documented.</h1>
       <p class="hero__sub">
@@ -92,6 +107,7 @@
       </p>
     </div>
 
+    <!-- Scroll cue -->
     <div class="hero__scroll-cue" aria-hidden="true">
       <div class="hero__scroll-line"></div>
     </div>
@@ -99,13 +115,17 @@
   </section>
 
 
-  <!-- SECTION 2: SELECTED WORK -->
+  <!-- ======================================================
+       SECTION 2: SELECTED WORK
+       ====================================================== -->
+
   <section class="work" id="work" aria-labelledby="work-heading">
     <div class="work__header">
       <p class="work__label t-micro">Selected Work &nbsp;·&nbsp; 2026</p>
       <h2 class="work__heading t-display-lg" id="work-heading">Recent projects.</h2>
     </div>
 
+    <!-- Grid is populated by site.js from projects.json -->
     <div class="work__grid" aria-label="Portfolio projects"></div>
 
     <div class="work__footer">
@@ -116,7 +136,10 @@
   </section>
 
 
-  <!-- SECTION 3: SERVICES -->
+  <!-- ======================================================
+       SECTION 3: SERVICES
+       ====================================================== -->
+
   <section class="services" id="services" aria-labelledby="services-heading">
     <div class="services__header">
       <p class="services__label t-micro">What we do</p>
@@ -162,7 +185,10 @@
   </section>
 
 
-  <!-- SECTION 4: APPROACH -->
+  <!-- ======================================================
+       SECTION 4: APPROACH
+       ====================================================== -->
+
   <section class="approach" id="approach" aria-labelledby="approach-heading">
     <div class="approach__header">
       <p class="approach__label t-micro">How we work</p>
@@ -215,7 +241,10 @@
   </section>
 
 
-  <!-- SECTION 5: STUDIO -->
+  <!-- ======================================================
+       SECTION 5: STUDIO
+       ====================================================== -->
+
   <section class="studio" id="studio" aria-labelledby="studio-heading">
     <div class="studio__inner">
 
@@ -252,6 +281,7 @@
       </div>
 
       <div class="studio__image-wrap reveal">
+        <!-- Replace with real founder/shoot image when available -->
         <!-- <img class="studio__image" src="/images/studio/founder.webp" alt="Casey Villanueva on location"> -->
         <div class="studio__image-placeholder">
           <span class="studio__image-placeholder-mark">VF</span>
@@ -262,7 +292,10 @@
   </section>
 
 
-  <!-- SECTION 6: INQUIRE -->
+  <!-- ======================================================
+       SECTION 6: INQUIRE
+       ====================================================== -->
+
   <section class="inquire" id="inquire" aria-labelledby="inquire-heading">
     <div class="inquire__inner">
 
@@ -278,33 +311,66 @@
         <div class="form__row">
           <div class="form__field">
             <label class="form__label" for="name">Name <span aria-hidden="true">*</span></label>
-            <input class="form__input" type="text" id="name" name="name"
-              required autocomplete="name" placeholder="Casey Villanueva">
+            <input
+              class="form__input"
+              type="text"
+              id="name"
+              name="name"
+              required
+              autocomplete="name"
+              placeholder="Casey Villanueva"
+            >
           </div>
+
           <div class="form__field">
             <label class="form__label" for="email">Email <span aria-hidden="true">*</span></label>
-            <input class="form__input" type="email" id="email" name="email"
-              required autocomplete="email" placeholder="casey@example.com">
+            <input
+              class="form__input"
+              type="email"
+              id="email"
+              name="email"
+              required
+              autocomplete="email"
+              placeholder="casey@example.com"
+            >
           </div>
         </div>
 
         <div class="form__row">
           <div class="form__field">
             <label class="form__label" for="brokerage">Brokerage</label>
-            <input class="form__input" type="text" id="brokerage" name="brokerage"
-              autocomplete="organization" placeholder="Optional">
+            <input
+              class="form__input"
+              type="text"
+              id="brokerage"
+              name="brokerage"
+              autocomplete="organization"
+              placeholder="Optional"
+            >
           </div>
+
           <div class="form__field">
             <label class="form__label" for="listing-date">Listing date</label>
-            <input class="form__input" type="date" id="listing-date" name="listing_date">
+            <input
+              class="form__input"
+              type="date"
+              id="listing-date"
+              name="listing_date"
+            >
           </div>
         </div>
 
         <div class="form__field">
           <label class="form__label" for="address">Property address <span aria-hidden="true">*</span></label>
-          <input class="form__input" type="text" id="address" name="property_address"
-            required autocomplete="street-address"
-            placeholder="1234 Sunset Blvd, Los Angeles, CA 90028">
+          <input
+            class="form__input"
+            type="text"
+            id="address"
+            name="property_address"
+            required
+            autocomplete="street-address"
+            placeholder="1234 Sunset Blvd, Los Angeles, CA 90028"
+          >
         </div>
 
         <div class="form__field">
@@ -327,14 +393,21 @@
 
         <div class="form__field">
           <label class="form__label" for="notes">Notes</label>
-          <textarea class="form__textarea" id="notes" name="notes"
-            placeholder="Anything else we should know about the property or timeline."></textarea>
+          <textarea
+            class="form__textarea"
+            id="notes"
+            name="notes"
+            placeholder="Anything else we should know about the property or timeline."
+          ></textarea>
         </div>
 
-        <button class="form__submit" type="submit">Submit inquiry</button>
+        <button class="form__submit" type="submit">
+          Submit inquiry
+        </button>
 
       </form>
 
+      <!-- Success state (shown after submit) -->
       <div class="inquire__success" aria-live="polite">
         Thank you. We'll be in touch within 24 hours.
       </div>
@@ -343,7 +416,10 @@
   </section>
 
 
-  <!-- FOOTER -->
+  <!-- ======================================================
+       FOOTER
+       ====================================================== -->
+
   <footer class="footer" aria-label="Site footer">
     <div class="footer__inner">
 
@@ -371,8 +447,7 @@
           </a>
         </p>
         <p class="footer__contact-line">
-          <a href="https://instagram.com/vesta.folio" class="footer__contact-link"
-            target="_blank" rel="noopener noreferrer">
+          <a href="https://instagram.com/vesta.folio" class="footer__contact-link" target="_blank" rel="noopener noreferrer">
             @vesta.folio
           </a>
         </p>
@@ -381,19 +456,33 @@
     </div>
 
     <div class="footer__bottom">
-      <p class="footer__copy">&copy; 2026 Vesta Folio. All rights reserved.</p>
+      <p class="footer__copy">
+        &copy; 2026 Vesta Folio. All rights reserved.
+      </p>
     </div>
   </footer>
 
 
-  <!-- PROJECT MODAL -->
+  <!-- ======================================================
+       PROJECT MODAL
+       ====================================================== -->
+
   <div class="modal-overlay" role="dialog" aria-modal="true" aria-label="Project detail">
-    <div class="modal"></div>
+    <div class="modal">
+      <!-- Content injected by site.js -->
+    </div>
   </div>
 
 
-  <!-- SCRIPTS -->
+  <!-- ======================================================
+       SCRIPTS
+       ====================================================== -->
+
   <script type="module" src="/js/site.js"></script>
+
+  <!-- Cloudflare Web Analytics — add beacon once domain is live -->
+  <!-- <script defer src='https://static.cloudflareinsights.com/beacon.min.js'
+    data-cf-beacon='{"token": "YOUR_TOKEN_HERE"}'></script> -->
 
 </body>
 </html>
