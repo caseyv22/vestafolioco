@@ -212,39 +212,6 @@ h1, h2, h3, h4, h5, h6 {
 
 
 /* ----------------------------------------------------------
-   SCROLL REVEAL
-   The one signature animation.
-   Initial: clip-path hides from bottom, opacity 0
-   Final: fully visible
-   Respects prefers-reduced-motion.
-   ---------------------------------------------------------- */
-
-.reveal {
-  opacity: 0;
-  clip-path: inset(0 0 100% 0);
-  transition:
-    opacity var(--transition-reveal),
-    clip-path var(--transition-reveal);
-}
-
-.reveal.is-visible {
-  opacity: 1;
-  clip-path: inset(0 0 0% 0);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .reveal {
-    opacity: 0;
-    clip-path: none;
-    transition: opacity 300ms ease;
-  }
-  .reveal.is-visible {
-    opacity: 1;
-  }
-}
-
-
-/* ----------------------------------------------------------
    FOCUS STYLES — visible keyboard navigation
    ---------------------------------------------------------- */
 
