@@ -1,101 +1,37 @@
 [
   {
-    "slug": "trousdale-modern",
-    "title": "Trousdale Modern",
-    "location": "Beverly Hills, CA",
+    "slug": "crescenta-valley-spanish",
+    "title": "Bright Crescenta Valley Oasis",
+    "location": "Crescenta Valley / Tujunga, CA",
     "year": 2026,
-    "description": "Editorial coverage of a contemporary glass-and-steel residence on the Trousdale ridge. Floor-to-ceiling glazing, a cantilevered volume over the canyon, and a material palette of raw concrete and warm walnut — documented at first light.",
-    "hero_image": "/images/projects/trousdale-modern/hero.webp",
+    "description": "A sun-drenched Spanish revival set against the foothills of Crescenta Valley. Arched doorways, warm tile, and a backyard that catches the light from morning through golden hour — documented across all three disciplines.",
+    "hero_image": "/images/projects/crescenta-valley-spanish/hero.webp",
     "gallery": [
-      "/images/projects/trousdale-modern/01.webp",
-      "/images/projects/trousdale-modern/02.webp",
-      "/images/projects/trousdale-modern/03.webp"
+      "/images/projects/crescenta-valley-spanish/01.webp",
+      "/images/projects/crescenta-valley-spanish/02.webp",
+      "/images/projects/crescenta-valley-spanish/03.webp",
+      "/images/projects/crescenta-valley-spanish/04.webp"
     ],
     "services": ["hdr", "cinematic", "staging"],
     "featured": true,
     "order": 1,
-    "published_at": "2026-05-20"
+    "published_at": "2026-06-20"
   },
   {
-    "slug": "los-feliz-craftsman",
-    "title": "Los Feliz Craftsman",
-    "location": "Los Feliz, CA",
+    "slug": "los-angeles-sunshine",
+    "title": "Sunshine Near SoFi",
+    "location": "Los Angeles, CA",
     "year": 2026,
-    "description": "A 1922 Craftsman bungalow restored to its original bones. Wide-plank oak floors, hand-set tile, and a garden that took twelve years to grow — photographed to honour the time built into every surface.",
-    "hero_image": "/images/projects/los-feliz-craftsman/hero.webp",
+    "description": "A bright, well-positioned residence minutes from SoFi Stadium. Clean lines, generous natural light, and interiors that photograph with an ease that comes from good bones and careful staging.",
+    "hero_image": "/images/projects/los-angeles-sunshine/hero.webp",
     "gallery": [
-      "/images/projects/los-feliz-craftsman/01.webp",
-      "/images/projects/los-feliz-craftsman/02.webp"
-    ],
-    "services": ["hdr", "staging"],
-    "featured": true,
-    "order": 2,
-    "published_at": "2026-04-14"
-  },
-  {
-    "slug": "malibu-ridge",
-    "title": "Malibu Ridge",
-    "location": "Malibu, CA",
-    "year": 2026,
-    "description": "A ridgeline compound above the Pacific. Three structures connected by stone paths, a pool that disappears into the horizon, and light that changes every twenty minutes. Shot over two days to catch it all.",
-    "hero_image": "/images/projects/malibu-ridge/hero.webp",
-    "gallery": [
-      "/images/projects/malibu-ridge/01.webp",
-      "/images/projects/malibu-ridge/02.webp",
-      "/images/projects/malibu-ridge/03.webp"
-    ],
-    "services": ["hdr", "cinematic"],
-    "featured": true,
-    "order": 3,
-    "published_at": "2026-03-30"
-  },
-  {
-    "slug": "silver-lake-compound",
-    "title": "Silver Lake Compound",
-    "location": "Silver Lake, CA",
-    "year": 2026,
-    "description": "A mid-century duplex compound reimagined as a single-family residence. Original terrazzo, a new addition by a local architect, and a rooftop deck with an unobstructed view of the reservoir.",
-    "hero_image": "/images/projects/silver-lake-compound/hero.webp",
-    "gallery": [
-      "/images/projects/silver-lake-compound/01.webp",
-      "/images/projects/silver-lake-compound/02.webp"
-    ],
-    "services": ["hdr", "staging"],
-    "featured": true,
-    "order": 4,
-    "published_at": "2026-03-08"
-  },
-  {
-    "slug": "bel-air-estate",
-    "title": "Bel Air Estate",
-    "location": "Bel Air, CA",
-    "year": 2026,
-    "description": "A gated estate on two acres with a guest house, motor court, and a formal garden designed in the 1960s. The main residence was photographed room by room across a single golden afternoon.",
-    "hero_image": "/images/projects/bel-air-estate/hero.webp",
-    "gallery": [
-      "/images/projects/bel-air-estate/01.webp",
-      "/images/projects/bel-air-estate/02.webp",
-      "/images/projects/bel-air-estate/03.webp"
-    ],
-    "services": ["hdr", "cinematic", "staging"],
-    "featured": true,
-    "order": 5,
-    "published_at": "2026-02-18"
-  },
-  {
-    "slug": "hancock-park-georgian",
-    "title": "Hancock Park Georgian",
-    "location": "Hancock Park, CA",
-    "year": 2025,
-    "description": "A Georgian Colonial on one of the park's most storied streets. Original millwork, a library with floor-to-ceiling shelves, and a back garden with a brick path that leads nowhere in particular.",
-    "hero_image": "/images/projects/hancock-park-georgian/hero.webp",
-    "gallery": [
-      "/images/projects/hancock-park-georgian/01.webp",
-      "/images/projects/hancock-park-georgian/02.webp"
+      "/images/projects/los-angeles-sunshine/01.webp",
+      "/images/projects/los-angeles-sunshine/02.webp",
+      "/images/projects/los-angeles-sunshine/03.webp"
     ],
     "services": ["hdr"],
     "featured": true,
-    "order": 6,
-    "published_at": "2025-12-10"
+    "order": 2,
+    "published_at": "2026-06-20"
   }
 ]
