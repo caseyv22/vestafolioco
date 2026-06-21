@@ -661,9 +661,7 @@
     border-bottom: none;
   }
 
-  .approach__step:first-child {
-    padding-left: 0;
-  }
+  /* All steps equal padding — no flush-left override */
 }
 
 
