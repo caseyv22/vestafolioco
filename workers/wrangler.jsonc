@@ -2,13 +2,17 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "vestafolioco-api",
   "main": "src/index.js",
-  "compatibility_date": "2026-06-01",
+  "compatibility_date": "2026-06-22",
   "routes": [
     {
       "pattern": "vestafolioco.com/api/*",
       "zone_name": "vestafolioco.com"
     }
   ],
+  "vars": {
+    "INQUIRY_FROM": "hello@vestafolioco.com",
+    "INQUIRY_TO": "vestafolioco@gmail.com"
+  },
   "observability": {
     "enabled": true
   }
