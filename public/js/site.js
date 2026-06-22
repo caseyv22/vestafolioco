@@ -218,7 +218,7 @@ function initMobileMenu() {
 
 
 /* ----------------------------------------------------------
-   INQUIRY FORM — v0 stub (Worker wired in v1)
+   INQUIRY FORM — posts to /api/inquiries (Worker)
    ---------------------------------------------------------- */
 
 function initInquiryForm() {
@@ -230,20 +230,56 @@ function initInquiryForm() {
     e.preventDefault();
 
     const submitBtn = $('[type="submit"]', form);
+    const originalLabel = submitBtn ? submitBtn.textContent : '';
+
+    clearError(form);
+
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
 
     const payload = Object.fromEntries(new FormData(form).entries());
     payload.services = $$('input[name="services"]:checked', form).map(cb => cb.value);
 
-    console.log('Inquiry payload (v0 stub):', payload);
+    try {
+      const res = await fetch('/api/inquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    setTimeout(() => {
-      if (form && success) {
+      if (res.ok) {
         form.style.display = 'none';
-        success.classList.add('is-visible');
+        if (success) success.classList.add('is-visible');
+        return;
       }
-    }, 600);
+
+      // Server returned a non-2xx — surface the message
+      let message = 'Something went wrong. Please try again, or email vestafolioco@gmail.com directly.';
+      try {
+        const body = await res.json();
+        if (body && body.error) message = body.error;
+      } catch { /* response wasn't JSON; keep default */ }
+      showError(form, message);
+    } catch (err) {
+      console.error('Inquiry network error:', err);
+      showError(form, 'Could not connect. Check your connection and try again.');
+    } finally {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
+    }
   });
+}
+
+function showError(form, message) {
+  clearError(form);
+  const el = document.createElement('p');
+  el.className = 'inquire__error';
+  el.setAttribute('role', 'alert');
+  el.textContent = message;
+  form.insertAdjacentElement('afterend', el);
+}
+
+function clearError(form) {
+  const existing = form.parentElement && form.parentElement.querySelector('.inquire__error');
+  if (existing) existing.remove();
 }
 
 
