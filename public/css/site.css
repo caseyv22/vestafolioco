@@ -971,6 +971,18 @@
   display: block;
 }
 
+/* Error state (server or network failure) */
+.inquire__error {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-body);
+  color: var(--color-cream);
+  background-color: color-mix(in srgb, var(--color-gold) 12%, transparent);
+  border-left: 2px solid var(--color-gold);
+  padding: var(--space-4) var(--space-5);
+  margin-top: var(--space-5);
+}
+
 @media (min-width: 768px) {
   .inquire__inner {
     padding-inline: var(--gutter-desktop);
