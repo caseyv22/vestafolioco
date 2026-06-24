@@ -1,156 +1,71 @@
-/* ============================================================
-   /admin/login.css
-   Brand-pure sign-in page. Cream surface, Forest text,
-   Gold submit. Mirrors the editorial discipline of the
-   public site without recycling its layout.
-   ============================================================ */
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in — Vesta Folio</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/brand/favicon.ico">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/admin/login.css">
+</head>
+<body class="login-page">
 
-.login-page {
-  background-color: var(--color-cream);
-  min-height: 100vh;
-  min-height: 100dvh;
-}
+  <main class="login">
+    <div class="login__inner">
 
-.login {
-  min-height: 100vh;
-  min-height: 100dvh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-6) var(--gutter-mobile);
-}
+      <a class="login__logo" href="/" aria-label="Vesta Folio home">
+        <img src="/brand/vesta-folio-horizontal.svg" alt="Vesta Folio" width="200">
+      </a>
 
-.login__inner {
-  width: 100%;
-  max-width: 420px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
+      <p class="login__label">STUDIO ACCESS</p>
+      <h1 class="login__heading">Sign in.</h1>
 
-.login__logo {
-  align-self: flex-start;
-  margin-bottom: var(--space-7);
-  text-decoration: none;
-}
+      <form class="login__form" id="login-form" novalidate>
 
-.login__logo img {
-  display: block;
-  height: auto;
-  width: 180px;
-}
+        <div class="login__field">
+          <label class="login__label-input" for="email">Email</label>
+          <input
+            class="login__input"
+            type="email"
+            id="email"
+            name="email"
+            required
+            autocomplete="username"
+            placeholder="name@email.com"
+            autofocus
+          >
+        </div>
 
-/* Eyebrow micro-label */
-.login__label {
-  font-family: var(--font-sans);
-  font-size: var(--text-micro);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--color-sage);
-  margin: 0;
-}
+        <div class="login__field">
+          <label class="login__label-input" for="password">Password</label>
+          <input
+            class="login__input"
+            type="password"
+            id="password"
+            name="password"
+            required
+            autocomplete="current-password"
+            minlength="1"
+          >
+        </div>
 
-.login__heading {
-  font-family: var(--font-display);
-  font-size: clamp(2.25rem, 5vw, 2.75rem);
-  font-weight: var(--font-weight-regular);
-  line-height: var(--leading-snug);
-  color: var(--color-forest);
-  margin: 0 0 var(--space-6) 0;
-}
+        <p class="login__error" id="login-error" role="alert" hidden></p>
 
-/* Form */
-.login__form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
+        <button class="login__submit" type="submit">
+          Sign in
+        </button>
 
-.login__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
+      </form>
 
-.login__label-input {
-  font-family: var(--font-sans);
-  font-size: var(--text-micro);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--color-sage);
-}
+      <p class="login__footer">
+        <a class="login__link" href="/admin/forgot-password">Forgot password?</a>
+      </p>
 
-.login__input {
-  width: 100%;
-  font-family: var(--font-sans);
-  font-size: var(--text-body);
-  font-weight: var(--font-weight-regular);
-  line-height: var(--leading-snug);
-  color: var(--color-forest);
-  background-color: transparent;
-  border: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 40%, transparent);
-  padding: var(--space-3) 0;
-  border-radius: 0;
-  outline: none;
-  transition: border-color 200ms ease;
-  -webkit-appearance: none;
-  appearance: none;
-}
+    </div>
+  </main>
 
-.login__input::placeholder {
-  color: color-mix(in srgb, var(--color-sage) 60%, transparent);
-}
-
-.login__input:focus {
-  border-bottom-color: var(--color-gold);
-}
-
-.login__input:autofill {
-  -webkit-text-fill-color: var(--color-forest);
-  box-shadow: 0 0 0px 1000px var(--color-cream) inset;
-}
-
-/* Submit */
-.login__submit {
-  margin-top: var(--space-4);
-  font-family: var(--font-sans);
-  font-size: var(--text-micro);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--color-forest);
-  background-color: var(--color-gold);
-  border: none;
-  padding: var(--space-4) var(--space-6);
-  cursor: pointer;
-  transition: background-color 200ms ease, opacity 200ms ease;
-  border-radius: 0;
-}
-
-.login__submit:hover:not(:disabled) {
-  background-color: color-mix(in srgb, var(--color-gold) 88%, var(--color-forest));
-}
-
-.login__submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Error state — Gold left border, never red */
-.login__error {
-  font-family: var(--font-sans);
-  font-size: var(--text-body-sm);
-  line-height: var(--leading-body);
-  color: var(--color-forest);
-  background-color: color-mix(in srgb, var(--color-gold) 12%, transparent);
-  border-left: 2px solid var(--color-gold);
-  padding: var(--space-3) var(--space-4);
-  margin: 0;
-}
-
-.login__error[hidden] {
-  display: none !important;
-}
+  <script src="/admin/login.js" type="module"></script>
+</body>
+</html>
