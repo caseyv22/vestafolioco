@@ -13,9 +13,10 @@
 // Inquiry is already in the studio inbox; user-facing flow should not break.
 //
 // Env bindings (set on the Worker in Cloudflare dashboard):
-//   RESEND_API_KEY  — Secret
-//   INQUIRY_FROM    — Text  (e.g. "hello@vestafolioco.com")
-//   INQUIRY_TO      — Text  (e.g. "vestafolioco@gmail.com")
+//   RESEND_API_KEY         — Secret
+//   TURNSTILE_SECRET_KEY   — Secret (optional; if unset, Turnstile validation is skipped)
+//   INQUIRY_FROM           — Text  (e.g. "hello@vestafolioco.com")
+//   INQUIRY_TO             — Text  (e.g. "vestafolioco@gmail.com")
 
 const ALLOWED_ORIGIN = 'https://vestafolioco.com';
 
@@ -67,6 +68,12 @@ async function handleInquiry(request, env) {
     return json({ error: 'Invalid request body.' }, 400);
   }
 
+  // 0. Verify Turnstile token (bot protection)
+  const turnstile = await validateTurnstile(data, request, env);
+  if (!turnstile.ok) {
+    return json({ error: turnstile.error }, 403);
+  }
+
   const errors = validate(data);
   if (errors.length) {
     return json({ error: errors[0] }, 400);
@@ -109,6 +116,48 @@ async function handleInquiry(request, env) {
   }
 
   return json({ ok: true }, 200);
+}
+
+
+/* ----------------------------------------------------------
+   TURNSTILE VALIDATION
+   ---------------------------------------------------------- */
+
+// Returns { ok: true } on success, { ok: false, error: "..." } on failure.
+// Tolerant: if TURNSTILE_SECRET_KEY isn't set, validation is skipped.
+// This lets us deploy code before setting the secret without breaking the form.
+async function validateTurnstile(data, request, env) {
+  if (!env.TURNSTILE_SECRET_KEY) {
+    console.warn('TURNSTILE_SECRET_KEY not set — skipping Turnstile validation.');
+    return { ok: true };
+  }
+
+  const token = data.turnstile_token;
+  if (!isNonEmptyString(token)) {
+    return { ok: false, error: "We couldn't verify your request. Please refresh and try again." };
+  }
+
+  const body = new FormData();
+  body.append('secret', env.TURNSTILE_SECRET_KEY);
+  body.append('response', token);
+  const clientIp = request.headers.get('CF-Connecting-IP');
+  if (clientIp) body.append('remoteip', clientIp);
+
+  try {
+    const resp = await fetch(
+      'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+      { method: 'POST', body }
+    );
+    const result = await resp.json();
+    if (result && result.success === true) {
+      return { ok: true };
+    }
+    console.error('Turnstile validation rejected:', JSON.stringify(result));
+    return { ok: false, error: "We couldn't verify your request. Please refresh and try again." };
+  } catch (err) {
+    console.error('Turnstile validation network error:', err);
+    return { ok: false, error: 'Could not verify your request. Please try again.' };
+  }
 }
 
 
