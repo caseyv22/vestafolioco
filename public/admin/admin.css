@@ -1,8 +1,8 @@
 /* ============================================================
    /admin/admin.css
    Admin shell — Cream surface, thin top nav, restrained.
-   Chunk 5 will fill in the main area; for now this is the
-   authenticated welcome placeholder.
+   Used by /admin (welcome) and /admin/account.
+   All values pulled from tokens.css — no hardcoded fallbacks.
    ============================================================ */
 
 .admin-page {
@@ -11,13 +11,16 @@
   min-height: 100dvh;
 }
 
-/* Top nav */
+/* ----------------------------------------------------------
+   Top nav
+   ---------------------------------------------------------- */
+
 .admin__nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--gutter-mobile);
+  gap: var(--space-3);
+  padding: var(--space-3) var(--gutter-mobile);
   background-color: var(--color-cream);
   border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 25%, transparent);
 }
@@ -37,19 +40,19 @@
 .admin__nav-links {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .admin__nav-link {
   font-family: var(--font-sans);
   font-size: var(--text-micro);
   font-weight: var(--font-weight-medium);
-  letter-spacing: 0.22em;
+  letter-spacing: var(--tracking-micro);
   text-transform: uppercase;
   color: var(--color-sage);
   text-decoration: none;
-  padding: var(--space-2) var(--space-3);
-  transition: color 200ms ease;
+  padding: var(--space-1) var(--space-2);
+  transition: color var(--transition-hover);
 }
 
 .admin__nav-link:hover {
@@ -64,25 +67,28 @@
   font-family: var(--font-sans);
   font-size: var(--text-micro);
   font-weight: var(--font-weight-medium);
-  letter-spacing: 0.22em;
+  letter-spacing: var(--tracking-micro);
   text-transform: uppercase;
   color: var(--color-sage);
   background: transparent;
   border: none;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-1) var(--space-2);
   cursor: pointer;
-  transition: color 200ms ease;
-  border-radius: 0;
+  transition: color var(--transition-hover);
+  border-radius: var(--border-radius);
 }
 
 .admin__nav-logout:hover {
   color: var(--color-gold);
 }
 
-/* Main area */
+/* ----------------------------------------------------------
+   Main area
+   ---------------------------------------------------------- */
+
 .admin__main {
   padding: var(--space-8) var(--gutter-mobile);
-  max-width: 720px;
+  max-width: var(--max-width-prose);
   margin: 0 auto;
 }
 
@@ -99,7 +105,8 @@
   margin: 0;
 }
 
-.admin__welcome[hidden] {
+.admin__welcome[hidden],
+.admin__content[hidden] {
   display: none !important;
 }
 
@@ -107,28 +114,29 @@
   font-family: var(--font-sans);
   font-size: var(--text-micro);
   font-weight: var(--font-weight-medium);
-  letter-spacing: 0.22em;
+  letter-spacing: var(--tracking-micro);
   text-transform: uppercase;
   color: var(--color-sage);
-  margin: 0 0 var(--space-4) 0;
+  margin: 0 0 var(--space-3) 0;
 }
 
 .admin__heading {
   font-family: var(--font-display);
-  font-size: clamp(2.5rem, 6vw, 3.25rem);
+  font-size: var(--text-display-lg);
   font-weight: var(--font-weight-regular);
-  line-height: var(--leading-snug);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
   color: var(--color-forest);
-  margin: 0 0 var(--space-5) 0;
+  margin: 0 0 var(--space-4) 0;
 }
 
 .admin__body {
   font-family: var(--font-sans);
-  font-size: var(--text-body);
+  font-size: var(--text-body-md);
   font-weight: var(--font-weight-regular);
   line-height: var(--leading-body);
   color: var(--color-forest);
-  margin: 0 0 var(--space-4) 0;
+  margin: 0 0 var(--space-3) 0;
 }
 
 .admin__body--muted {
@@ -140,26 +148,9 @@
   font-weight: var(--font-weight-medium);
 }
 
-@media (min-width: 768px) {
-  .admin__nav {
-    padding-inline: var(--gutter-desktop);
-  }
-  .admin__main {
-    padding-inline: var(--gutter-desktop);
-  }
-}
-
-/* ============================================================
+/* ----------------------------------------------------------
    Account page (chunk 4b)
-   ============================================================ */
-
-.admin__content {
-  display: block;
-}
-
-.admin__content[hidden] {
-  display: none !important;
-}
+   ---------------------------------------------------------- */
 
 .admin__section {
   margin-top: var(--space-8);
@@ -169,31 +160,31 @@
 
 .admin__section-heading {
   font-family: var(--font-display);
-  font-size: clamp(1.5rem, 3.5vw, 1.875rem);
+  font-size: var(--text-display-md);
   font-weight: var(--font-weight-medium);
   line-height: var(--leading-snug);
   color: var(--color-forest);
-  margin: 0 0 var(--space-5) 0;
+  margin: 0 0 var(--space-4) 0;
 }
 
 .admin__form {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
-  max-width: 420px;
+  gap: var(--space-4);
+  max-width: var(--max-width-narrow);
 }
 
 .admin__field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .admin__label-input {
   font-family: var(--font-sans);
   font-size: var(--text-micro);
   font-weight: var(--font-weight-medium);
-  letter-spacing: 0.22em;
+  letter-spacing: var(--tracking-micro);
   text-transform: uppercase;
   color: var(--color-sage);
 }
@@ -201,17 +192,17 @@
 .admin__input {
   width: 100%;
   font-family: var(--font-sans);
-  font-size: var(--text-body);
+  font-size: var(--text-body-md);
   font-weight: var(--font-weight-regular);
   line-height: var(--leading-snug);
   color: var(--color-forest);
   background-color: transparent;
   border: none;
   border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 40%, transparent);
-  padding: var(--space-3) 0;
+  padding: var(--space-2) 0;
   border-radius: 0;
   outline: none;
-  transition: border-color 200ms ease;
+  transition: border-color var(--transition-hover);
   -webkit-appearance: none;
   appearance: none;
 }
@@ -229,7 +220,7 @@
   font-family: var(--font-sans);
   font-size: var(--text-micro);
   font-weight: var(--font-weight-regular);
-  letter-spacing: 0.02em;
+  letter-spacing: var(--tracking-normal);
   color: var(--color-sage);
   margin: var(--space-1) 0 0 0;
 }
@@ -240,15 +231,17 @@
   font-family: var(--font-sans);
   font-size: var(--text-micro);
   font-weight: var(--font-weight-medium);
-  letter-spacing: 0.22em;
+  letter-spacing: var(--tracking-micro);
   text-transform: uppercase;
   color: var(--color-forest);
   background-color: var(--color-gold);
   border: none;
-  padding: var(--space-4) var(--space-6);
+  padding: var(--space-3) var(--space-5);
   cursor: pointer;
-  transition: background-color 200ms ease, opacity 200ms ease;
-  border-radius: 0;
+  transition: background-color var(--transition-hover), opacity var(--transition-hover);
+  border-radius: var(--border-radius);
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .admin__submit:hover:not(:disabled) {
@@ -268,7 +261,7 @@
   color: var(--color-forest);
   background-color: color-mix(in srgb, var(--color-gold) 12%, transparent);
   border-left: 2px solid var(--color-gold);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   margin: 0;
 }
 
@@ -284,10 +277,23 @@
   color: var(--color-forest);
   background-color: color-mix(in srgb, var(--color-sage) 12%, transparent);
   border-left: 2px solid var(--color-sage);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   margin: 0;
 }
 
 .admin__success[hidden] {
   display: none !important;
+}
+
+/* ----------------------------------------------------------
+   Desktop
+   ---------------------------------------------------------- */
+
+@media (min-width: 1024px) {
+  .admin__nav {
+    padding-inline: var(--gutter-desktop);
+  }
+  .admin__main {
+    padding-inline: var(--gutter-desktop);
+  }
 }
