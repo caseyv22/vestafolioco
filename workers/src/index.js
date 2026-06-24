@@ -25,6 +25,11 @@
 //   POST /api/auth/login    — verify password, issue session cookie
 //   POST /api/auth/logout   — revoke session, clear cookie
 //   GET  /api/auth/me       — return current user or 401
+//
+// Routes added in chunk 4b (account management):
+//   POST /api/auth/change-password   — session required; old + new
+//   POST /api/auth/forgot-password   — accept email; send reset link via Resend
+//   POST /api/auth/reset-password    — accept token + new password
 
 import bcrypt from 'bcryptjs';
 
@@ -36,6 +41,10 @@ const SESSION_DAYS = 30;
 // Anti-timing-attack dummy hash — used in login when email doesn't exist.
 // bcrypt.compare runs against this so failed logins take ~the same time as successful ones.
 const DUMMY_HASH = '$2b$12$e56ICJijxIJPH4INvT2Hfu/Q0dp1mRrLXqktHBz6c32LdZF5Kk/9O';
+
+// Password reset (chunk 4b)
+const PASSWORD_RESET_HOURS = 24;
+const MIN_PASSWORD_LENGTH = 8;
 
 const SERVICE_LABELS = {
   hdr:       'HDR Photography',
@@ -83,6 +92,24 @@ export default {
     if (url.pathname === '/api/auth/me') {
       if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
       if (request.method === 'GET')     return cors(await handleMe(request, env));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    if (url.pathname === '/api/auth/change-password') {
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'POST')    return cors(await handleChangePassword(request, env));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    if (url.pathname === '/api/auth/forgot-password') {
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'POST')    return cors(await handleForgotPassword(request, env));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    if (url.pathname === '/api/auth/reset-password') {
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'POST')    return cors(await handleResetPassword(request, env));
       return cors(new Response('Method not allowed', { status: 405 }));
     }
 
@@ -639,6 +666,342 @@ async function handleMe(request, env) {
     return json({ error: 'Not authenticated.' }, 401);
   }
   return json({ user });
+}
+
+
+/* ----------------------------------------------------------
+   ACCOUNT MANAGEMENT (chunk 4b)
+
+   - Change password (session required): verify old password,
+     hash new, update users, revoke other sessions for this user.
+   - Forgot password (no auth): generate token, store, send Resend
+     email. Identical response regardless of whether user exists.
+   - Reset password (no auth): validate token (exists, unused,
+     unexpired), hash new password, mark used, revoke all sessions
+     for the user.
+   ---------------------------------------------------------- */
+
+async function handleChangePassword(request, env) {
+  const user = await getCurrentUser(request, env);
+  if (!user) return json({ error: 'Not authenticated.' }, 401);
+
+  let data;
+  try {
+    data = await request.json();
+  } catch {
+    return json({ error: 'Invalid request body.' }, 400);
+  }
+
+  const oldPassword = isNonEmptyString(data?.old_password) ? data.old_password : '';
+  const newPassword = isNonEmptyString(data?.new_password) ? data.new_password : '';
+
+  if (!oldPassword || !newPassword) {
+    return json({ error: 'Current and new passwords are required.' }, 400);
+  }
+  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+    return json({ error: `New password must be at least ${MIN_PASSWORD_LENGTH} characters.` }, 400);
+  }
+  if (newPassword === oldPassword) {
+    return json({ error: 'New password must be different from the current password.' }, 400);
+  }
+  if (!env.DB) {
+    return json({ error: 'Service unavailable.' }, 500);
+  }
+
+  try {
+    const row = await env.DB
+      .prepare('SELECT password_hash FROM users WHERE id = ?')
+      .bind(user.id)
+      .first();
+
+    if (!row) return json({ error: 'Not authenticated.' }, 401);
+
+    const valid = await bcrypt.compare(oldPassword, row.password_hash);
+    if (!valid) return json({ error: 'Current password is incorrect.' }, 401);
+
+    const newHash = await bcrypt.hash(newPassword, 12);
+
+    await env.DB
+      .prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+      .bind(newHash, user.id)
+      .run();
+
+    // Revoke all OTHER sessions for this user (keep current session valid)
+    const currentToken = getCookie(request, SESSION_COOKIE);
+    if (currentToken) {
+      try {
+        await env.DB
+          .prepare('DELETE FROM sessions WHERE user_id = ? AND token != ?')
+          .bind(user.id, currentToken)
+          .run();
+      } catch (err) {
+        console.error('Other-session revocation failed (non-blocking):', err);
+      }
+    }
+
+    return json({ ok: true });
+  } catch (err) {
+    console.error('Change-password error:', err);
+    return json({ error: 'Could not change password.' }, 500);
+  }
+}
+
+async function handleForgotPassword(request, env) {
+  let data;
+  try {
+    data = await request.json();
+  } catch {
+    return json({ error: 'Invalid request body.' }, 400);
+  }
+
+  const email = isNonEmptyString(data?.email) ? data.email.trim().toLowerCase() : '';
+  if (!email) {
+    return json({ error: 'Email is required.' }, 400);
+  }
+
+  // Identical response regardless of whether the account exists — prevents enumeration.
+  const genericResponse = json({
+    ok: true,
+    message: 'If an account exists with that email, a reset link has been sent.',
+  });
+
+  if (!env.DB) {
+    console.error('DB binding not set — cannot process forgot-password.');
+    return genericResponse;
+  }
+
+  try {
+    const user = await env.DB
+      .prepare('SELECT id, email, name FROM users WHERE email = ?')
+      .bind(email)
+      .first();
+
+    if (!user) {
+      // Don't leak that the email isn't on file
+      return genericResponse;
+    }
+
+    const token = generateSessionToken(); // 32 bytes hex — same generator as session tokens
+    const expiresAt = new Date(Date.now() + PASSWORD_RESET_HOURS * 60 * 60 * 1000).toISOString();
+
+    await env.DB
+      .prepare('INSERT INTO password_resets (token, user_id, expires_at) VALUES (?, ?, ?)')
+      .bind(token, user.id, expiresAt)
+      .run();
+
+    // Best-effort send. If Resend fails, log but still return the same generic response —
+    // we don't want to leak email-send failure as a signal.
+    try {
+      await sendResetEmail(env, user.email, user.name, token);
+    } catch (err) {
+      console.error('Reset email send failed:', err);
+    }
+
+    return genericResponse;
+  } catch (err) {
+    console.error('Forgot-password error:', err);
+    return genericResponse;
+  }
+}
+
+async function handleResetPassword(request, env) {
+  let data;
+  try {
+    data = await request.json();
+  } catch {
+    return json({ error: 'Invalid request body.' }, 400);
+  }
+
+  const token = isNonEmptyString(data?.token) ? data.token.trim() : '';
+  const newPassword = isNonEmptyString(data?.new_password) ? data.new_password : '';
+
+  if (!token || !newPassword) {
+    return json({ error: 'Reset token and new password are required.' }, 400);
+  }
+  if (newPassword.length < MIN_PASSWORD_LENGTH) {
+    return json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` }, 400);
+  }
+  if (!env.DB) {
+    return json({ error: 'Reset is unavailable.' }, 500);
+  }
+
+  try {
+    const reset = await env.DB
+      .prepare('SELECT token, user_id, expires_at, used_at FROM password_resets WHERE token = ?')
+      .bind(token)
+      .first();
+
+    if (!reset) {
+      return json({ error: 'This reset link is invalid.' }, 400);
+    }
+    if (reset.used_at) {
+      return json({ error: 'This reset link has already been used.' }, 400);
+    }
+    if (new Date(reset.expires_at) < new Date()) {
+      return json({ error: 'This reset link has expired. Please request a new one.' }, 400);
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 12);
+
+    await env.DB
+      .prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+      .bind(newHash, reset.user_id)
+      .run();
+
+    await env.DB
+      .prepare("UPDATE password_resets SET used_at = datetime('now') WHERE token = ?")
+      .bind(token)
+      .run();
+
+    // Revoke ALL sessions for this user — they must re-login with the new password
+    try {
+      await env.DB
+        .prepare('DELETE FROM sessions WHERE user_id = ?')
+        .bind(reset.user_id)
+        .run();
+    } catch (err) {
+      console.error('Session revocation on reset failed (non-blocking):', err);
+    }
+
+    return json({ ok: true, redirect: '/admin/login' });
+  } catch (err) {
+    console.error('Reset-password error:', err);
+    return json({ error: 'Reset failed.' }, 500);
+  }
+}
+
+
+/* ----------------------------------------------------------
+   RESET EMAIL (chunk 4b)
+
+   Branded HTML matching the chunk 1 transactional email pattern:
+   Cream background, typeset wordmark, Gold hairline, Cormorant
+   heading, Inter body, plain-text fallback.
+   ---------------------------------------------------------- */
+
+async function sendResetEmail(env, recipientEmail, recipientName, token) {
+  if (!env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not set — skipping reset email send.');
+    return;
+  }
+
+  const fromAddress = env.INQUIRY_FROM || 'hello@vestafolioco.com';
+  const resetLink = `https://vestafolioco.com/admin/reset-password?token=${encodeURIComponent(token)}`;
+  const firstName = recipientName ? String(recipientName).trim().split(/\s+/)[0] : null;
+
+  const html = buildResetEmailHtml(firstName, resetLink);
+  const text = buildResetEmailText(firstName, resetLink);
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: `Vesta Folio <${fromAddress}>`,
+      to: [recipientEmail],
+      subject: 'Reset your password',
+      html,
+      text,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Resend API error ${res.status}: ${body}`);
+  }
+}
+
+function buildResetEmailHtml(firstName, resetLink) {
+  const greeting = firstName ? `Hello, ${esc(firstName)}.` : 'Hello.';
+  const safeLink = esc(resetLink);
+
+  return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Reset your password</title>
+</head>
+<body style="margin:0;padding:0;background-color:#F2EDE3;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#F2EDE3;">
+  <tr>
+    <td align="center" style="padding:48px 16px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;background-color:#F2EDE3;">
+
+        <tr>
+          <td align="left" style="padding-bottom:32px;">
+            <span style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:400;letter-spacing:0.18em;color:#1F2E2A;text-transform:uppercase;">VESTA FOLIO</span>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="border-top:1px solid #A8884E;padding:0;line-height:0;height:1px;font-size:0;">&nbsp;</td>
+        </tr>
+
+        <tr>
+          <td style="padding:40px 0 16px 0;">
+            <h1 style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-size:32px;font-weight:400;line-height:1.2;color:#1F2E2A;">Reset your password.</h1>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0 0 24px 0;">
+            <p style="margin:0 0 16px 0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:16px;font-weight:400;line-height:1.75;color:#1F2E2A;">${greeting}</p>
+            <p style="margin:0 0 16px 0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:16px;font-weight:400;line-height:1.75;color:#1F2E2A;">A password reset was requested for your Vesta Folio account. Use the link below to set a new password. The link expires in 24 hours.</p>
+            <p style="margin:0 0 24px 0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:16px;font-weight:400;line-height:1.75;color:#4A5C57;">If you didn't request this, you can ignore this email. Your password won't change.</p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0 0 32px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="background-color:#A8884E;">
+                  <a href="${safeLink}" style="display:inline-block;padding:16px 32px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;font-weight:500;letter-spacing:0.22em;text-transform:uppercase;color:#1F2E2A;text-decoration:none;">Reset password</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:0 0 32px 0;">
+            <p style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:13px;font-weight:400;line-height:1.6;color:#4A5C57;">Or paste this link into your browser:<br /><span style="color:#1F2E2A;word-break:break-all;">${safeLink}</span></p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="border-top:1px solid #A8884E;padding:0;line-height:0;height:1px;font-size:0;">&nbsp;</td>
+        </tr>
+
+        <tr>
+          <td style="padding:24px 0 0 0;">
+            <p style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:13px;font-weight:400;line-height:1.6;color:#4A5C57;">— Vesta Folio</p>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>`;
+}
+
+function buildResetEmailText(firstName, resetLink) {
+  const greeting = firstName ? `Hello, ${firstName}.` : 'Hello.';
+  return `${greeting}
+
+A password reset was requested for your Vesta Folio account. Use the link below to set a new password. The link expires in 24 hours.
+
+${resetLink}
+
+If you didn't request this, you can ignore this email. Your password won't change.
+
+— Vesta Folio
+`;
 }
 
 
