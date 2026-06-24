@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account — Vesta Folio</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/brand/favicon.ico">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body class="admin-page">
+
+  <nav class="admin__nav" aria-label="Studio admin">
+    <a class="admin__nav-logo" href="/admin" aria-label="Vesta Folio admin home">
+      <img src="/brand/vesta-folio-horizontal.svg" alt="Vesta Folio" width="160">
+    </a>
+    <div class="admin__nav-links">
+      <a class="admin__nav-link" href="/admin/account" aria-current="page">Account</a>
+      <button class="admin__nav-logout" id="logout-btn" type="button">
+        Log out
+      </button>
+    </div>
+  </nav>
+
+  <main class="admin__main">
+
+    <div class="admin__loading" id="admin-loading">
+      <p>One moment.</p>
+    </div>
+
+    <div class="admin__content" id="admin-authenticated" hidden>
+
+      <p class="admin__label">ACCOUNT</p>
+      <h1 class="admin__heading">Your account.</h1>
+      <p class="admin__body">
+        Signed in as <span id="admin-user-email" class="admin__email"></span>.
+      </p>
+
+      <div class="admin__section">
+        <h2 class="admin__section-heading">Change password</h2>
+
+        <form class="admin__form" id="password-form" novalidate>
+
+          <div class="admin__field">
+            <label class="admin__label-input" for="old-password">Current password</label>
+            <input
+              class="admin__input"
+              type="password"
+              id="old-password"
+              name="old_password"
+              required
+              autocomplete="current-password"
+            >
+          </div>
+
+          <div class="admin__field">
+            <label class="admin__label-input" for="new-password">New password</label>
+            <input
+              class="admin__input"
+              type="password"
+              id="new-password"
+              name="new_password"
+              required
+              autocomplete="new-password"
+              minlength="8"
+            >
+            <p class="admin__hint">At least 8 characters.</p>
+          </div>
+
+          <div class="admin__field">
+            <label class="admin__label-input" for="confirm-password">Confirm new password</label>
+            <input
+              class="admin__input"
+              type="password"
+              id="confirm-password"
+              name="confirm_password"
+              required
+              autocomplete="new-password"
+              minlength="8"
+            >
+          </div>
+
+          <p class="admin__error" id="password-error" role="alert" hidden></p>
+          <p class="admin__success" id="password-success" role="status" hidden>
+            Password updated.
+          </p>
+
+          <button class="admin__submit" type="submit">
+            Update password
+          </button>
+
+        </form>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="/admin/account.js" type="module"></script>
+</body>
+</html>
