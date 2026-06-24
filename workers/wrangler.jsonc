@@ -13,6 +13,13 @@
     "INQUIRY_FROM": "hello@vestafolioco.com",
     "INQUIRY_TO": "vestafolioco@gmail.com"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "vestafolioco-db",
+      "database_id": "3e703131-aec6-4b74-a6cf-cd1f0e423c5f"
+    }
+  ],
   "observability": {
     "enabled": true
   }
