@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in — Vesta Folio</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/brand/favicon.ico">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/admin/login.css">
+</head>
+<body class="login-page">
+
+  <main class="login">
+    <div class="login__inner">
+
+      <a class="login__logo" href="/" aria-label="Vesta Folio home">
+        <img src="/brand/vesta-folio-horizontal.svg" alt="Vesta Folio" width="200">
+      </a>
+
+      <p class="login__label">STUDIO ACCESS</p>
+      <h1 class="login__heading">Sign in.</h1>
+
+      <form class="login__form" id="login-form" novalidate>
+
+        <div class="login__field">
+          <label class="login__label-input" for="email">Email</label>
+          <input
+            class="login__input"
+            type="email"
+            id="email"
+            name="email"
+            required
+            autocomplete="username"
+            placeholder="name@email.com"
+            autofocus
+          >
+        </div>
+
+        <div class="login__field">
+          <label class="login__label-input" for="password">Password</label>
+          <input
+            class="login__input"
+            type="password"
+            id="password"
+            name="password"
+            required
+            autocomplete="current-password"
+            minlength="1"
+          >
+        </div>
+
+        <p class="login__error" id="login-error" role="alert" hidden></p>
+
+        <button class="login__submit" type="submit">
+          Sign in
+        </button>
+
+      </form>
+
+    </div>
+  </main>
+
+  <script src="/admin/login.js" type="module"></script>
+</body>
+</html>

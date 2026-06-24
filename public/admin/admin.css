@@ -1,0 +1,124 @@
+/* ============================================================
+   /admin/admin.css
+   Admin shell — Cream surface, thin top nav, restrained.
+   Chunk 5 will fill in the main area; for now this is the
+   authenticated welcome placeholder.
+   ============================================================ */
+
+.admin-page {
+  background-color: var(--color-cream);
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Top nav */
+.admin__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--gutter-mobile);
+  background-color: var(--color-cream);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 25%, transparent);
+}
+
+.admin__nav-logo {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.admin__nav-logo img {
+  display: block;
+  height: auto;
+  width: 140px;
+}
+
+.admin__nav-logout {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-sage);
+  background: transparent;
+  border: none;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition: color 200ms ease;
+  border-radius: 0;
+}
+
+.admin__nav-logout:hover {
+  color: var(--color-gold);
+}
+
+/* Main area */
+.admin__main {
+  padding: var(--space-8) var(--gutter-mobile);
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.admin__loading {
+  font-family: var(--font-display);
+  font-size: var(--text-display-md);
+  font-weight: var(--font-weight-regular);
+  color: color-mix(in srgb, var(--color-sage) 60%, transparent);
+  text-align: center;
+  padding-block: var(--space-8);
+}
+
+.admin__loading p {
+  margin: 0;
+}
+
+.admin__welcome[hidden] {
+  display: none !important;
+}
+
+.admin__label {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-sage);
+  margin: 0 0 var(--space-4) 0;
+}
+
+.admin__heading {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 6vw, 3.25rem);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--leading-snug);
+  color: var(--color-forest);
+  margin: 0 0 var(--space-5) 0;
+}
+
+.admin__body {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--leading-body);
+  color: var(--color-forest);
+  margin: 0 0 var(--space-4) 0;
+}
+
+.admin__body--muted {
+  color: var(--color-sage);
+}
+
+.admin__email {
+  color: var(--color-gold);
+  font-weight: var(--font-weight-medium);
+}
+
+@media (min-width: 768px) {
+  .admin__nav {
+    padding-inline: var(--gutter-desktop);
+  }
+  .admin__main {
+    padding-inline: var(--gutter-desktop);
+  }
+}

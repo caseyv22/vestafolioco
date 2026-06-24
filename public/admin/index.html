@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Studio admin — Vesta Folio</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/brand/favicon.ico">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body class="admin-page">
+
+  <nav class="admin__nav" aria-label="Studio admin">
+    <a class="admin__nav-logo" href="/admin" aria-label="Vesta Folio admin home">
+      <img src="/brand/vesta-folio-horizontal.svg" alt="Vesta Folio" width="160">
+    </a>
+    <button class="admin__nav-logout" id="logout-btn" type="button">
+      Log out
+    </button>
+  </nav>
+
+  <main class="admin__main">
+
+    <div class="admin__loading" id="admin-loading">
+      <p>One moment.</p>
+    </div>
+
+    <div class="admin__welcome" id="admin-authenticated" hidden>
+      <p class="admin__label">STUDIO ADMIN</p>
+      <h1 class="admin__heading">Welcome.</h1>
+      <p class="admin__body">
+        Signed in as <span id="admin-user-email" class="admin__email"></span>.
+      </p>
+      <p class="admin__body admin__body--muted">
+        The project dashboard lands in the next chunk. For now, this confirms your session is authenticated.
+      </p>
+    </div>
+
+  </main>
+
+  <script src="/admin/admin.js" type="module"></script>
+</body>
+</html>
