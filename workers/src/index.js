@@ -19,9 +19,23 @@
 //   INQUIRY_TO             — Text  (e.g. "vestafolioco@gmail.com")
 //
 // D1 bindings (set in wrangler.jsonc):
-//   DB — vestafolioco-db (inquiry log; best-effort, failure non-blocking)
+//   DB — vestafolioco-db (inquiry log, users, sessions)
+//
+// Routes added in chunk 4a (auth):
+//   POST /api/auth/login    — verify password, issue session cookie
+//   POST /api/auth/logout   — revoke session, clear cookie
+//   GET  /api/auth/me       — return current user or 401
+
+import bcrypt from 'bcryptjs';
 
 const ALLOWED_ORIGIN = 'https://vestafolioco.com';
+
+// Auth constants (chunk 4)
+const SESSION_COOKIE = 'vf_session';
+const SESSION_DAYS = 30;
+// Anti-timing-attack dummy hash — used in login when email doesn't exist.
+// bcrypt.compare runs against this so failed logins take ~the same time as successful ones.
+const DUMMY_HASH = '$2b$12$e56ICJijxIJPH4INvT2Hfu/Q0dp1mRrLXqktHBz6c32LdZF5Kk/9O';
 
 const SERVICE_LABELS = {
   hdr:       'HDR Photography',
@@ -51,6 +65,24 @@ export default {
       if (request.method === 'POST') {
         return cors(await handleInquiry(request, env));
       }
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    if (url.pathname === '/api/auth/login') {
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'POST')    return cors(await handleLogin(request, env));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    if (url.pathname === '/api/auth/logout') {
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'POST')    return cors(await handleLogout(request, env));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    if (url.pathname === '/api/auth/me') {
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')     return cors(await handleMe(request, env));
       return cors(new Response('Method not allowed', { status: 405 }));
     }
 
@@ -504,6 +536,176 @@ async function sendEmail(env, opts) {
 
 
 /* ----------------------------------------------------------
+   AUTH (chunk 4a)
+
+   - Login: bcrypt verify password, generate 32-byte session token,
+     insert into D1 sessions table with 30-day expiry, set HttpOnly
+     Secure SameSite=Lax cookie.
+   - Logout: delete session row, clear cookie.
+   - Me: validate cookie against D1, return { user } or 401.
+   ---------------------------------------------------------- */
+
+async function handleLogin(request, env) {
+  let data;
+  try {
+    data = await request.json();
+  } catch {
+    return json({ error: 'Invalid request body.' }, 400);
+  }
+
+  const email = isNonEmptyString(data?.email) ? data.email.trim().toLowerCase() : '';
+  const password = isNonEmptyString(data?.password) ? data.password : '';
+
+  if (!email || !password) {
+    return json({ error: 'Email and password are required.' }, 400);
+  }
+  if (!env.DB) {
+    console.error('DB binding not set — cannot authenticate.');
+    return json({ error: 'Authentication is unavailable.' }, 500);
+  }
+
+  try {
+    const user = await env.DB
+      .prepare('SELECT id, email, password_hash, role, name FROM users WHERE email = ?')
+      .bind(email)
+      .first();
+
+    // Anti-timing: always run bcrypt.compare, even when user doesn't exist.
+    const hashToCheck = user?.password_hash || DUMMY_HASH;
+    const valid = await bcrypt.compare(password, hashToCheck);
+
+    if (!user || !valid) {
+      // Generic message — no enumeration signal
+      return json({ error: 'Invalid email or password.' }, 401);
+    }
+
+    // Issue session
+    const token = generateSessionToken();
+    const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+    await env.DB
+      .prepare('INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)')
+      .bind(token, user.id, expiresAt)
+      .run();
+
+    // Best-effort update of last_login_at
+    try {
+      await env.DB
+        .prepare("UPDATE users SET last_login_at = datetime('now') WHERE id = ?")
+        .bind(user.id)
+        .run();
+    } catch (err) {
+      console.error('last_login_at update failed (non-blocking):', err);
+    }
+
+    const cookie = buildSessionCookie(token, SESSION_DAYS * 24 * 60 * 60);
+    const redirect = user.role === 'admin' ? '/admin' : '/portal';
+
+    return new Response(
+      JSON.stringify({ ok: true, redirect, user: { email: user.email, role: user.role, name: user.name } }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json', 'Set-Cookie': cookie },
+      }
+    );
+  } catch (err) {
+    console.error('Login error:', err);
+    return json({ error: 'Authentication failed.' }, 500);
+  }
+}
+
+async function handleLogout(request, env) {
+  const token = getCookie(request, SESSION_COOKIE);
+
+  if (token && env.DB) {
+    try {
+      await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(token).run();
+    } catch (err) {
+      console.error('Logout DB error (non-blocking):', err);
+    }
+  }
+
+  // Always clear the cookie, even if delete failed
+  const expiredCookie = buildSessionCookie('', 0);
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json', 'Set-Cookie': expiredCookie },
+  });
+}
+
+async function handleMe(request, env) {
+  const user = await getCurrentUser(request, env);
+  if (!user) {
+    return json({ error: 'Not authenticated.' }, 401);
+  }
+  return json({ user });
+}
+
+
+/* ----------------------------------------------------------
+   AUTH HELPERS
+   ---------------------------------------------------------- */
+
+// Returns { id, email, role, name } or null
+async function getCurrentUser(request, env) {
+  if (!env.DB) return null;
+  const token = getCookie(request, SESSION_COOKIE);
+  if (!token) return null;
+
+  try {
+    const row = await env.DB
+      .prepare(
+        `SELECT users.id, users.email, users.role, users.name, sessions.expires_at
+         FROM sessions
+         JOIN users ON sessions.user_id = users.id
+         WHERE sessions.token = ?`
+      )
+      .bind(token)
+      .first();
+
+    if (!row) return null;
+
+    if (new Date(row.expires_at) < new Date()) {
+      // Expired — delete and treat as not authenticated
+      try {
+        await env.DB.prepare('DELETE FROM sessions WHERE token = ?').bind(token).run();
+      } catch { /* non-blocking */ }
+      return null;
+    }
+
+    return { id: row.id, email: row.email, role: row.role, name: row.name };
+  } catch (err) {
+    console.error('Session lookup error:', err);
+    return null;
+  }
+}
+
+function generateSessionToken() {
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function getCookie(request, name) {
+  const header = request.headers.get('Cookie');
+  if (!header) return null;
+  const cookies = header.split(';');
+  for (const c of cookies) {
+    const idx = c.indexOf('=');
+    if (idx < 0) continue;
+    const k = c.slice(0, idx).trim();
+    if (k === name) return c.slice(idx + 1).trim();
+  }
+  return null;
+}
+
+function buildSessionCookie(value, maxAgeSeconds) {
+  // Domain-scoped to vestafolioco.com; HttpOnly + Secure required
+  return `${SESSION_COOKIE}=${value}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAgeSeconds}`;
+}
+
+
+/* ----------------------------------------------------------
    RESPONSE HELPERS
    ---------------------------------------------------------- */
 
@@ -517,8 +719,9 @@ function json(body, status = 200) {
 function cors(response) {
   const headers = new Headers(response.headers);
   headers.set('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
-  headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   headers.set('Access-Control-Allow-Headers', 'Content-Type');
+  headers.set('Access-Control-Allow-Credentials', 'true');
   headers.set('Vary', 'Origin');
   return new Response(response.body, { status: response.status, headers });
 }
