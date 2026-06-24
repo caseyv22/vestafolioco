@@ -29,6 +29,8 @@
   <link rel="stylesheet" href="/css/tokens.css">
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/css/site.css">
+  <!-- Cloudflare Turnstile (bot protection on inquiry form) -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 </head>
 
 <body>
@@ -403,6 +405,13 @@
             placeholder="Anything else we should know about the property or timeline."
           ></textarea>
         </div>
+
+        <div
+          class="cf-turnstile form__turnstile"
+          data-sitekey="0x4AAAAAADp8RrK7OorQ3wHv"
+          data-appearance="interaction-only"
+          data-theme="dark"
+        ></div>
 
         <button class="form__submit" type="submit">
           Submit inquiry
