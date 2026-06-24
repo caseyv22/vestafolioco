@@ -238,6 +238,11 @@ function initInquiryForm() {
 
     const payload = Object.fromEntries(new FormData(form).entries());
     payload.services = $$('input[name="services"]:checked', form).map(cb => cb.value);
+    // FormData picks up cf-turnstile-response automatically; rename for cleaner API field
+    if (payload['cf-turnstile-response']) {
+      payload.turnstile_token = payload['cf-turnstile-response'];
+      delete payload['cf-turnstile-response'];
+    }
 
     try {
       const res = await fetch('/api/inquiries', {
@@ -252,7 +257,10 @@ function initInquiryForm() {
         return;
       }
 
-      // Server returned a non-2xx — surface the message
+      // Server returned a non-2xx — surface the message and reset Turnstile
+      // (tokens are single-use; user needs a fresh one to retry)
+      resetTurnstile();
+
       let message = 'Something went wrong. Please try again, or email vestafolioco@gmail.com directly.';
       try {
         const body = await res.json();
@@ -261,11 +269,18 @@ function initInquiryForm() {
       showError(form, message);
     } catch (err) {
       console.error('Inquiry network error:', err);
+      resetTurnstile();
       showError(form, 'Could not connect. Check your connection and try again.');
     } finally {
       if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = originalLabel; }
     }
   });
+}
+
+function resetTurnstile() {
+  if (window.turnstile && typeof window.turnstile.reset === 'function') {
+    try { window.turnstile.reset(); } catch { /* no-op */ }
+  }
 }
 
 function showError(form, message) {
