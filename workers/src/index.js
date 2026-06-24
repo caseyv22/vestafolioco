@@ -17,6 +17,9 @@
 //   TURNSTILE_SECRET_KEY   — Secret (optional; if unset, Turnstile validation is skipped)
 //   INQUIRY_FROM           — Text  (e.g. "hello@vestafolioco.com")
 //   INQUIRY_TO             — Text  (e.g. "vestafolioco@gmail.com")
+//
+// D1 bindings (set in wrangler.jsonc):
+//   DB — vestafolioco-db (inquiry log; best-effort, failure non-blocking)
 
 const ALLOWED_ORIGIN = 'https://vestafolioco.com';
 
@@ -99,6 +102,9 @@ async function handleInquiry(request, env) {
     );
   }
 
+  // 1a. Log to D1 (best-effort — failure does not block success)
+  await logInquiry(data, env);
+
   // 2. Confirmation to the inquirer (best-effort — failure does not block success)
   const confirmation = buildConfirmationContent(data);
   const cResp = await sendEmail(env, {
@@ -157,6 +163,44 @@ async function validateTurnstile(data, request, env) {
   } catch (err) {
     console.error('Turnstile validation network error:', err);
     return { ok: false, error: 'Could not verify your request. Please try again.' };
+  }
+}
+
+
+/* ----------------------------------------------------------
+   INQUIRY LOGGING (D1)
+   ---------------------------------------------------------- */
+
+// Best-effort: inserts the inquiry into the D1 `inquiries` table.
+// Failures are logged but do not propagate — the email already succeeded,
+// the user already sees a success state, and the inquiry is in the studio inbox.
+async function logInquiry(d, env) {
+  if (!env.DB) {
+    console.warn('DB binding not set — skipping inquiry log.');
+    return;
+  }
+
+  try {
+    const services = Array.isArray(d.services) ? d.services.join(',') : null;
+
+    await env.DB
+      .prepare(
+        `INSERT INTO inquiries
+         (name, email, brokerage, property_address, listing_date, services, notes)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      )
+      .bind(
+        d.name,
+        d.email,
+        d.brokerage || null,
+        d.property_address,
+        d.listing_date || null,
+        services,
+        d.notes || null
+      )
+      .run();
+  } catch (err) {
+    console.error('D1 inquiry log failure (non-blocking):', err);
   }
 }
 
