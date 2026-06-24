@@ -1,8 +1,8 @@
 /* ============================================================
    /admin/login.css
-   Brand-pure sign-in page. Cream surface, Forest text,
-   Gold submit. Mirrors the editorial discipline of the
-   public site without recycling its layout.
+   Shared by /admin/login, /admin/forgot-password, /admin/reset-password.
+   Cream surface, Forest text, Gold submit. Brand-pure.
+   All values pulled from tokens.css — no hardcoded fallbacks.
    ============================================================ */
 
 .login-page {
@@ -22,7 +22,7 @@
 
 .login__inner {
   width: 100%;
-  max-width: 420px;
+  max-width: var(--max-width-narrow);
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
@@ -30,7 +30,7 @@
 
 .login__logo {
   align-self: flex-start;
-  margin-bottom: var(--space-7);
+  margin-bottom: var(--space-6);
   text-decoration: none;
 }
 
@@ -45,7 +45,7 @@
   font-family: var(--font-sans);
   font-size: var(--text-micro);
   font-weight: var(--font-weight-medium);
-  letter-spacing: 0.22em;
+  letter-spacing: var(--tracking-micro);
   text-transform: uppercase;
   color: var(--color-sage);
   margin: 0;
@@ -53,14 +53,15 @@
 
 .login__heading {
   font-family: var(--font-display);
-  font-size: clamp(2.25rem, 5vw, 2.75rem);
+  font-size: var(--text-display-lg);
   font-weight: var(--font-weight-regular);
-  line-height: var(--leading-snug);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-display);
   color: var(--color-forest);
-  margin: 0 0 var(--space-6) 0;
+  margin: 0 0 var(--space-5) 0;
 }
 
-/* Form */
+/* Form layout */
 .login__form {
   display: flex;
   flex-direction: column;
@@ -70,14 +71,14 @@
 .login__field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
 .login__label-input {
   font-family: var(--font-sans);
   font-size: var(--text-micro);
   font-weight: var(--font-weight-medium);
-  letter-spacing: 0.22em;
+  letter-spacing: var(--tracking-micro);
   text-transform: uppercase;
   color: var(--color-sage);
 }
@@ -85,17 +86,17 @@
 .login__input {
   width: 100%;
   font-family: var(--font-sans);
-  font-size: var(--text-body);
+  font-size: var(--text-body-md);
   font-weight: var(--font-weight-regular);
   line-height: var(--leading-snug);
   color: var(--color-forest);
   background-color: transparent;
   border: none;
   border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 40%, transparent);
-  padding: var(--space-3) 0;
+  padding: var(--space-2) 0;
   border-radius: 0;
   outline: none;
-  transition: border-color 200ms ease;
+  transition: border-color var(--transition-hover);
   -webkit-appearance: none;
   appearance: none;
 }
@@ -115,19 +116,21 @@
 
 /* Submit */
 .login__submit {
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
   font-family: var(--font-sans);
   font-size: var(--text-micro);
   font-weight: var(--font-weight-medium);
-  letter-spacing: 0.22em;
+  letter-spacing: var(--tracking-micro);
   text-transform: uppercase;
   color: var(--color-forest);
   background-color: var(--color-gold);
   border: none;
-  padding: var(--space-4) var(--space-6);
+  padding: var(--space-3) var(--space-5);
   cursor: pointer;
-  transition: background-color 200ms ease, opacity 200ms ease;
-  border-radius: 0;
+  transition: background-color var(--transition-hover), opacity var(--transition-hover);
+  border-radius: var(--border-radius);
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .login__submit:hover:not(:disabled) {
@@ -147,7 +150,7 @@
   color: var(--color-forest);
   background-color: color-mix(in srgb, var(--color-gold) 12%, transparent);
   border-left: 2px solid var(--color-gold);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   margin: 0;
 }
 
@@ -156,24 +159,23 @@
 }
 
 /* ============================================================
-   Shared by forgot-password and reset-password pages (chunk 4b)
-   These pages reuse the .login__* layout but need a few extras.
+   Shared by /admin/forgot-password and /admin/reset-password
    ============================================================ */
 
 .login__body {
   font-family: var(--font-sans);
-  font-size: var(--text-body);
+  font-size: var(--text-body-md);
   font-weight: var(--font-weight-regular);
   line-height: var(--leading-body);
   color: var(--color-forest);
-  margin: 0 0 var(--space-5) 0;
+  margin: 0 0 var(--space-3) 0;
 }
 
 .login__hint {
   font-family: var(--font-sans);
   font-size: var(--text-micro);
   font-weight: var(--font-weight-regular);
-  letter-spacing: 0.02em;
+  letter-spacing: var(--tracking-normal);
   color: var(--color-sage);
   margin: var(--space-1) 0 0 0;
 }
@@ -185,7 +187,7 @@
   color: var(--color-forest);
   background-color: color-mix(in srgb, var(--color-sage) 12%, transparent);
   border-left: 2px solid var(--color-sage);
-  padding: var(--space-4) var(--space-5);
+  padding: var(--space-3) var(--space-4);
   margin: 0;
 }
 
@@ -198,11 +200,11 @@
 }
 
 .login__footer {
-  margin-top: var(--space-5);
+  margin-top: var(--space-4);
   font-family: var(--font-sans);
   font-size: var(--text-micro);
   font-weight: var(--font-weight-medium);
-  letter-spacing: 0.22em;
+  letter-spacing: var(--tracking-micro);
   text-transform: uppercase;
   color: var(--color-sage);
 }
@@ -212,7 +214,7 @@
   text-decoration: none;
   border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 40%, transparent);
   padding-bottom: 1px;
-  transition: color 200ms ease, border-color 200ms ease;
+  transition: color var(--transition-hover), border-color var(--transition-hover);
 }
 
 .login__link:hover {
