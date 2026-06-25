@@ -1,293 +1,427 @@
 /* ============================================================
-   /admin/admin.css
-   Admin shell — Cream surface, thin top nav, restrained.
-   Chunk 5 will fill in the main area; for now this is the
-   authenticated welcome placeholder.
+   /admin/admin.js
+   Chunk 5a — project list, new/edit/delete CRUD.
+   Auth gate pattern matches account.js (chunk 4b).
    ============================================================ */
 
-.admin-page {
-  background-color: var(--color-cream);
-  min-height: 100vh;
-  min-height: 100dvh;
-}
+// ── DOM refs ──────────────────────────────────────────────────
 
-/* Top nav */
-.admin__nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--gutter-mobile);
-  background-color: var(--color-cream);
-  border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 25%, transparent);
-}
+const loadingEl        = document.getElementById('admin-loading');
+const authenticatedEl  = document.getElementById('admin-authenticated');
+const logoutBtn        = document.getElementById('logout-btn');
 
-.admin__nav-logo {
-  display: inline-flex;
-  align-items: center;
-  text-decoration: none;
-}
+const projectsLoading  = document.getElementById('projects-loading');
+const projectsError    = document.getElementById('projects-error');
+const projectsTableWrap= document.getElementById('projects-table-wrap');
+const projectsTbody    = document.getElementById('projects-tbody');
+const projectsEmpty    = document.getElementById('projects-empty');
+const newProjectBtn    = document.getElementById('new-project-btn');
 
-.admin__nav-logo img {
-  display: block;
-  height: auto;
-  width: 140px;
-}
+// Project modal
+const modalOverlay     = document.getElementById('modal-overlay');
+const modalTitle       = document.getElementById('modal-title');
+const modalClose       = document.getElementById('modal-close');
+const modalCancel      = document.getElementById('modal-cancel');
+const modalError       = document.getElementById('modal-error');
+const projectForm      = document.getElementById('project-form');
+const modalSubmit      = document.getElementById('modal-submit');
+const editingSlugInput = document.getElementById('editing-slug');
 
-.admin__nav-links {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
+// Form fields
+const fieldTitle       = document.getElementById('field-title');
+const fieldSlug        = document.getElementById('field-slug');
+const fieldLocation    = document.getElementById('field-location');
+const fieldYear        = document.getElementById('field-year');
+const fieldDescription = document.getElementById('field-description');
+const fieldOrder       = document.getElementById('field-order');
+const fieldFeatured    = document.getElementById('field-featured');
+const serviceCheckboxes= projectForm.querySelectorAll('input[name="services"]');
 
-.admin__nav-link {
-  font-family: var(--font-sans);
-  font-size: var(--text-micro);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--color-sage);
-  text-decoration: none;
-  padding: var(--space-2) var(--space-3);
-  transition: color 200ms ease;
-}
+// Delete confirm modal
+const confirmOverlay   = document.getElementById('confirm-overlay');
+const confirmClose     = document.getElementById('confirm-close');
+const confirmCancel    = document.getElementById('confirm-cancel');
+const confirmDelete    = document.getElementById('confirm-delete');
+const confirmBody      = document.getElementById('confirm-body');
+const confirmError     = document.getElementById('confirm-error');
 
-.admin__nav-link:hover {
-  color: var(--color-gold);
-}
 
-.admin__nav-link[aria-current="page"] {
-  color: var(--color-forest);
-}
+// ── State ─────────────────────────────────────────────────────
 
-.admin__nav-logout {
-  font-family: var(--font-sans);
-  font-size: var(--text-micro);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--color-sage);
-  background: transparent;
-  border: none;
-  padding: var(--space-2) var(--space-3);
-  cursor: pointer;
-  transition: color 200ms ease;
-  border-radius: 0;
-}
+let projects        = [];     // local cache of projects array
+let slugToDelete    = null;   // slug pending deletion confirmation
 
-.admin__nav-logout:hover {
-  color: var(--color-gold);
-}
 
-/* Main area */
-.admin__main {
-  padding: var(--space-8) var(--gutter-mobile);
-  max-width: 720px;
-  margin: 0 auto;
-}
+// ── Auth gate ─────────────────────────────────────────────────
 
-.admin__loading {
-  font-family: var(--font-display);
-  font-size: var(--text-display-md);
-  font-weight: var(--font-weight-regular);
-  color: color-mix(in srgb, var(--color-sage) 60%, transparent);
-  text-align: center;
-  padding-block: var(--space-8);
-}
+(async function init() {
+  try {
+    const res  = await fetch('/api/auth/me', { method: 'GET', headers: { Accept: 'application/json' } });
+    const body = res.ok ? await res.json() : null;
 
-.admin__loading p {
-  margin: 0;
-}
+    if (!body || !body.user) {
+      redirectToLogin();
+      return;
+    }
 
-.admin__welcome[hidden] {
-  display: none !important;
-}
+    loadingEl.hidden       = true;
+    authenticatedEl.hidden = false;
 
-.admin__label {
-  font-family: var(--font-sans);
-  font-size: var(--text-micro);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--color-sage);
-  margin: 0 0 var(--space-4) 0;
-}
+    await loadProjects();
 
-.admin__heading {
-  font-family: var(--font-display);
-  font-size: clamp(2.5rem, 6vw, 3.25rem);
-  font-weight: var(--font-weight-regular);
-  line-height: var(--leading-snug);
-  color: var(--color-forest);
-  margin: 0 0 var(--space-5) 0;
-}
-
-.admin__body {
-  font-family: var(--font-sans);
-  font-size: var(--text-body);
-  font-weight: var(--font-weight-regular);
-  line-height: var(--leading-body);
-  color: var(--color-forest);
-  margin: 0 0 var(--space-4) 0;
-}
-
-.admin__body--muted {
-  color: var(--color-sage);
-}
-
-.admin__email {
-  color: var(--color-gold);
-  font-weight: var(--font-weight-medium);
-}
-
-@media (min-width: 768px) {
-  .admin__nav {
-    padding-inline: var(--gutter-desktop);
+  } catch (err) {
+    console.error('Auth check failed:', err);
+    redirectToLogin();
   }
-  .admin__main {
-    padding-inline: var(--gutter-desktop);
+})();
+
+
+// ── Log out ───────────────────────────────────────────────────
+
+logoutBtn.addEventListener('click', async () => {
+  logoutBtn.disabled = true;
+  try {
+    await fetch('/api/auth/logout', { method: 'POST' });
+  } catch (err) {
+    console.error('Logout error (continuing):', err);
+  } finally {
+    window.location.href = '/admin/login';
+  }
+});
+
+
+// ── Load & render project list ────────────────────────────────
+
+async function loadProjects() {
+  showProjectsState('loading');
+
+  try {
+    const res = await fetch('/api/admin/projects', {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+    });
+
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      showProjectsState('error', body.error || 'Could not load projects.');
+      return;
+    }
+
+    const body = await res.json();
+    projects = (body.projects || []).sort((a, b) => a.order - b.order);
+    renderProjectTable();
+
+  } catch (err) {
+    console.error('Load projects error:', err);
+    showProjectsState('error', 'Could not connect. Check your connection and try again.');
   }
 }
 
-/* ============================================================
-   Account page (chunk 4b)
-   ============================================================ */
+function renderProjectTable() {
+  if (projects.length === 0) {
+    showProjectsState('empty');
+    return;
+  }
 
-.admin__content {
-  display: block;
+  projectsTbody.innerHTML = '';
+  projects.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.className = 'projects__row';
+    tr.dataset.slug = p.slug;
+
+    const services = Array.isArray(p.services) && p.services.length
+      ? p.services.map(s => SERVICE_LABELS[s] || s).join(', ')
+      : '—';
+
+    tr.innerHTML = `
+      <td class="projects__td projects__td--order">${p.order}</td>
+      <td class="projects__td projects__td--title">
+        <span class="projects__title">${escHtml(p.title)}</span>
+        <span class="projects__slug">${escHtml(p.slug)}</span>
+      </td>
+      <td class="projects__td projects__td--meta">${escHtml(p.location)}</td>
+      <td class="projects__td projects__td--meta">${p.year}</td>
+      <td class="projects__td projects__td--meta">${escHtml(services)}</td>
+      <td class="projects__td projects__td--meta">${p.featured ? 'Yes' : '—'}</td>
+      <td class="projects__td projects__td--actions">
+        <button class="projects__action" type="button" data-action="edit" data-slug="${escHtml(p.slug)}">Edit</button>
+        <button class="projects__action projects__action--danger" type="button" data-action="delete" data-slug="${escHtml(p.slug)}">Delete</button>
+      </td>
+    `;
+    projectsTbody.appendChild(tr);
+  });
+
+  showProjectsState('table');
 }
 
-.admin__content[hidden] {
-  display: none !important;
+function showProjectsState(state, message) {
+  projectsLoading.hidden   = state !== 'loading';
+  projectsError.hidden     = state !== 'error';
+  projectsTableWrap.hidden = state !== 'table';
+  projectsEmpty.hidden     = state !== 'empty';
+
+  if (state === 'error' && message) {
+    projectsError.textContent = message;
+  }
 }
 
-.admin__section {
-  margin-top: var(--space-8);
-  padding-top: var(--space-6);
-  border-top: 1px solid color-mix(in srgb, var(--color-sage) 25%, transparent);
+
+// ── New project button ────────────────────────────────────────
+
+newProjectBtn.addEventListener('click', () => openModal());
+
+
+// ── Edit / delete row actions ─────────────────────────────────
+
+document.getElementById('projects-tbody').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+
+  const slug   = btn.dataset.slug;
+  const action = btn.dataset.action;
+
+  if (action === 'edit') {
+    const project = projects.find(p => p.slug === slug);
+    if (project) openModal(project);
+  }
+
+  if (action === 'delete') {
+    openConfirm(slug);
+  }
+});
+
+
+// ── Project modal ─────────────────────────────────────────────
+
+function openModal(project) {
+  clearModalError();
+  projectForm.reset();
+
+  if (project) {
+    // Edit mode
+    modalTitle.textContent     = 'Edit project';
+    modalSubmit.textContent    = 'Save changes';
+    editingSlugInput.value     = project.slug;
+    fieldTitle.value           = project.title;
+    fieldSlug.value            = project.slug;
+    fieldLocation.value        = project.location;
+    fieldYear.value            = project.year;
+    fieldDescription.value     = project.description;
+    fieldOrder.value           = project.order;
+    fieldFeatured.checked      = Boolean(project.featured);
+
+    serviceCheckboxes.forEach(cb => {
+      cb.checked = Array.isArray(project.services) && project.services.includes(cb.value);
+    });
+  } else {
+    // New mode
+    modalTitle.textContent     = 'New project';
+    modalSubmit.textContent    = 'Save project';
+    editingSlugInput.value     = '';
+    fieldYear.value            = new Date().getFullYear();
+    fieldOrder.value           = projects.length + 1;
+    fieldFeatured.checked      = true;
+  }
+
+  modalOverlay.hidden = false;
+  document.body.style.overflow = 'hidden';
+  fieldTitle.focus();
 }
 
-.admin__section-heading {
-  font-family: var(--font-display);
-  font-size: clamp(1.5rem, 3.5vw, 1.875rem);
-  font-weight: var(--font-weight-medium);
-  line-height: var(--leading-snug);
-  color: var(--color-forest);
-  margin: 0 0 var(--space-5) 0;
+function closeModal() {
+  modalOverlay.hidden = true;
+  document.body.style.overflow = '';
+  clearModalError();
+  projectForm.reset();
 }
 
-.admin__form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-  max-width: 420px;
+modalClose.addEventListener('click', closeModal);
+modalCancel.addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', (e) => {
+  if (e.target === modalOverlay) closeModal();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    if (!modalOverlay.hidden)   closeModal();
+    if (!confirmOverlay.hidden) closeConfirm();
+  }
+});
+
+
+// ── Auto-derive slug from title ───────────────────────────────
+
+fieldTitle.addEventListener('input', () => {
+  // Only auto-derive when not in edit mode (editing-slug is empty)
+  if (editingSlugInput.value) return;
+  fieldSlug.value = slugify(fieldTitle.value);
+});
+
+
+// ── Form submit ───────────────────────────────────────────────
+
+projectForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  clearModalError();
+
+  const editingSlug = editingSlugInput.value.trim();
+  const isEdit      = Boolean(editingSlug);
+
+  const services = Array.from(serviceCheckboxes)
+    .filter(cb => cb.checked)
+    .map(cb => cb.value);
+
+  const payload = {
+    title:       fieldTitle.value.trim(),
+    slug:        fieldSlug.value.trim(),
+    location:    fieldLocation.value.trim(),
+    year:        Number(fieldYear.value),
+    description: fieldDescription.value.trim(),
+    services,
+    featured:    fieldFeatured.checked,
+    order:       Number(fieldOrder.value) || (projects.length + 1),
+  };
+
+  // Client-side required check
+  if (!payload.title)       { showModalError('Title is required.');       return; }
+  if (!payload.slug)        { showModalError('Slug is required.');        return; }
+  if (!payload.location)    { showModalError('Location is required.');    return; }
+  if (!payload.year)        { showModalError('Year is required.');        return; }
+  if (!payload.description) { showModalError('Description is required.'); return; }
+
+  const originalLabel = modalSubmit.textContent;
+  modalSubmit.disabled = true;
+  modalSubmit.textContent = 'Saving…';
+
+  try {
+    const url    = isEdit ? `/api/admin/projects/${editingSlug}` : '/api/admin/projects';
+    const method = isEdit ? 'PATCH' : 'POST';
+
+    const res  = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const body = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      showModalError(body.error || 'Could not save project.');
+      return;
+    }
+
+    closeModal();
+    await loadProjects();
+
+  } catch (err) {
+    console.error('Save project error:', err);
+    showModalError('Could not connect. Check your connection and try again.');
+  } finally {
+    modalSubmit.disabled    = false;
+    modalSubmit.textContent = originalLabel;
+  }
+});
+
+
+// ── Delete confirmation ───────────────────────────────────────
+
+function openConfirm(slug) {
+  slugToDelete = slug;
+  const project = projects.find(p => p.slug === slug);
+  confirmBody.textContent = project
+    ? `Remove "${project.title}" from the site?`
+    : 'Remove this project from the site?';
+  confirmError.hidden     = true;
+  confirmError.textContent= '';
+  confirmOverlay.hidden   = false;
+  document.body.style.overflow = 'hidden';
+  confirmDelete.focus();
 }
 
-.admin__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+function closeConfirm() {
+  confirmOverlay.hidden = true;
+  document.body.style.overflow = '';
+  slugToDelete = null;
 }
 
-.admin__label-input {
-  font-family: var(--font-sans);
-  font-size: var(--text-micro);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--color-sage);
+confirmClose.addEventListener('click', closeConfirm);
+confirmCancel.addEventListener('click', closeConfirm);
+confirmOverlay.addEventListener('click', (e) => {
+  if (e.target === confirmOverlay) closeConfirm();
+});
+
+confirmDelete.addEventListener('click', async () => {
+  if (!slugToDelete) return;
+
+  const slug                = slugToDelete;
+  const originalLabel       = confirmDelete.textContent;
+  confirmDelete.disabled    = true;
+  confirmDelete.textContent = 'Deleting…';
+  confirmError.hidden       = true;
+
+  try {
+    const res  = await fetch(`/api/admin/projects/${slug}`, {
+      method: 'DELETE',
+      headers: { Accept: 'application/json' },
+    });
+    const body = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      confirmError.textContent = body.error || 'Could not delete project.';
+      confirmError.hidden      = false;
+      return;
+    }
+
+    closeConfirm();
+    await loadProjects();
+
+  } catch (err) {
+    console.error('Delete project error:', err);
+    confirmError.textContent = 'Could not connect. Try again.';
+    confirmError.hidden      = false;
+  } finally {
+    confirmDelete.disabled    = false;
+    confirmDelete.textContent = originalLabel;
+  }
+});
+
+
+// ── Helpers ───────────────────────────────────────────────────
+
+function showModalError(message) {
+  modalError.textContent = message;
+  modalError.hidden      = false;
 }
 
-.admin__input {
-  width: 100%;
-  font-family: var(--font-sans);
-  font-size: var(--text-body);
-  font-weight: var(--font-weight-regular);
-  line-height: var(--leading-snug);
-  color: var(--color-forest);
-  background-color: transparent;
-  border: none;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 40%, transparent);
-  padding: var(--space-3) 0;
-  border-radius: 0;
-  outline: none;
-  transition: border-color 200ms ease;
-  -webkit-appearance: none;
-  appearance: none;
+function clearModalError() {
+  modalError.textContent = '';
+  modalError.hidden      = true;
 }
 
-.admin__input:focus {
-  border-bottom-color: var(--color-gold);
+function redirectToLogin() {
+  window.location.href = '/admin/login';
 }
 
-.admin__input:autofill {
-  -webkit-text-fill-color: var(--color-forest);
-  box-shadow: 0 0 0px 1000px var(--color-cream) inset;
+function slugify(text) {
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
-.admin__hint {
-  font-family: var(--font-sans);
-  font-size: var(--text-micro);
-  font-weight: var(--font-weight-regular);
-  letter-spacing: 0.02em;
-  color: var(--color-sage);
-  margin: var(--space-1) 0 0 0;
+function escHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
-.admin__submit {
-  align-self: flex-start;
-  margin-top: var(--space-2);
-  font-family: var(--font-sans);
-  font-size: var(--text-micro);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--color-forest);
-  background-color: var(--color-gold);
-  border: none;
-  padding: var(--space-4) var(--space-6);
-  cursor: pointer;
-  transition: background-color 200ms ease, opacity 200ms ease;
-  border-radius: 0;
-}
-
-.admin__submit:hover:not(:disabled) {
-  background-color: color-mix(in srgb, var(--color-gold) 88%, var(--color-forest));
-}
-
-.admin__submit:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Error state — Gold left border, never red */
-.admin__error {
-  font-family: var(--font-sans);
-  font-size: var(--text-body-sm);
-  line-height: var(--leading-body);
-  color: var(--color-forest);
-  background-color: color-mix(in srgb, var(--color-gold) 12%, transparent);
-  border-left: 2px solid var(--color-gold);
-  padding: var(--space-3) var(--space-4);
-  margin: 0;
-}
-
-.admin__error[hidden] {
-  display: none !important;
-}
-
-/* Success state — Sage left border, restrained */
-.admin__success {
-  font-family: var(--font-sans);
-  font-size: var(--text-body-sm);
-  line-height: var(--leading-body);
-  color: var(--color-forest);
-  background-color: color-mix(in srgb, var(--color-sage) 12%, transparent);
-  border-left: 2px solid var(--color-sage);
-  padding: var(--space-3) var(--space-4);
-  margin: 0;
-}
-
-.admin__success[hidden] {
-  display: none !important;
-}
+const SERVICE_LABELS = {
+  hdr:       'HDR Photography',
+  cinematic: 'Cinematic Tour',
+  staging:   'AI Staging',
+};
