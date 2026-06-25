@@ -1,0 +1,37 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vestafolioco-api",
+  "main": "src/index.js",
+  "compatibility_date": "2026-06-22",
+  "routes": [
+    {
+      "pattern": "vestafolioco.com/api/*",
+      "zone_name": "vestafolioco.com"
+    }
+  ],
+  "vars": {
+    "INQUIRY_FROM": "hello@vestafolioco.com",
+    "INQUIRY_TO": "vestafolioco@gmail.com",
+    "GITHUB_OWNER": "caseyv22",
+    "GITHUB_REPO": "vestafolioco",
+    "GITHUB_BRANCH": "main",
+    "PROJECTS_JSON_PATH": "public/data/projects.json",
+    "IMAGES_BASE_URL": "https://images.vestafolioco.com"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "vestafolioco-db",
+      "database_id": "3e703131-aec6-4b74-a6cf-cd1f0e423c5f"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "vestafolioco-images"
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}
