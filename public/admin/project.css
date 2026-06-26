@@ -163,3 +163,43 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ----------------------------------------------------------
+   Two-column page layout (chunk 7b)
+   Left: main content (Details, Images, Originals)
+   Right: sticky sidebar (Client access)
+   ---------------------------------------------------------- */
+
+.project-edit__layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .project-edit__layout {
+    grid-template-columns: 1fr 340px;
+  }
+}
+
+.project-edit__main {
+  min-width: 0;
+}
+
+.project-edit__sidebar {
+  min-width: 0;
+}
+
+@media (min-width: 900px) {
+  .project-edit__sidebar {
+    position: sticky;
+    top: calc(var(--nav-height) + var(--space-6));
+  }
+}
+
+/* Sidebar section — remove top border and padding-top since it's the first item */
+.project-edit__section--sidebar {
+  border-top: none;
+  padding-top: 0;
+}

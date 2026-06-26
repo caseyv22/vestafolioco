@@ -53,6 +53,8 @@
       <p class="admin__error" id="page-save-error" hidden></p>
       <p class="admin__success" id="page-save-success" hidden></p>
 
+      <div class="project-edit__layout">
+      <div class="project-edit__main">
       <form id="project-form" novalidate>
 
         <!-- ── Details ───────────────────────────────────── -->
@@ -159,7 +161,7 @@
       </form>
 
       <!-- ── Client access (outside form) ──────────────── -->
-      <section class="project-edit__section">
+      <section class="project-edit__section project-edit__section--sidebar">
         <h2 class="project-edit__section-heading">Client access</h2>
         <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-5);">
           Invite a client to view this project in the portal.
@@ -189,6 +191,8 @@
           <p class="admin__body admin__body--muted">No clients have access yet.</p>
         </div>
       </section>
+      </aside><!-- /project-edit__sidebar -->
+      </div><!-- /project-edit__layout -->
 
     </div><!-- /page-content -->
   </main>
