@@ -1,7 +1,7 @@
 /* ============================================================
-   /admin/project.css — chunk 8b
-   Project edit page: single-column layout, tabbed Files section.
-   All tokens verified against tokens.css.
+   /admin/project.css — chunk 8c
+   Three-tab page layout: Details | Images | Originals
+   Tab bar sits right-aligned beside the project title.
    ============================================================ */
 
 /* ----------------------------------------------------------
@@ -24,7 +24,7 @@
 }
 
 /* ----------------------------------------------------------
-   Page header
+   Page header — back link + title + tab bar on same row
    ---------------------------------------------------------- */
 
 .project-edit__header {
@@ -48,12 +48,59 @@
   color: var(--color-gold);
 }
 
+/* Title left, tabs right — aligned to baseline of h1 */
+.project-edit__header-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-6);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 20%, transparent);
+  padding-bottom: 0;
+}
+
 .project-edit__header-meta .admin__heading {
   margin-bottom: 0;
 }
 
 /* ----------------------------------------------------------
-   Sections
+   Tab bar
+   ---------------------------------------------------------- */
+
+.project-edit__tabs {
+  display: flex;
+  gap: 0;
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+
+.project-edit__tab {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-micro);
+  text-transform: uppercase;
+  color: var(--color-sage);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color var(--transition-hover), border-color var(--transition-hover);
+  white-space: nowrap;
+}
+
+.project-edit__tab:hover {
+  color: var(--color-forest);
+}
+
+.project-edit__tab--active {
+  color: var(--color-forest);
+  border-bottom-color: var(--color-gold);
+}
+
+/* ----------------------------------------------------------
+   Panel sections
    ---------------------------------------------------------- */
 
 .project-edit__section {
@@ -65,7 +112,13 @@
 
 .project-edit__section:first-of-type {
   border-top: none;
-  padding-top: 0;
+  padding-top: var(--space-6);
+}
+
+/* Images and Originals panels sit directly under the tab bar */
+.project-edit__section--notop {
+  border-top: none;
+  padding-top: var(--space-6);
 }
 
 .project-edit__section-heading {
@@ -99,74 +152,26 @@
   .project-edit__field--full {
     grid-column: 1;
   }
+  .project-edit__header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-4);
+  }
+  .project-edit__tabs {
+    align-self: flex-start;
+    border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 20%, transparent);
+    width: 100%;
+  }
 }
 
 /* ----------------------------------------------------------
-   Save / action row
+   Action row
    ---------------------------------------------------------- */
 
 .project-edit__actions {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-}
-
-/* ----------------------------------------------------------
-   Files section — header with inline tabs
-   ---------------------------------------------------------- */
-
-.project-edit__files-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0;
-}
-
-.project-edit__files-header .project-edit__section-heading {
-  margin-bottom: 0;
-}
-
-.project-edit__file-tabs {
-  display: flex;
-  gap: 0;
-  border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 25%, transparent);
-  align-self: flex-end;
-}
-
-.project-edit__file-tab {
-  font-family: var(--font-sans);
-  font-size: var(--text-micro);
-  font-weight: var(--font-weight-medium);
-  letter-spacing: var(--tracking-micro);
-  text-transform: uppercase;
-  color: var(--color-sage);
-  background: transparent;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: var(--space-2) var(--space-4);
-  cursor: pointer;
-  margin-bottom: -1px;
-  transition: color var(--transition-hover), border-color var(--transition-hover);
-}
-
-.project-edit__file-tab:hover {
-  color: var(--color-forest);
-}
-
-.project-edit__file-tab--active {
-  color: var(--color-forest);
-  border-bottom-color: var(--color-gold);
-}
-
-/* Divider under the header row */
-.project-edit__files-header {
-  padding-bottom: var(--space-4);
-  border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 20%, transparent);
-  margin-bottom: var(--space-5);
-}
-
-.project-edit__files-desc {
-  margin-bottom: var(--space-4);
 }
 
 /* ----------------------------------------------------------
@@ -197,7 +202,7 @@
 }
 
 /* ----------------------------------------------------------
-   File list items (originals — no drag handle)
+   File list items (originals)
    ---------------------------------------------------------- */
 
 .upload__list--files .upload__item {

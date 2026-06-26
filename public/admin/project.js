@@ -84,25 +84,32 @@ const SERVICE_LABELS = {
 };
 
 
-// ── File tab switching ───────────────────────────────────────
+// ── Three-tab page switching ─────────────────────────────────
 
+const tabDetails   = document.getElementById('tab-details');
 const tabImages    = document.getElementById('tab-images');
 const tabOriginals = document.getElementById('tab-originals');
-const panelImages  = document.getElementById('panel-images');
+const panelDetails   = document.getElementById('panel-details');
+const panelImages    = document.getElementById('panel-images');
 const panelOriginals = document.getElementById('panel-originals');
 
-function switchFileTab(tab) {
-  const isImages = tab === 'images';
-  tabImages.classList.toggle('project-edit__file-tab--active', isImages);
-  tabOriginals.classList.toggle('project-edit__file-tab--active', !isImages);
-  tabImages.setAttribute('aria-selected', isImages ? 'true' : 'false');
-  tabOriginals.setAttribute('aria-selected', isImages ? 'false' : 'true');
-  panelImages.hidden   = !isImages;
-  panelOriginals.hidden = isImages;
+const allTabs   = [tabDetails, tabImages, tabOriginals];
+const allPanels = [panelDetails, panelImages, panelOriginals];
+
+function switchTab(activeTab) {
+  allTabs.forEach(t => {
+    const isActive = t === activeTab;
+    t.classList.toggle('project-edit__tab--active', isActive);
+    t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+  });
+  allPanels.forEach((p, i) => {
+    p.hidden = allTabs[i] !== activeTab;
+  });
 }
 
-tabImages.addEventListener('click', () => switchFileTab('images'));
-tabOriginals.addEventListener('click', () => switchFileTab('originals'));
+tabDetails.addEventListener('click',   () => switchTab(tabDetails));
+tabImages.addEventListener('click',    () => switchTab(tabImages));
+tabOriginals.addEventListener('click', () => switchTab(tabOriginals));
 
 
 // ── Init ──────────────────────────────────────────────────────
