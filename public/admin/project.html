@@ -26,27 +26,22 @@
 
   <main class="admin__main admin__main--wide">
 
-    <!-- Loading -->
     <div class="admin__loading" id="page-loading"><p>One moment.</p></div>
 
-    <!-- Error (project not found etc.) -->
     <div id="page-error" hidden>
       <p class="admin__label">ERROR</p>
       <p class="admin__body" id="page-error-msg"></p>
       <a class="projects__action" href="/admin">← Back to projects</a>
     </div>
 
-    <!-- Page content -->
     <div id="page-content" hidden>
 
-      <!-- "Just created" banner -->
       <div class="project-edit__created" id="created-banner" hidden>
         <p class="project-edit__created-text">
           Project created. Now add images, set services, and adjust any details below.
         </p>
       </div>
 
-      <!-- Page header -->
       <div class="project-edit__header">
         <a class="project-edit__back" href="/admin">← All projects</a>
         <div class="project-edit__header-meta">
@@ -55,16 +50,14 @@
         </div>
       </div>
 
-      <!-- Global save error / success -->
       <p class="admin__error" id="page-save-error" hidden></p>
       <p class="admin__success" id="page-save-success" hidden></p>
 
       <form id="project-form" novalidate>
 
-        <!-- ── Section: Metadata ─────────────────────────── -->
+        <!-- ── Section: Details ───────────────────────────── -->
         <section class="project-edit__section">
           <h2 class="project-edit__section-heading">Details</h2>
-
           <div class="project-edit__grid">
 
             <div class="admin__field project-edit__field--full">
@@ -110,8 +103,7 @@
             <div class="admin__field">
               <label class="admin__label-input" for="field-youtube">YouTube ID</label>
               <input class="admin__input" type="text" id="field-youtube" name="youtube_id"
-                     maxlength="20" autocomplete="off"
-                     placeholder="e.g. dQw4w9WgXcQ">
+                     maxlength="20" autocomplete="off" placeholder="e.g. dQw4w9WgXcQ">
               <p class="admin__hint">The video ID from the YouTube URL. Optional.</p>
             </div>
 
@@ -140,27 +132,24 @@
             </div>
 
           </div>
-
           <div class="project-edit__actions">
             <button class="admin__btn-primary" type="submit" id="save-details-btn">
               Save details
             </button>
           </div>
-
         </section>
 
         <!-- ── Section: Images ───────────────────────────── -->
         <section class="project-edit__section">
           <h2 class="project-edit__section-heading">Images</h2>
           <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-4);">
-            These appear on the public site. Resize to 1800px wide, exported as WebP.
+            These appear on the public site. Resized to 1800px wide, exported as WebP.
             First image is the hero.
           </p>
 
           <p class="admin__error" id="images-error" hidden></p>
           <p class="admin__success" id="images-success" hidden></p>
 
-          <!-- Drop zone -->
           <div class="upload__zone" id="upload-zone" tabindex="0" role="button"
                aria-label="Drop images here or click to select">
             <p class="upload__zone-text">Drop images here, or <span class="upload__zone-link">click to select</span></p>
@@ -170,7 +159,6 @@
 
           <p class="upload__processing" id="upload-processing" hidden>Processing images…</p>
 
-          <!-- New image previews -->
           <div class="upload__previews" id="upload-previews" hidden>
             <p class="admin__hint upload__reorder-hint">Drag to reorder. First image is the hero.</p>
             <ul class="upload__list" id="upload-list"></ul>
@@ -181,17 +169,98 @@
             </div>
           </div>
 
-          <!-- Existing images -->
           <div id="existing-images-wrap" hidden>
             <p class="admin__label" style="margin-top:var(--space-5);margin-bottom:var(--space-2);">
               Current images
             </p>
             <div id="existing-images-content"></div>
           </div>
+        </section>
 
+        <!-- ── Section: Originals ─────────────────────────── -->
+        <section class="project-edit__section">
+          <h2 class="project-edit__section-heading">Originals</h2>
+          <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-4);">
+            Full-resolution files for client download. Stored privately — not visible on the public site.
+            Any file type accepted.
+          </p>
+
+          <p class="admin__error" id="originals-error" hidden></p>
+          <p class="admin__success" id="originals-success" hidden></p>
+
+          <div class="upload__zone" id="originals-zone" tabindex="0" role="button"
+               aria-label="Drop files here or click to select">
+            <p class="upload__zone-text">Drop files here, or <span class="upload__zone-link">click to select</span></p>
+            <p class="upload__zone-hint">JPEG, TIFF, PNG, DNG accepted · No resizing · Uploaded as-is</p>
+            <input type="file" id="originals-input" multiple hidden>
+          </div>
+
+          <p class="upload__processing" id="originals-processing" hidden>Uploading…</p>
+
+          <div class="upload__previews" id="originals-previews" hidden>
+            <ul class="upload__list upload__list--files" id="originals-list"></ul>
+            <div class="project-edit__actions" style="margin-top:var(--space-4);">
+              <button class="admin__btn-primary" type="button" id="originals-save-btn">
+                Upload originals
+              </button>
+            </div>
+          </div>
+
+          <!-- Existing originals list -->
+          <div id="existing-originals-wrap" hidden>
+            <p class="admin__label" style="margin-top:var(--space-5);margin-bottom:var(--space-2);">
+              Uploaded originals
+            </p>
+            <div id="existing-originals-content"></div>
+          </div>
         </section>
 
       </form>
+
+      <!-- ── Section: Client access (outside form) ──────── -->
+      <section class="project-edit__section">
+        <h2 class="project-edit__section-heading">Client access</h2>
+        <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-5);">
+          Invite a client to view this project in the portal. They'll receive an email with a link to set their password.
+        </p>
+
+        <p class="admin__error" id="invite-error" hidden></p>
+        <p class="admin__success" id="invite-success" hidden></p>
+
+        <!-- Invite form -->
+        <form class="project-edit__invite-form" id="invite-form" novalidate>
+          <div class="project-edit__invite-fields">
+            <div class="admin__field">
+              <label class="admin__label-input" for="invite-name">Name</label>
+              <input class="admin__input" type="text" id="invite-name" name="name"
+                     maxlength="200" autocomplete="off" placeholder="Full name">
+            </div>
+            <div class="admin__field">
+              <label class="admin__label-input" for="invite-email">Email</label>
+              <input class="admin__input" type="email" id="invite-email" name="email"
+                     maxlength="320" autocomplete="off" required>
+            </div>
+            <div class="project-edit__actions" style="align-self:flex-end;padding-bottom:var(--space-2);">
+              <button class="admin__btn-primary" type="submit" id="invite-submit">
+                Send invite
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Current client list -->
+        <div id="clients-wrap" hidden>
+          <p class="admin__label" style="margin-top:var(--space-6);margin-bottom:var(--space-3);">
+            Access granted
+          </p>
+          <div id="clients-list"></div>
+        </div>
+
+        <div id="clients-empty" hidden>
+          <p class="admin__body admin__body--muted">No clients have access to this project yet.</p>
+        </div>
+
+      </section>
 
     </div><!-- /page-content -->
 

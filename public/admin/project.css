@@ -124,3 +124,42 @@
     grid-column: 1;
   }
 }
+
+/* ----------------------------------------------------------
+   Client access section (chunk 6d)
+   ---------------------------------------------------------- */
+
+.project-edit__invite-form {
+  max-width: var(--max-width-content);
+}
+
+.project-edit__invite-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--space-4) var(--space-5);
+  align-items: start;
+}
+
+.project-edit__client-actions {
+  display: flex;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+/* File list items (no thumbnail, no drag handle) */
+.upload__list--files .upload__item {
+  cursor: default;
+}
+
+.upload__file-icon {
+  font-size: 1.25rem;
+  color: var(--color-sage);
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+@media (max-width: 640px) {
+  .project-edit__invite-fields {
+    grid-template-columns: 1fr;
+  }
+}
