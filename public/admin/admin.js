@@ -128,7 +128,7 @@ function renderProjectTable() {
       <td class="projects__td projects__td--meta">${escHtml(services)}</td>
       <td class="projects__td projects__td--meta">${p.featured ? 'Yes' : '—'}</td>
       <td class="projects__td projects__td--actions">
-        <a class="projects__action" href="/admin/projects/${escHtml(p.slug)}">Edit</a>
+        <a class="projects__action" href="/admin/project?slug=${escHtml(p.slug)}">Edit</a>
         <button class="projects__action projects__action--danger" type="button"
                 data-action="delete" data-slug="${escHtml(p.slug)}">Delete</button>
       </td>
@@ -246,7 +246,7 @@ createForm.addEventListener('submit', async (e) => {
     if (!res.ok) { showModalError(body.error || 'Could not create project.'); return; }
 
     // Redirect to edit page with "just created" flag
-    window.location.href = `/admin/projects/${payload.slug}?created=1`;
+    window.location.href = `/admin/project?slug=${payload.slug}&created=1`;
 
   } catch (err) {
     console.error('Create error:', err);

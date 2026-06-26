@@ -68,9 +68,9 @@ const SERVICE_LABELS = {
 // ── Init ──────────────────────────────────────────────────────
 
 (async function init() {
-  // Extract slug from URL: /admin/projects/[slug]
-  const pathParts = window.location.pathname.split('/');
-  currentSlug = pathParts[pathParts.length - 1];
+  // Extract slug from query param: /admin/project?slug=[slug]
+  const params = new URLSearchParams(window.location.search);
+  currentSlug = params.get('slug') || '';
 
   if (!currentSlug) {
     showPageError('No project specified.');
@@ -100,10 +100,10 @@ const SERVICE_LABELS = {
     populateForm(project);
 
     // Show "just created" banner
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('created')) {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('created')) {
       createdBanner.hidden = false;
-      window.history.replaceState({}, '', `/admin/projects/${currentSlug}`);
+      window.history.replaceState({}, '', `/admin/project?slug=${currentSlug}`);
     }
 
     pageLoading.hidden  = true;
@@ -196,7 +196,7 @@ projectForm.addEventListener('submit', async (e) => {
     const newSlug = body.project?.slug || payload.slug;
     if (newSlug !== currentSlug) {
       currentSlug = newSlug;
-      window.history.replaceState({}, '', `/admin/projects/${currentSlug}`);
+      window.history.replaceState({}, '', `/admin/project?slug=${currentSlug}`);
     }
 
     currentProject = body.project || { ...currentProject, ...payload };
