@@ -29,6 +29,10 @@
     {
       "binding": "IMAGES",
       "bucket_name": "vestafolioco-images"
+    },
+    {
+      "binding": "ORIGINALS",
+      "bucket_name": "vestafolioco-originals"
     }
   ],
   "observability": {
