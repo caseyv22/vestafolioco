@@ -1,5 +1,5 @@
 /* ============================================================
-   /admin/client-project.js — Chunk 7a
+   /admin/client-project.js - Chunk 7a
    Client project edit page: details + images + originals + invite.
    Reads project ID from ?id= query param.
    ============================================================ */
@@ -69,7 +69,7 @@ const WEBP_QUALITY = 0.85;
 
 const SERVICE_LABELS = { hdr: 'HDR Photography', cinematic: 'Cinematic Tour', staging: 'AI Staging' };
 
-// ── Three-tab page switching ─────────────────────────────────
+// -- Three-tab page switching ---------------------------------
 
 const tabDetails     = document.getElementById('tab-details');
 const tabImages      = document.getElementById('tab-images');
@@ -95,7 +95,7 @@ tabImages.addEventListener('click',    () => switchTab(tabImages));
 tabOriginals.addEventListener('click', () => switchTab(tabOriginals));
 
 
-// ── Init ──────────────────────────────────────────────────────
+// -- Init ------------------------------------------------------
 
 (async function init() {
   const params = new URLSearchParams(window.location.search);
@@ -149,7 +149,7 @@ function populateForm(p) {
   renderExistingImages(p);
 }
 
-// ── Details save ──────────────────────────────────────────────
+// -- Details save ----------------------------------------------
 
 projectForm.addEventListener('submit', async (e) => {
   e.preventDefault(); clearPageMessages();
@@ -164,7 +164,7 @@ projectForm.addEventListener('submit', async (e) => {
     showPageError('All required fields must be filled.'); return;
   }
   const originalLabel = saveDetailsBtn.textContent;
-  saveDetailsBtn.disabled = true; saveDetailsBtn.textContent = 'Saving…';
+  saveDetailsBtn.disabled = true; saveDetailsBtn.textContent = 'Saving...';
   try {
     const res  = await fetch(`/api/admin/client-projects/${currentId}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -179,7 +179,7 @@ projectForm.addEventListener('submit', async (e) => {
   finally { saveDetailsBtn.disabled = false; saveDetailsBtn.textContent = originalLabel; }
 });
 
-// ── Image upload ──────────────────────────────────────────────
+// -- Image upload ----------------------------------------------
 
 uploadZone.addEventListener('click', () => uploadInput.click());
 uploadZone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') uploadInput.click(); });
@@ -227,7 +227,7 @@ function renderPendingPreviews() {
   pendingImages.forEach((img, i) => {
     const li = document.createElement('li'); li.className = 'upload__item'; li.draggable = true; li.dataset.index = i;
     const label = i === 0 ? 'Hero' : `Gallery ${i}`; const kb = Math.round(img.blob.size / 1024);
-    li.innerHTML = `<span class="upload__drag-handle" aria-hidden="true">⠿</span><img class="upload__thumb" src="${img.dataUrl}" alt=""><span class="upload__item-meta"><span class="upload__item-label">${label}</span><span class="upload__item-name">${escHtml(img.originalName)}</span><span class="upload__item-size">${kb} KB</span></span><button class="upload__remove" type="button" data-index="${i}">&#215;</button>`;
+    li.innerHTML = `<span class="upload__drag-handle" aria-hidden="true">::</span><img class="upload__thumb" src="${img.dataUrl}" alt=""><span class="upload__item-meta"><span class="upload__item-label">${label}</span><span class="upload__item-name">${escHtml(img.originalName)}</span><span class="upload__item-size">${kb} KB</span></span><button class="upload__remove" type="button" data-index="${i}">&#215;</button>`;
     li.addEventListener('dragstart', (e) => { dragSrcIndex = i; li.classList.add('upload__item--dragging'); e.dataTransfer.effectAllowed = 'move'; });
     li.addEventListener('dragend',   () => { li.classList.remove('upload__item--dragging'); dragSrcIndex = null; uploadList.querySelectorAll('.upload__item').forEach(el => el.classList.remove('upload__item--over')); });
     li.addEventListener('dragover',  (e) => { e.preventDefault(); uploadList.querySelectorAll('.upload__item').forEach(el => el.classList.remove('upload__item--over')); li.classList.add('upload__item--over'); });
@@ -239,7 +239,7 @@ function renderPendingPreviews() {
 
 uploadSaveBtn.addEventListener('click', async () => {
   if (pendingImages.length === 0) return; clearImagesMessages();
-  const originalLabel = uploadSaveBtn.textContent; uploadSaveBtn.disabled = true; uploadSaveBtn.textContent = 'Uploading…';
+  const originalLabel = uploadSaveBtn.textContent; uploadSaveBtn.disabled = true; uploadSaveBtn.textContent = 'Uploading...';
   try {
     const res  = await fetch(`/api/admin/client-projects/${currentId}/images`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -263,7 +263,7 @@ function renderExistingImages(project) {
   existingImages.forEach((img, i) => {
     const label = i === 0 ? 'Hero' : `Gallery ${i}`;
     const li = document.createElement('li'); li.className = 'upload__item'; li.draggable = true; li.dataset.index = i;
-    li.innerHTML = `<span class="upload__drag-handle" aria-hidden="true">⠿</span><img class="upload__thumb" src="${escHtml(img.url)}" alt="${label}"><span class="upload__item-meta"><span class="upload__item-label">${label}</span><span class="upload__item-name upload__item-name--url">${escHtml(img.url.split('/').pop())}</span></span><button class="upload__remove" type="button" data-index="${i}">&#215;</button>`;
+    li.innerHTML = `<span class="upload__drag-handle" aria-hidden="true">::</span><img class="upload__thumb" src="${escHtml(img.url)}" alt="${label}"><span class="upload__item-meta"><span class="upload__item-label">${label}</span><span class="upload__item-name upload__item-name--url">${escHtml(img.url.split('/').pop())}</span></span><button class="upload__remove" type="button" data-index="${i}">&#215;</button>`;
     li.addEventListener('dragstart', (e) => { existingDragIdx = i; li.classList.add('upload__item--dragging'); e.dataTransfer.effectAllowed = 'move'; });
     li.addEventListener('dragend',   () => { li.classList.remove('upload__item--dragging'); existingDragIdx = null; list.querySelectorAll('.upload__item').forEach(el => el.classList.remove('upload__item--over')); });
     li.addEventListener('dragover',  (e) => { e.preventDefault(); list.querySelectorAll('.upload__item').forEach(el => el.classList.remove('upload__item--over')); li.classList.add('upload__item--over'); });
@@ -289,7 +289,7 @@ async function saveExistingImageOrder() {
   } catch { showImagesError('Could not connect.'); renderExistingImages(currentProject); }
 }
 
-// ── Originals ─────────────────────────────────────────────────
+// -- Originals -------------------------------------------------
 
 originalsZone.addEventListener('click', () => originalsInput.click());
 originalsZone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') originalsInput.click(); });
@@ -310,7 +310,7 @@ function renderOriginalsPreviews() {
   pendingOriginals.forEach((item, i) => {
     const li = document.createElement('li'); li.className = 'upload__item';
     const mb = (item.file.size / (1024 * 1024)).toFixed(1);
-    li.innerHTML = `<span class="upload__file-icon" aria-hidden="true">⬜</span><span class="upload__item-meta"><span class="upload__item-name">${escHtml(item.name)}</span><span class="upload__item-size">${mb} MB</span></span><button class="upload__remove" type="button" data-index="${i}">&#215;</button>`;
+    li.innerHTML = `<span class="upload__file-icon" aria-hidden="true">[]</span><span class="upload__item-meta"><span class="upload__item-name">${escHtml(item.name)}</span><span class="upload__item-size">${mb} MB</span></span><button class="upload__remove" type="button" data-index="${i}">&#215;</button>`;
     originalsList.appendChild(li);
   });
   originalsList.addEventListener('click', (e) => { const btn = e.target.closest('.upload__remove'); if (!btn) return; pendingOriginals.splice(Number(btn.dataset.index), 1); renderOriginalsPreviews(); });
@@ -318,7 +318,7 @@ function renderOriginalsPreviews() {
 
 originalsSaveBtn.addEventListener('click', async () => {
   if (pendingOriginals.length === 0) return; clearOriginalsMessages();
-  const originalLabel = originalsSaveBtn.textContent; originalsSaveBtn.disabled = true; originalsSaveBtn.textContent = 'Uploading…'; originalsProcessing.hidden = false;
+  const originalLabel = originalsSaveBtn.textContent; originalsSaveBtn.disabled = true; originalsSaveBtn.textContent = 'Uploading...'; originalsProcessing.hidden = false;
   let uploadedCount = 0;
   try {
     for (const item of pendingOriginals) {
@@ -346,7 +346,7 @@ async function loadOriginals() {
     files.forEach(f => {
       const li = document.createElement('li'); li.className = 'upload__item';
       const mb = f.size ? (f.size / (1024 * 1024)).toFixed(1) + ' MB' : '';
-      li.innerHTML = `<span class="upload__file-icon" aria-hidden="true">⬜</span><span class="upload__item-meta"><span class="upload__item-name">${escHtml(f.name)}</span>${mb ? `<span class="upload__item-size">${mb}</span>` : ''}</span><button class="upload__remove upload__remove--original" type="button" data-key="${escHtml(f.key)}">&#215;</button>`;
+      li.innerHTML = `<span class="upload__file-icon" aria-hidden="true">[]</span><span class="upload__item-meta"><span class="upload__item-name">${escHtml(f.name)}</span>${mb ? `<span class="upload__item-size">${mb}</span>` : ''}</span><button class="upload__remove upload__remove--original" type="button" data-key="${escHtml(f.key)}">&#215;</button>`;
       list.appendChild(li);
     });
     list.addEventListener('click', async (e) => {
@@ -361,7 +361,7 @@ async function loadOriginals() {
   } catch { /* non-blocking */ }
 }
 
-// ── Client access ─────────────────────────────────────────────
+// -- Client access ---------------------------------------------
 
 async function loadClients() {
   try {
@@ -377,7 +377,7 @@ async function loadClients() {
     clients.forEach(client => {
       const li = document.createElement('li'); li.className = 'upload__item';
       const lastLogin = client.last_login_at ? `Last sign-in ${new Date(client.last_login_at).toLocaleDateString()}` : 'Never signed in';
-      li.innerHTML = `<span class="upload__item-meta"><span class="upload__item-label">${escHtml(client.name || '—')}</span><span class="upload__item-name">${escHtml(client.email)}</span><span class="upload__item-size">${lastLogin}</span></span><div class="project-edit__client-actions"><button class="projects__action" type="button" data-action="resend" data-user-id="${client.id}">Resend invite</button><button class="projects__action projects__action--danger" type="button" data-action="revoke" data-user-id="${client.id}">Revoke</button></div>`;
+      li.innerHTML = `<span class="upload__item-meta"><span class="upload__item-label">${escHtml(client.name || '-')}</span><span class="upload__item-name">${escHtml(client.email)}</span><span class="upload__item-size">${lastLogin}</span></span><div class="project-edit__client-actions"><button class="projects__action" type="button" data-action="resend" data-user-id="${client.id}">Resend invite</button><button class="projects__action projects__action--danger" type="button" data-action="revoke" data-user-id="${client.id}">Revoke</button></div>`;
       list.appendChild(li);
     });
     list.addEventListener('click', async (e) => {
@@ -409,7 +409,7 @@ inviteForm.addEventListener('submit', async (e) => {
   e.preventDefault(); clearInviteMessages();
   const name = inviteName.value.trim(); const email = inviteEmail.value.trim();
   if (!email) { showInviteError('Email is required.'); return; }
-  const originalLabel = inviteSubmit.textContent; inviteSubmit.disabled = true; inviteSubmit.textContent = 'Sending…';
+  const originalLabel = inviteSubmit.textContent; inviteSubmit.disabled = true; inviteSubmit.textContent = 'Sending...';
   try {
     const res  = await fetch(`/api/admin/client-projects/${currentId}/invite`, { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ name, email }) });
     const body = await res.json().catch(() => ({}));
@@ -419,7 +419,7 @@ inviteForm.addEventListener('submit', async (e) => {
   finally { inviteSubmit.disabled = false; inviteSubmit.textContent = originalLabel; }
 });
 
-// ── Helpers ───────────────────────────────────────────────────
+// -- Helpers ---------------------------------------------------
 
 function showPageError(msg)    { pageLoading.hidden = true; pageError.hidden = false; pageContent.hidden = true; pageErrorMsg.textContent = msg; }
 function showPageSuccess(msg)  { pageSaveSuccess.textContent = msg; pageSaveSuccess.hidden = false; pageSaveError.hidden = true; setTimeout(() => pageSaveSuccess.hidden = true, 5000); }
