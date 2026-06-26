@@ -147,6 +147,23 @@ function openModal(project, index) {
        </div>`
     : '';
 
+  // YouTube embed — only if youtube_id is set
+  const youtubeHtml = project.youtube_id
+    ? `<div class="modal__reel">
+        <div class="modal__reel-wrap">
+          <iframe
+            class="modal__reel-iframe"
+            src="https://www.youtube.com/embed/${project.youtube_id}?rel=0&modestbranding=1"
+            title="${project.title} — cinematic tour"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+            loading="lazy"
+          ></iframe>
+        </div>
+       </div>`
+    : '';
+
   modal.innerHTML = `
     <button class="modal__close" aria-label="Close project">&#x2715;</button>
 
@@ -156,6 +173,8 @@ function openModal(project, index) {
       </div>
       ${thumbsHtml}
     </div>
+
+    ${youtubeHtml}
 
     <div class="modal__body">
       <p class="modal__number t-micro">${num}</p>
