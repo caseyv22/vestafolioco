@@ -17,7 +17,7 @@
   margin-bottom: var(--space-8);
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1024px) {
   .dash__stats {
     grid-template-columns: repeat(4, 1fr);
   }
