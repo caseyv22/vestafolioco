@@ -128,6 +128,59 @@ export default {
       return cors(new Response('Method not allowed', { status: 405 }));
     }
 
+    // ── Admin: clients ───────────────────────────────────────
+    if (path === '/api/admin/clients') {
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')     return cors(await handleListClients(request, env));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    // /api/admin/invite
+    if (path === '/api/admin/invite') {
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'POST')    return cors(await handleInviteClient(request, env));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    // /api/admin/invite/resend
+    if (path === '/api/admin/invite/resend') {
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'POST')    return cors(await handleResendInvite(request, env));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    // /api/admin/clients/:userId/access/:slug  (revoke access)
+    const revokeMatch = path.match(/^\/api\/admin\/clients\/(\d+)\/access\/([^/]+)$/);
+    if (revokeMatch) {
+      const [, userId, slug] = revokeMatch;
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'DELETE')  return cors(await handleRevokeAccess(request, env, Number(userId), slug));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    // ── Portal ────────────────────────────────────────────────
+    if (path === '/api/portal/projects') {
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')     return cors(await handlePortalProjects(request, env));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    const portalProjectMatch = path.match(/^\/api\/portal\/projects\/([^/]+)$/);
+    if (portalProjectMatch) {
+      const slug = portalProjectMatch[1];
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')     return cors(await handlePortalProject(request, env, slug));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    const portalDownloadMatch = path.match(/^\/api\/portal\/projects\/([^/]+)\/download$/);
+    if (portalDownloadMatch) {
+      const slug = portalDownloadMatch[1];
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')     return cors(await handlePortalDownload(request, env, slug));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
     return cors(new Response('Not found', { status: 404 }));
   },
 };
@@ -419,6 +472,513 @@ function base64ToUint8Array(b64) {
     bytes[i] = binary.charCodeAt(i);
   }
   return bytes;
+}
+
+
+/* ----------------------------------------------------------
+   ADMIN: CLIENT INVITE & ACCESS MANAGEMENT
+   ---------------------------------------------------------- */
+
+const INVITE_DAYS = 7;
+
+// POST /api/admin/invite
+// Body: { email, name, project_slugs: [slug, ...] }
+// Creates client user if not exists, grants project access, sends invite email.
+async function handleInviteClient(request, env) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+
+  const email = isNonEmptyString(data?.email) ? data.email.trim().toLowerCase() : '';
+  const name  = isNonEmptyString(data?.name)  ? data.name.trim() : '';
+  const slugs = Array.isArray(data?.project_slugs) ? data.project_slugs.filter(s => isNonEmptyString(s)) : [];
+
+  if (!email)         return json({ error: 'Email is required.' }, 400);
+  if (!isEmail(email)) return json({ error: 'A valid email is required.' }, 400);
+  if (slugs.length === 0) return json({ error: 'At least one project must be selected.' }, 400);
+  if (!env.DB)        return json({ error: 'Service unavailable.' }, 500);
+
+  try {
+    // Find or create client user
+    let user = await env.DB
+      .prepare('SELECT id, email, name FROM users WHERE email = ?')
+      .bind(email).first();
+
+    if (!user) {
+      // Create new client user with a random placeholder password (they set their own via invite link)
+      const placeholderHash = await bcrypt.hash(generateSessionToken(), 12);
+      const result = await env.DB
+        .prepare('INSERT INTO users (email, password_hash, role, name) VALUES (?, ?, ?, ?)')
+        .bind(email, placeholderHash, 'client', name || null)
+        .run();
+      user = { id: result.meta.last_row_id, email, name: name || null };
+    } else if (name && !user.name) {
+      // Update name if provided and not already set
+      await env.DB.prepare('UPDATE users SET name = ? WHERE id = ?').bind(name, user.id).run();
+    }
+
+    // Grant project access (upsert)
+    for (const slug of slugs) {
+      await env.DB
+        .prepare('INSERT OR IGNORE INTO client_project_access (user_id, project_slug) VALUES (?, ?)')
+        .bind(user.id, slug).run();
+    }
+
+    // Generate invite token (reuses password_resets table — client sets password via this link)
+    const token     = generateSessionToken();
+    const expiresAt = new Date(Date.now() + INVITE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+    // Invalidate any existing unused tokens for this user
+    await env.DB
+      .prepare('UPDATE password_resets SET used_at = datetime('now') WHERE user_id = ? AND used_at IS NULL')
+      .bind(user.id).run();
+
+    await env.DB
+      .prepare('INSERT INTO password_resets (token, user_id, expires_at) VALUES (?, ?, ?)')
+      .bind(token, user.id, expiresAt).run();
+
+    // Send invite email
+    try {
+      await sendInviteEmail(env, user.email, user.name, token, slugs);
+    } catch (err) {
+      console.error('Invite email send failed:', err);
+      // Don't fail the request — access is granted, they can resend
+    }
+
+    return json({ ok: true, user_id: user.id });
+  } catch (err) {
+    console.error('Invite client error:', err);
+    return json({ error: 'Could not send invite.' }, 500);
+  }
+}
+
+// POST /api/admin/invite/resend
+// Body: { user_id }
+// Invalidates old token, generates new one, resends email.
+async function handleResendInvite(request, env) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+
+  const userId = Number(data?.user_id);
+  if (!userId) return json({ error: 'user_id is required.' }, 400);
+  if (!env.DB)  return json({ error: 'Service unavailable.' }, 500);
+
+  try {
+    const user = await env.DB
+      .prepare('SELECT id, email, name FROM users WHERE id = ? AND role = ?')
+      .bind(userId, 'client').first();
+    if (!user) return json({ error: 'Client not found.' }, 404);
+
+    // Get their project slugs
+    const accessRows = await env.DB
+      .prepare('SELECT project_slug FROM client_project_access WHERE user_id = ?')
+      .bind(userId).all();
+    const slugs = (accessRows.results || []).map(r => r.project_slug);
+
+    // Invalidate old tokens
+    await env.DB
+      .prepare('UPDATE password_resets SET used_at = datetime('now') WHERE user_id = ? AND used_at IS NULL')
+      .bind(userId).run();
+
+    // New token
+    const token     = generateSessionToken();
+    const expiresAt = new Date(Date.now() + INVITE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    await env.DB
+      .prepare('INSERT INTO password_resets (token, user_id, expires_at) VALUES (?, ?, ?)')
+      .bind(token, userId, expiresAt).run();
+
+    try {
+      await sendInviteEmail(env, user.email, user.name, token, slugs);
+    } catch (err) {
+      console.error('Resend invite email failed:', err);
+      return json({ error: 'Could not send email. Try again.' }, 500);
+    }
+
+    return json({ ok: true });
+  } catch (err) {
+    console.error('Resend invite error:', err);
+    return json({ error: 'Could not resend invite.' }, 500);
+  }
+}
+
+// GET /api/admin/clients
+// Returns all client users with their project access.
+async function handleListClients(request, env) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+
+  try {
+    const usersRows = await env.DB
+      .prepare('SELECT id, email, name, created_at, last_login_at FROM users WHERE role = ? ORDER BY created_at DESC')
+      .bind('client').all();
+
+    const users = usersRows.results || [];
+
+    // Get project access for all clients in one query
+    const accessRows = await env.DB
+      .prepare('SELECT user_id, project_slug, granted_at FROM client_project_access ORDER BY granted_at DESC')
+      .all();
+    const accessByUser = {};
+    for (const row of (accessRows.results || [])) {
+      if (!accessByUser[row.user_id]) accessByUser[row.user_id] = [];
+      accessByUser[row.user_id].push({ slug: row.project_slug, granted_at: row.granted_at });
+    }
+
+    const clients = users.map(u => ({
+      id:            u.id,
+      email:         u.email,
+      name:          u.name,
+      created_at:    u.created_at,
+      last_login_at: u.last_login_at,
+      projects:      accessByUser[u.id] || [],
+    }));
+
+    return json({ ok: true, clients });
+  } catch (err) {
+    console.error('List clients error:', err);
+    return json({ error: 'Could not load clients.' }, 500);
+  }
+}
+
+// DELETE /api/admin/clients/:userId/access/:slug
+async function handleRevokeAccess(request, env, userId, slug) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+
+  try {
+    await env.DB
+      .prepare('DELETE FROM client_project_access WHERE user_id = ? AND project_slug = ?')
+      .bind(userId, slug).run();
+    return json({ ok: true });
+  } catch (err) {
+    console.error('Revoke access error:', err);
+    return json({ error: 'Could not revoke access.' }, 500);
+  }
+}
+
+
+/* ----------------------------------------------------------
+   PORTAL: CLIENT-FACING ENDPOINTS
+   ---------------------------------------------------------- */
+
+// Require client (or admin) session
+async function requireClient(request, env) {
+  const user = await getCurrentUser(request, env);
+  if (!user) return { user: null, response: json({ error: 'Not authenticated.' }, 401) };
+  if (user.role !== 'client' && user.role !== 'admin') {
+    return { user: null, response: json({ error: 'Not authorized.' }, 403) };
+  }
+  return { user, response: null };
+}
+
+// GET /api/portal/projects
+// Returns projects the client has access to, with public projects.json data merged.
+async function handlePortalProjects(request, env) {
+  const { user, response } = await requireClient(request, env);
+  if (response) return response;
+
+  try {
+    // Get client's accessible slugs
+    const accessRows = await env.DB
+      .prepare('SELECT project_slug FROM client_project_access WHERE user_id = ? ORDER BY granted_at DESC')
+      .bind(user.id).all();
+    const slugs = (accessRows.results || []).map(r => r.project_slug);
+
+    if (slugs.length === 0) return json({ ok: true, projects: [] });
+
+    // Fetch projects.json for metadata
+    const { projects: allProjects } = await ghReadProjects(env);
+
+    const clientProjects = slugs
+      .map(slug => allProjects.find(p => p.slug === slug))
+      .filter(Boolean);
+
+    return json({ ok: true, projects: clientProjects });
+  } catch (err) {
+    console.error('Portal projects error:', err);
+    return json({ error: 'Could not load projects.' }, 500);
+  }
+}
+
+// GET /api/portal/projects/:slug
+async function handlePortalProject(request, env, slug) {
+  const { user, response } = await requireClient(request, env);
+  if (response) return response;
+
+  try {
+    // Verify access
+    const access = await env.DB
+      .prepare('SELECT 1 FROM client_project_access WHERE user_id = ? AND project_slug = ?')
+      .bind(user.id, slug).first();
+    if (!access) return json({ error: 'Project not found.' }, 404);
+
+    const { projects } = await ghReadProjects(env);
+    const project = projects.find(p => p.slug === slug);
+    if (!project) return json({ error: 'Project not found.' }, 404);
+
+    return json({ ok: true, project });
+  } catch (err) {
+    console.error('Portal project error:', err);
+    return json({ error: 'Could not load project.' }, 500);
+  }
+}
+
+// GET /api/portal/projects/:slug/download
+// Streams a ZIP of all files under originals/[slug]/ in the ORIGINALS R2 bucket.
+async function handlePortalDownload(request, env, slug) {
+  const { user, response } = await requireClient(request, env);
+  if (response) return response;
+
+  if (!env.ORIGINALS) return json({ error: 'Originals storage not configured.' }, 500);
+
+  try {
+    // Verify access
+    const access = await env.DB
+      .prepare('SELECT 1 FROM client_project_access WHERE user_id = ? AND project_slug = ?')
+      .bind(user.id, slug).first();
+    if (!access) return json({ error: 'Not authorized.' }, 403);
+
+    // List all objects under originals/[slug]/
+    const listed = await env.ORIGINALS.list({ prefix: `originals/${slug}/` });
+    const keys   = (listed.objects || []).map(o => o.key).filter(k => !k.endsWith('/'));
+
+    if (keys.length === 0) {
+      return json({ error: 'No originals available for this project yet.' }, 404);
+    }
+
+    // Fetch all files and build ZIP in memory
+    // Workers runtime supports enough memory for < 128MB total
+    const files = [];
+    for (const key of keys) {
+      const obj = await env.ORIGINALS.get(key);
+      if (!obj) continue;
+      const bytes    = await obj.arrayBuffer();
+      const filename = key.split('/').pop();
+      files.push({ filename, bytes });
+    }
+
+    const zipBytes = buildZip(files);
+
+    return new Response(zipBytes, {
+      status: 200,
+      headers: {
+        'Content-Type':        'application/zip',
+        'Content-Disposition': `attachment; filename="${slug}-originals.zip"`,
+        'Content-Length':      String(zipBytes.byteLength),
+      },
+    });
+  } catch (err) {
+    console.error('Portal download error:', err);
+    return json({ error: 'Could not generate download.' }, 500);
+  }
+}
+
+
+/* ----------------------------------------------------------
+   ZIP BUILDER
+   Minimal ZIP implementation — no compression (stored),
+   suitable for already-compressed image files (JPEG/WebP).
+   Handles files up to ~128MB total (Workers limit).
+   ---------------------------------------------------------- */
+
+function buildZip(files) {
+  const encoder    = new TextEncoder();
+  const localHeaders  = [];
+  const centralDir    = [];
+  let offset = 0;
+
+  for (const { filename, bytes } of files) {
+    const nameBytes = encoder.encode(filename);
+    const crc       = crc32(bytes);
+    const size      = bytes.byteLength;
+
+    // Local file header
+    const local = new Uint8Array(30 + nameBytes.length);
+    const dv    = new DataView(local.buffer);
+    dv.setUint32(0,  0x04034b50, true); // signature
+    dv.setUint16(4,  20,         true); // version needed
+    dv.setUint16(6,  0,          true); // flags
+    dv.setUint16(8,  0,          true); // compression: stored
+    dv.setUint16(10, 0,          true); // mod time
+    dv.setUint16(12, 0,          true); // mod date
+    dv.setUint32(14, crc,        true); // crc-32
+    dv.setUint32(18, size,       true); // compressed size
+    dv.setUint32(22, size,       true); // uncompressed size
+    dv.setUint16(26, nameBytes.length, true);
+    dv.setUint16(28, 0,          true); // extra field length
+    local.set(nameBytes, 30);
+
+    // Central directory entry
+    const central = new Uint8Array(46 + nameBytes.length);
+    const cdv     = new DataView(central.buffer);
+    cdv.setUint32(0,  0x02014b50, true); // signature
+    cdv.setUint16(4,  20,         true); // version made by
+    cdv.setUint16(6,  20,         true); // version needed
+    cdv.setUint16(8,  0,          true); // flags
+    cdv.setUint16(10, 0,          true); // compression
+    cdv.setUint16(12, 0,          true); // mod time
+    cdv.setUint16(14, 0,          true); // mod date
+    cdv.setUint32(16, crc,        true); // crc-32
+    cdv.setUint32(20, size,       true); // compressed size
+    cdv.setUint32(24, size,       true); // uncompressed size
+    cdv.setUint16(28, nameBytes.length, true);
+    cdv.setUint16(30, 0,          true); // extra
+    cdv.setUint16(32, 0,          true); // comment
+    cdv.setUint16(34, 0,          true); // disk start
+    cdv.setUint16(36, 0,          true); // internal attr
+    cdv.setUint32(38, 0,          true); // external attr
+    cdv.setUint32(42, offset,     true); // local header offset
+    central.set(nameBytes, 46);
+
+    localHeaders.push(local);
+    localHeaders.push(new Uint8Array(bytes));
+    centralDir.push(central);
+
+    offset += local.byteLength + size;
+  }
+
+  // End of central directory
+  const cdSize   = centralDir.reduce((s, b) => s + b.byteLength, 0);
+  const eocd     = new Uint8Array(22);
+  const edv      = new DataView(eocd.buffer);
+  edv.setUint32(0,  0x06054b50,       true); // signature
+  edv.setUint16(4,  0,                true); // disk number
+  edv.setUint16(6,  0,                true); // disk with cd
+  edv.setUint16(8,  files.length,     true); // entries on disk
+  edv.setUint16(10, files.length,     true); // total entries
+  edv.setUint32(12, cdSize,           true); // cd size
+  edv.setUint32(16, offset,           true); // cd offset
+  edv.setUint16(20, 0,                true); // comment length
+
+  // Concatenate everything
+  const all   = [...localHeaders, ...centralDir, eocd];
+  const total = all.reduce((s, b) => s + b.byteLength, 0);
+  const out   = new Uint8Array(total);
+  let pos     = 0;
+  for (const buf of all) {
+    out.set(buf, pos);
+    pos += buf.byteLength;
+  }
+  return out.buffer;
+}
+
+// CRC-32 implementation
+function crc32(buf) {
+  const table = crc32.table || (crc32.table = (() => {
+    const t = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) {
+      let c = i;
+      for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[i] = c;
+    }
+    return t;
+  })());
+  const bytes = new Uint8Array(buf);
+  let crc = 0xFFFFFFFF;
+  for (const b of bytes) crc = (crc >>> 8) ^ table[(crc ^ b) & 0xFF];
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+
+/* ----------------------------------------------------------
+   INVITE EMAIL
+   ---------------------------------------------------------- */
+
+async function sendInviteEmail(env, recipientEmail, recipientName, token, slugs) {
+  if (!env.RESEND_API_KEY) {
+    console.warn('RESEND_API_KEY not set — skipping invite email.');
+    return;
+  }
+
+  const fromAddress = env.INQUIRY_FROM || 'hello@vestafolioco.com';
+  const inviteLink  = `https://vestafolioco.com/portal/accept-invite?token=${encodeURIComponent(token)}`;
+  const firstName   = recipientName ? String(recipientName).trim().split(/\s+/)[0] : null;
+  const greeting    = firstName ? `Hello, ${esc(firstName)}.` : 'Hello.';
+  const safeLink    = esc(inviteLink);
+  const projectCount = slugs.length;
+
+  const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/><title>Your project gallery is ready</title></head>
+<body style="margin:0;padding:0;background-color:#F2EDE3;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#F2EDE3;">
+  <tr><td align="center" style="padding:48px 16px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;background-color:#F2EDE3;">
+
+      <tr><td align="left" style="padding-bottom:32px;">
+        <span style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:400;letter-spacing:0.18em;color:#1F2E2A;text-transform:uppercase;">VESTA FOLIO</span>
+      </td></tr>
+
+      <tr><td style="border-top:1px solid #A8884E;padding:0;line-height:0;height:1px;font-size:0;">&nbsp;</td></tr>
+
+      <tr><td style="padding:40px 0 16px 0;">
+        <h1 style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-size:32px;font-weight:400;line-height:1.2;color:#1F2E2A;">Your project ${projectCount > 1 ? 'galleries are' : 'gallery is'} ready.</h1>
+      </td></tr>
+
+      <tr><td style="padding:0 0 32px 0;">
+        <p style="margin:0 0 16px 0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:16px;font-weight:400;line-height:1.75;color:#1F2E2A;">${greeting}</p>
+        <p style="margin:0 0 16px 0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:16px;font-weight:400;line-height:1.75;color:#1F2E2A;">Vesta Folio has shared ${projectCount > 1 ? `${projectCount} projects` : 'a project'} with you. Use the link below to set your password and access your ${projectCount > 1 ? 'galleries' : 'gallery'}.</p>
+        <p style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:15px;font-weight:400;line-height:1.75;color:#4A5C57;">The link expires in ${INVITE_DAYS} days.</p>
+      </td></tr>
+
+      <tr><td style="padding:0 0 32px 0;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+          <tr><td style="background-color:#A8884E;">
+            <a href="${safeLink}" style="display:inline-block;padding:16px 32px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;font-weight:500;letter-spacing:0.22em;text-transform:uppercase;color:#1F2E2A;text-decoration:none;">Access your gallery</a>
+          </td></tr>
+        </table>
+      </td></tr>
+
+      <tr><td style="padding:0 0 32px 0;">
+        <p style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:13px;font-weight:400;line-height:1.6;color:#4A5C57;">Or paste this link into your browser:<br/><span style="color:#1F2E2A;word-break:break-all;">${safeLink}</span></p>
+      </td></tr>
+
+      <tr><td style="border-top:1px solid #A8884E;padding:0;line-height:0;height:1px;font-size:0;">&nbsp;</td></tr>
+
+      <tr><td style="padding:24px 0 0 0;">
+        <p style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:13px;font-weight:400;line-height:1.6;color:#4A5C57;">— Vesta Folio<br/>vestafolioco.com · Los Angeles</p>
+      </td></tr>
+
+    </table>
+  </td></tr>
+</table>
+</body></html>`;
+
+  const text = `${greeting}
+
+Vesta Folio has shared ${projectCount > 1 ? `${projectCount} projects` : 'a project'} with you. Use the link below to set your password and access your ${projectCount > 1 ? 'galleries' : 'gallery'}.
+
+${inviteLink}
+
+The link expires in ${INVITE_DAYS} days.
+
+— Vesta Folio
+vestafolioco.com · Los Angeles
+`;
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method:  'POST',
+    headers: { 'Authorization': `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from:    `Vesta Folio <${fromAddress}>`,
+      to:      [recipientEmail],
+      subject: `Your project ${projectCount > 1 ? 'galleries are' : 'gallery is'} ready — Vesta Folio`,
+      html,
+      text,
+    }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Resend error ${res.status}: ${body}`);
+  }
 }
 
 
