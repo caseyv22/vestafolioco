@@ -159,6 +159,12 @@ export default {
     }
 
     // ── Portal ────────────────────────────────────────────────
+    if (path === '/api/portal/accept-invite') {
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'POST')    return cors(await handleAcceptInvite(request, env));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
     if (path === '/api/portal/projects') {
       if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
       if (request.method === 'GET')     return cors(await handlePortalProjects(request, env));
@@ -667,6 +673,61 @@ async function handleRevokeAccess(request, env, userId, slug) {
 /* ----------------------------------------------------------
    PORTAL: CLIENT-FACING ENDPOINTS
    ---------------------------------------------------------- */
+
+// POST /api/portal/accept-invite
+// Body: { token, password }
+// Validates invite token, sets password, issues session, redirects to /portal
+async function handleAcceptInvite(request, env) {
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+
+  const token    = isNonEmptyString(data?.token)    ? data.token.trim() : '';
+  const password = isNonEmptyString(data?.password) ? data.password     : '';
+
+  if (!token || !password)                   return json({ error: 'Token and password are required.' }, 400);
+  if (password.length < MIN_PASSWORD_LENGTH) return json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` }, 400);
+  if (!env.DB)                               return json({ error: 'Service unavailable.' }, 500);
+
+  try {
+    const reset = await env.DB
+      .prepare('SELECT token, user_id, expires_at, used_at FROM password_resets WHERE token = ?')
+      .bind(token).first();
+
+    if (!reset)        return json({ error: 'This invite link is invalid.' }, 400);
+    if (reset.used_at) return json({ error: 'This invite link has already been used.' }, 400);
+    if (new Date(reset.expires_at) < new Date()) {
+      return json({ error: 'This invite link has expired. Ask Vesta Folio to send a new one.' }, 400);
+    }
+
+    // Verify user is a client
+    const user = await env.DB
+      .prepare('SELECT id, email, role FROM users WHERE id = ?')
+      .bind(reset.user_id).first();
+    if (!user || user.role !== 'client') return json({ error: 'This invite link is invalid.' }, 400);
+
+    // Set password
+    const newHash = await bcrypt.hash(password, 12);
+    await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?').bind(newHash, user.id).run();
+    await env.DB.prepare("UPDATE password_resets SET used_at = datetime('now') WHERE token = ?").bind(token).run();
+
+    // Issue session immediately — no need to make them log in again
+    const sessionToken = generateSessionToken();
+    const expiresAt    = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    await env.DB
+      .prepare('INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)')
+      .bind(sessionToken, user.id, expiresAt).run();
+
+    const cookie = buildSessionCookie(sessionToken, SESSION_DAYS * 24 * 60 * 60);
+
+    return new Response(JSON.stringify({ ok: true, redirect: '/portal' }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json', 'Set-Cookie': cookie },
+    });
+  } catch (err) {
+    console.error('Accept invite error:', err);
+    return json({ error: 'Could not accept invite.' }, 500);
+  }
+}
 
 // Require client (or admin) session
 async function requireClient(request, env) {
