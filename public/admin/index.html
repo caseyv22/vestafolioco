@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -25,34 +24,23 @@
 
   <main class="admin__main admin__main--wide">
 
-    <!-- Auth loading state -->
     <div class="admin__loading" id="admin-loading">
       <p>One moment.</p>
     </div>
 
-    <!-- Authenticated content -->
     <div id="admin-authenticated" hidden>
 
-      <!-- Header row -->
       <div class="projects__header">
         <div>
           <p class="admin__label">STUDIO ADMIN</p>
           <h1 class="admin__heading">Projects.</h1>
         </div>
-        <button class="admin__btn-primary" id="new-project-btn" type="button">
-          New project
-        </button>
+        <button class="admin__btn-primary" id="new-project-btn" type="button">New project</button>
       </div>
 
-      <!-- Project list loading -->
-      <div class="projects__loading" id="projects-loading">
-        <p>Loading projects…</p>
-      </div>
-
-      <!-- Project list error -->
+      <div class="projects__loading" id="projects-loading"><p>Loading projects…</p></div>
       <p class="admin__error" id="projects-error" hidden></p>
 
-      <!-- Project table -->
       <div class="projects__table-wrap" id="projects-table-wrap" hidden>
         <table class="projects__table" id="projects-table">
           <thead>
@@ -66,21 +54,19 @@
               <th class="projects__th projects__th--actions">Actions</th>
             </tr>
           </thead>
-          <tbody id="projects-tbody">
-          </tbody>
+          <tbody id="projects-tbody"></tbody>
         </table>
       </div>
 
-      <!-- Empty state -->
       <div class="projects__empty" id="projects-empty" hidden>
         <p class="admin__body admin__body--muted">No projects yet. Add your first one.</p>
       </div>
 
-    </div><!-- /admin-authenticated -->
+    </div>
 
   </main>
 
-  <!-- ── Project modal ───────────────────────────────────────── -->
+  <!-- ── Project modal ─────────────────────────────────────── -->
   <div class="modal-overlay" id="modal-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="modal-title">
     <div class="modal">
 
@@ -90,70 +76,55 @@
       </div>
 
       <p class="admin__error" id="modal-error" hidden></p>
+      <p class="admin__success" id="modal-success" hidden></p>
 
       <form class="modal__form" id="project-form" novalidate>
 
-        <!-- Hidden: slug of project being edited (empty = new) -->
         <input type="hidden" id="editing-slug">
 
+        <!-- ── Metadata section ── -->
         <div class="modal__grid">
 
           <div class="admin__field modal__field--full">
             <label class="admin__label-input" for="field-title">Title</label>
-            <input class="admin__input" type="text" id="field-title" name="title"
-                   maxlength="200" autocomplete="off" required>
+            <input class="admin__input" type="text" id="field-title" name="title" maxlength="200" autocomplete="off" required>
           </div>
 
           <div class="admin__field">
             <label class="admin__label-input" for="field-slug">Slug</label>
-            <input class="admin__input" type="text" id="field-slug" name="slug"
-                   maxlength="80" autocomplete="off" required
-                   pattern="[a-z0-9]+(?:-[a-z0-9]+)*">
-            <p class="admin__hint">Lowercase letters, numbers, hyphens. Auto-derived from title.</p>
+            <input class="admin__input" type="text" id="field-slug" name="slug" maxlength="80" autocomplete="off" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*">
+            <p class="admin__hint">Lowercase, numbers, hyphens. Auto-derived from title.</p>
           </div>
 
           <div class="admin__field">
             <label class="admin__label-input" for="field-location">Location</label>
-            <input class="admin__input" type="text" id="field-location" name="location"
-                   maxlength="200" autocomplete="off" required>
+            <input class="admin__input" type="text" id="field-location" name="location" maxlength="200" autocomplete="off" required>
           </div>
 
           <div class="admin__field">
             <label class="admin__label-input" for="field-year">Year</label>
-            <input class="admin__input" type="number" id="field-year" name="year"
-                   min="2000" max="2100" required>
+            <input class="admin__input" type="number" id="field-year" name="year" min="2000" max="2100" required>
           </div>
 
           <div class="admin__field modal__field--full">
             <label class="admin__label-input" for="field-description">Description</label>
-            <textarea class="admin__input admin__textarea" id="field-description"
-                      name="description" maxlength="2000" rows="4" required></textarea>
+            <textarea class="admin__input admin__textarea" id="field-description" name="description" maxlength="2000" rows="4" required></textarea>
           </div>
 
           <div class="admin__field">
             <fieldset class="admin__fieldset">
               <legend class="admin__label-input">Services</legend>
               <div class="admin__checkboxes">
-                <label class="admin__checkbox-label">
-                  <input type="checkbox" name="services" value="hdr">
-                  HDR Photography
-                </label>
-                <label class="admin__checkbox-label">
-                  <input type="checkbox" name="services" value="cinematic">
-                  Cinematic Tour
-                </label>
-                <label class="admin__checkbox-label">
-                  <input type="checkbox" name="services" value="staging">
-                  AI Staging
-                </label>
+                <label class="admin__checkbox-label"><input type="checkbox" name="services" value="hdr"> HDR Photography</label>
+                <label class="admin__checkbox-label"><input type="checkbox" name="services" value="cinematic"> Cinematic Tour</label>
+                <label class="admin__checkbox-label"><input type="checkbox" name="services" value="staging"> AI Staging</label>
               </div>
             </fieldset>
           </div>
 
           <div class="admin__field">
             <label class="admin__label-input" for="field-order">Display order</label>
-            <input class="admin__input" type="number" id="field-order" name="order"
-                   min="1" max="999">
+            <input class="admin__input" type="number" id="field-order" name="order" min="1" max="999">
             <p class="admin__hint">Lower numbers appear first.</p>
           </div>
 
@@ -164,7 +135,34 @@
             </label>
           </div>
 
-        </div><!-- /modal__grid -->
+        </div>
+
+        <!-- ── Image upload section ── -->
+        <div class="upload__section">
+          <p class="admin__label">Images</p>
+
+          <!-- Drop zone -->
+          <div class="upload__zone" id="upload-zone" tabindex="0" role="button" aria-label="Drop images here or click to select">
+            <p class="upload__zone-text">Drop images here, or <span class="upload__zone-link">click to select</span></p>
+            <p class="upload__zone-hint">JPEG or PNG. Resized to 1800px wide, exported as WebP. First image becomes hero.</p>
+            <input type="file" id="upload-input" accept="image/jpeg,image/png,image/webp" multiple hidden>
+          </div>
+
+          <!-- Processing indicator -->
+          <p class="upload__processing" id="upload-processing" hidden>Processing images…</p>
+
+          <!-- Image preview list -->
+          <div class="upload__previews" id="upload-previews" hidden>
+            <p class="admin__hint upload__reorder-hint">Drag to reorder. First image is the hero.</p>
+            <ul class="upload__list" id="upload-list"></ul>
+          </div>
+
+          <!-- Existing images (edit mode) -->
+          <div class="upload__existing" id="upload-existing" hidden>
+            <p class="admin__hint">Current images — upload new ones to replace.</p>
+            <div class="upload__existing-hero" id="upload-existing-hero"></div>
+          </div>
+        </div>
 
         <div class="modal__footer">
           <button class="admin__btn-ghost" type="button" id="modal-cancel">Cancel</button>
@@ -172,10 +170,10 @@
         </div>
 
       </form>
-    </div><!-- /modal -->
-  </div><!-- /modal-overlay -->
+    </div>
+  </div>
 
-  <!-- ── Delete confirmation ────────────────────────────────── -->
+  <!-- ── Delete confirmation ───────────────────────────────── -->
   <div class="modal-overlay modal-overlay--confirm" id="confirm-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="confirm-title">
     <div class="modal modal--narrow">
       <div class="modal__header">
@@ -183,7 +181,7 @@
         <button class="modal__close" id="confirm-close" type="button" aria-label="Close">&#215;</button>
       </div>
       <p class="admin__body" id="confirm-body">Remove this project from the site?</p>
-      <p class="admin__hint" style="margin-bottom: var(--space-4);">This removes the entry from projects.json. Images in R2 are not deleted.</p>
+      <p class="admin__hint" style="margin-bottom:var(--space-4);">This removes the entry from projects.json. Images in R2 are not deleted.</p>
       <p class="admin__error" id="confirm-error" hidden></p>
       <div class="modal__footer">
         <button class="admin__btn-ghost" type="button" id="confirm-cancel">Cancel</button>
