@@ -661,8 +661,12 @@ async function handleInviteClient(request, env) {
   try {
     // Find or create client user
     let user = await env.DB
-      .prepare('SELECT id, email, name FROM users WHERE email = ?')
+      .prepare('SELECT id, email, name, role FROM users WHERE email = ?')
       .bind(email).first();
+
+    if (user && user.role === 'admin') {
+      return json({ error: 'This email belongs to a studio admin account and cannot be invited as a client.' }, 400);
+    }
 
     if (!user) {
       // Create new client user with a random placeholder password (they set their own via invite link)
@@ -1288,7 +1292,10 @@ async function handleInviteToClientProject(request, env, id) {
   if (!project) return json({ error: 'Project not found.' }, 404);
 
   try {
-    let user = await env.DB.prepare('SELECT id, email, name FROM users WHERE email = ?').bind(email).first();
+    let user = await env.DB.prepare('SELECT id, email, name, role FROM users WHERE email = ?').bind(email).first();
+    if (user && user.role === 'admin') {
+      return json({ error: 'This email belongs to a studio admin account and cannot be invited as a client.' }, 400);
+    }
     if (!user) {
       const ph     = await bcrypt.hash(generateSessionToken(), 12);
       const result = await env.DB.prepare('INSERT INTO users (email, password_hash, role, name) VALUES (?, ?, ?, ?)').bind(email, ph, 'client', name || null).run();
