@@ -629,7 +629,7 @@ async function handleInviteClient(request, env) {
 
     // Invalidate any existing unused tokens for this user
     await env.DB
-      .prepare('UPDATE password_resets SET used_at = datetime('now') WHERE user_id = ? AND used_at IS NULL')
+      .prepare(`UPDATE password_resets SET used_at = datetime('now') WHERE user_id = ? AND used_at IS NULL`)
       .bind(user.id).run();
 
     await env.DB
@@ -679,7 +679,7 @@ async function handleResendInvite(request, env) {
 
     // Invalidate old tokens
     await env.DB
-      .prepare('UPDATE password_resets SET used_at = datetime('now') WHERE user_id = ? AND used_at IS NULL')
+      .prepare(`UPDATE password_resets SET used_at = datetime('now') WHERE user_id = ? AND used_at IS NULL`)
       .bind(userId).run();
 
     // New token
