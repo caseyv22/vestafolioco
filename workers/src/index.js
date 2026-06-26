@@ -187,6 +187,17 @@ export default {
       return cors(new Response('Method not allowed', { status: 405 }));
     }
 
+    // /api/admin/projects/:slug/originals
+    const originalsMatch = path.match(/^\/api\/admin\/projects\/([^/]+)\/originals$/);
+    if (originalsMatch) {
+      const slug = originalsMatch[1];
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')     return cors(await handleListOriginals(request, env, slug));
+      if (request.method === 'POST')    return cors(await handleUploadOriginal(request, env, slug));
+      if (request.method === 'DELETE')  return cors(await handleDeleteOriginal(request, env, slug));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
     return cors(new Response('Not found', { status: 404 }));
   },
 };
@@ -478,6 +489,86 @@ function base64ToUint8Array(b64) {
     bytes[i] = binary.charCodeAt(i);
   }
   return bytes;
+}
+
+
+/* ----------------------------------------------------------
+   ADMIN: ORIGINALS (private R2 bucket)
+   ---------------------------------------------------------- */
+
+// GET /api/admin/projects/:slug/originals — list files
+async function handleListOriginals(request, env, slug) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.ORIGINALS) return json({ error: 'Originals storage not configured.' }, 500);
+
+  try {
+    const listed = await env.ORIGINALS.list({ prefix: `originals/${slug}/` });
+    const files  = (listed.objects || [])
+      .filter(o => !o.key.endsWith('/'))
+      .map(o => ({
+        key:  o.key,
+        name: o.key.split('/').pop(),
+        size: o.size,
+      }));
+    return json({ ok: true, files });
+  } catch (err) {
+    console.error('List originals error:', err);
+    return json({ error: 'Could not list originals.' }, 500);
+  }
+}
+
+// POST /api/admin/projects/:slug/originals — upload one file (multipart/form-data)
+async function handleUploadOriginal(request, env, slug) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.ORIGINALS) return json({ error: 'Originals storage not configured.' }, 500);
+
+  try {
+    const formData = await request.formData();
+    const file     = formData.get('file');
+    if (!file) return json({ error: 'No file provided.' }, 400);
+
+    const filename = file.name || 'upload';
+    // Sanitize filename: strip path components, allow only safe chars
+    const safeName = filename.split(/[\/]/).pop().replace(/[^a-zA-Z0-9._-]/g, '_');
+    const key      = `originals/${slug}/${safeName}`;
+
+    const bytes = await file.arrayBuffer();
+    await env.ORIGINALS.put(key, bytes, {
+      httpMetadata: { contentType: file.type || 'application/octet-stream' },
+    });
+
+    return json({ ok: true, key, name: safeName });
+  } catch (err) {
+    console.error('Upload original error:', err);
+    return json({ error: 'Could not upload file.' }, 500);
+  }
+}
+
+// DELETE /api/admin/projects/:slug/originals — delete one file
+// Body: { key }
+async function handleDeleteOriginal(request, env, slug) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.ORIGINALS) return json({ error: 'Originals storage not configured.' }, 500);
+
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+
+  const key = data?.key || '';
+  // Only allow deleting keys that belong to this slug
+  if (!key || !key.startsWith(`originals/${slug}/`)) {
+    return json({ error: 'Invalid key.' }, 400);
+  }
+
+  try {
+    await env.ORIGINALS.delete(key);
+    return json({ ok: true });
+  } catch (err) {
+    console.error('Delete original error:', err);
+    return json({ error: 'Could not delete file.' }, 500);
+  }
 }
 
 
