@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit project — Vesta Folio</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/brand/favicon.ico">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/admin/admin.css">
+  <link rel="stylesheet" href="/admin/project.css">
+</head>
+<body class="admin-page">
+
+  <nav class="admin__nav" aria-label="Studio admin">
+    <a class="admin__nav-logo" href="/admin" aria-label="Vesta Folio admin home">
+      <img src="/brand/vesta-folio-horizontal.svg" alt="Vesta Folio" width="160">
+    </a>
+    <div class="admin__nav-links">
+      <a class="admin__nav-link" href="/admin">Projects</a>
+      <a class="admin__nav-link" href="/admin/account">Account</a>
+      <button class="admin__nav-logout" id="logout-btn" type="button">Log out</button>
+    </div>
+  </nav>
+
+  <main class="admin__main admin__main--wide">
+
+    <!-- Loading -->
+    <div class="admin__loading" id="page-loading"><p>One moment.</p></div>
+
+    <!-- Error (project not found etc.) -->
+    <div id="page-error" hidden>
+      <p class="admin__label">ERROR</p>
+      <p class="admin__body" id="page-error-msg"></p>
+      <a class="projects__action" href="/admin">← Back to projects</a>
+    </div>
+
+    <!-- Page content -->
+    <div id="page-content" hidden>
+
+      <!-- "Just created" banner -->
+      <div class="project-edit__created" id="created-banner" hidden>
+        <p class="project-edit__created-text">
+          Project created. Now add images, set services, and adjust any details below.
+        </p>
+      </div>
+
+      <!-- Page header -->
+      <div class="project-edit__header">
+        <a class="project-edit__back" href="/admin">← All projects</a>
+        <div class="project-edit__header-meta">
+          <p class="admin__label">EDIT PROJECT</p>
+          <h1 class="admin__heading" id="page-title">…</h1>
+        </div>
+      </div>
+
+      <!-- Global save error / success -->
+      <p class="admin__error" id="page-save-error" hidden></p>
+      <p class="admin__success" id="page-save-success" hidden></p>
+
+      <form id="project-form" novalidate>
+
+        <!-- ── Section: Metadata ─────────────────────────── -->
+        <section class="project-edit__section">
+          <h2 class="project-edit__section-heading">Details</h2>
+
+          <div class="project-edit__grid">
+
+            <div class="admin__field project-edit__field--full">
+              <label class="admin__label-input" for="field-title">Title</label>
+              <input class="admin__input" type="text" id="field-title" name="title"
+                     maxlength="200" autocomplete="off" required>
+            </div>
+
+            <div class="admin__field">
+              <label class="admin__label-input" for="field-slug">Slug</label>
+              <input class="admin__input" type="text" id="field-slug" name="slug"
+                     maxlength="80" autocomplete="off" required
+                     pattern="[a-z0-9]+(?:-[a-z0-9]+)*">
+              <p class="admin__hint">Lowercase, numbers, hyphens only.</p>
+            </div>
+
+            <div class="admin__field">
+              <label class="admin__label-input" for="field-location">Location</label>
+              <input class="admin__input" type="text" id="field-location" name="location"
+                     maxlength="200" autocomplete="off" required>
+            </div>
+
+            <div class="admin__field">
+              <label class="admin__label-input" for="field-year">Year</label>
+              <input class="admin__input" type="number" id="field-year" name="year"
+                     min="2000" max="2100" required>
+            </div>
+
+            <div class="admin__field">
+              <label class="admin__label-input" for="field-order">Display order</label>
+              <input class="admin__input" type="number" id="field-order" name="order"
+                     min="1" max="999">
+              <p class="admin__hint">Lower numbers appear first.</p>
+            </div>
+
+            <div class="admin__field project-edit__field--full">
+              <label class="admin__label-input" for="field-description">Description</label>
+              <textarea class="admin__input admin__textarea admin__textarea--tall"
+                        id="field-description" name="description"
+                        maxlength="2000" rows="5" required></textarea>
+            </div>
+
+            <div class="admin__field">
+              <label class="admin__label-input" for="field-youtube">YouTube ID</label>
+              <input class="admin__input" type="text" id="field-youtube" name="youtube_id"
+                     maxlength="20" autocomplete="off"
+                     placeholder="e.g. dQw4w9WgXcQ">
+              <p class="admin__hint">The video ID from the YouTube URL. Optional.</p>
+            </div>
+
+            <div class="admin__field">
+              <fieldset class="admin__fieldset">
+                <legend class="admin__label-input">Services</legend>
+                <div class="admin__checkboxes">
+                  <label class="admin__checkbox-label">
+                    <input type="checkbox" name="services" value="hdr"> HDR Photography
+                  </label>
+                  <label class="admin__checkbox-label">
+                    <input type="checkbox" name="services" value="cinematic"> Cinematic Tour
+                  </label>
+                  <label class="admin__checkbox-label">
+                    <input type="checkbox" name="services" value="staging"> AI Staging
+                  </label>
+                </div>
+              </fieldset>
+            </div>
+
+            <div class="admin__field project-edit__field--full">
+              <label class="admin__checkbox-label admin__checkbox-label--featured">
+                <input type="checkbox" id="field-featured" name="featured">
+                Show on homepage (Selected Work)
+              </label>
+            </div>
+
+          </div>
+
+          <div class="project-edit__actions">
+            <button class="admin__btn-primary" type="submit" id="save-details-btn">
+              Save details
+            </button>
+          </div>
+
+        </section>
+
+        <!-- ── Section: Images ───────────────────────────── -->
+        <section class="project-edit__section">
+          <h2 class="project-edit__section-heading">Images</h2>
+          <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-4);">
+            These appear on the public site. Resize to 1800px wide, exported as WebP.
+            First image is the hero.
+          </p>
+
+          <p class="admin__error" id="images-error" hidden></p>
+          <p class="admin__success" id="images-success" hidden></p>
+
+          <!-- Drop zone -->
+          <div class="upload__zone" id="upload-zone" tabindex="0" role="button"
+               aria-label="Drop images here or click to select">
+            <p class="upload__zone-text">Drop images here, or <span class="upload__zone-link">click to select</span></p>
+            <p class="upload__zone-hint">JPEG or PNG · Max 1800px wide · WebP at 85% quality · First image becomes hero</p>
+            <input type="file" id="upload-input" accept="image/jpeg,image/png,image/webp" multiple hidden>
+          </div>
+
+          <p class="upload__processing" id="upload-processing" hidden>Processing images…</p>
+
+          <!-- New image previews -->
+          <div class="upload__previews" id="upload-previews" hidden>
+            <p class="admin__hint upload__reorder-hint">Drag to reorder. First image is the hero.</p>
+            <ul class="upload__list" id="upload-list"></ul>
+            <div class="project-edit__actions" style="margin-top:var(--space-4);">
+              <button class="admin__btn-primary" type="button" id="upload-save-btn">
+                Upload images
+              </button>
+            </div>
+          </div>
+
+          <!-- Existing images -->
+          <div id="existing-images-wrap" hidden>
+            <p class="admin__label" style="margin-top:var(--space-5);margin-bottom:var(--space-2);">
+              Current images
+            </p>
+            <div id="existing-images-content"></div>
+          </div>
+
+        </section>
+
+      </form>
+
+    </div><!-- /page-content -->
+
+  </main>
+
+  <script src="/admin/project.js" type="module"></script>
+</body>
+</html>

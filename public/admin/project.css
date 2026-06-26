@@ -1,0 +1,126 @@
+/* ============================================================
+   /admin/project.css
+   Project edit page — layout and section styles.
+   Relies on admin.css for base tokens and components.
+   All CSS variables verified against tokens.css.
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   "Just created" banner
+   ---------------------------------------------------------- */
+
+.project-edit__created {
+  background-color: color-mix(in srgb, var(--color-gold) 10%, transparent);
+  border-left: 2px solid var(--color-gold);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.project-edit__created-text {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  line-height: var(--leading-body);
+  color: var(--color-forest);
+  margin: 0;
+}
+
+/* ----------------------------------------------------------
+   Page header
+   ---------------------------------------------------------- */
+
+.project-edit__header {
+  margin-bottom: var(--space-6);
+}
+
+.project-edit__back {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-micro);
+  text-transform: uppercase;
+  color: var(--color-sage);
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: var(--space-3);
+  transition: color var(--transition-hover);
+}
+
+.project-edit__back:hover {
+  color: var(--color-gold);
+}
+
+.project-edit__header-meta .admin__heading {
+  margin-bottom: 0;
+}
+
+/* ----------------------------------------------------------
+   Sections
+   ---------------------------------------------------------- */
+
+.project-edit__section {
+  padding-top: var(--space-6);
+  padding-bottom: var(--space-8);
+  border-top: 1px solid color-mix(in srgb, var(--color-sage) 20%, transparent);
+}
+
+.project-edit__section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.project-edit__section-heading {
+  font-family: var(--font-display);
+  font-size: var(--text-display-md);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--leading-snug);
+  color: var(--color-forest);
+  margin: 0 0 var(--space-5) 0;
+}
+
+/* ----------------------------------------------------------
+   Two-column grid for metadata fields
+   ---------------------------------------------------------- */
+
+.project-edit__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4) var(--space-6);
+  margin-bottom: var(--space-5);
+  max-width: var(--max-width-content);
+}
+
+.project-edit__field--full {
+  grid-column: 1 / -1;
+}
+
+/* ----------------------------------------------------------
+   Section action row (save button)
+   ---------------------------------------------------------- */
+
+.project-edit__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* ----------------------------------------------------------
+   Taller textarea for description on a full page
+   ---------------------------------------------------------- */
+
+.admin__textarea--tall {
+  min-height: 8rem;
+}
+
+/* ----------------------------------------------------------
+   Responsive
+   ---------------------------------------------------------- */
+
+@media (max-width: 600px) {
+  .project-edit__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .project-edit__field--full {
+    grid-column: 1;
+  }
+}

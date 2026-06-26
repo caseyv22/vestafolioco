@@ -1,7 +1,7 @@
 /* ============================================================
-   /admin/admin.js — Chunk 5b
-   Project list, new/edit/delete CRUD, image upload with
-   client-side Canvas resize to WebP.
+   /admin/admin.js — Chunk 6a
+   Project list + slim create modal.
+   Edit navigates to /admin/projects/[slug].
    ============================================================ */
 
 // ── DOM refs ──────────────────────────────────────────────────
@@ -17,33 +17,20 @@ const projectsTbody     = document.getElementById('projects-tbody');
 const projectsEmpty     = document.getElementById('projects-empty');
 const newProjectBtn     = document.getElementById('new-project-btn');
 
+// Create modal
 const modalOverlay      = document.getElementById('modal-overlay');
-const modalTitle        = document.getElementById('modal-title');
 const modalClose        = document.getElementById('modal-close');
 const modalCancel       = document.getElementById('modal-cancel');
 const modalError        = document.getElementById('modal-error');
-const modalSuccess      = document.getElementById('modal-success');
-const projectForm       = document.getElementById('project-form');
+const createForm        = document.getElementById('create-form');
 const modalSubmit       = document.getElementById('modal-submit');
-const editingSlugInput  = document.getElementById('editing-slug');
-
 const fieldTitle        = document.getElementById('field-title');
 const fieldSlug         = document.getElementById('field-slug');
 const fieldLocation     = document.getElementById('field-location');
 const fieldYear         = document.getElementById('field-year');
 const fieldDescription  = document.getElementById('field-description');
-const fieldOrder        = document.getElementById('field-order');
-const fieldFeatured     = document.getElementById('field-featured');
-const serviceCheckboxes = projectForm.querySelectorAll('input[name="services"]');
 
-const uploadZone        = document.getElementById('upload-zone');
-const uploadInput       = document.getElementById('upload-input');
-const uploadProcessing  = document.getElementById('upload-processing');
-const uploadPreviews    = document.getElementById('upload-previews');
-const uploadList        = document.getElementById('upload-list');
-const uploadExisting    = document.getElementById('upload-existing');
-const uploadExistingHero= document.getElementById('upload-existing-hero');
-
+// Delete confirm
 const confirmOverlay    = document.getElementById('confirm-overlay');
 const confirmClose      = document.getElementById('confirm-close');
 const confirmCancel     = document.getElementById('confirm-cancel');
@@ -54,17 +41,8 @@ const confirmError      = document.getElementById('confirm-error');
 
 // ── State ─────────────────────────────────────────────────────
 
-let projects        = [];
-let slugToDelete    = null;
-// Processed image queue: [{ filename, dataUrl, blob }]
-// filename: 'hero.webp' for index 0, '01.webp', '02.webp'... for the rest
-let pendingImages   = [];
-// Drag-and-drop reorder state
-let dragSrcIndex       = null;
-// Existing images being reordered/deleted: [{ url, label }]
-// Mutated in place; null = unchanged (don't send to Worker)
-let existingImages     = null;
-let existingDragSrcIdx = null;
+let projects     = [];
+let slugToDelete = null;
 
 
 // ── Auth gate ─────────────────────────────────────────────────
@@ -77,6 +55,17 @@ let existingDragSrcIdx = null;
 
     loadingEl.hidden       = true;
     authenticatedEl.hidden = false;
+
+    // Show success banner if redirected from project edit
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('saved')) {
+      showBanner(`Project saved.`);
+      window.history.replaceState({}, '', '/admin');
+    }
+    if (params.get('deleted')) {
+      showBanner(`Project deleted.`);
+      window.history.replaceState({}, '', '/admin');
+    }
 
     await loadProjects();
   } catch (err) {
@@ -122,13 +111,11 @@ function renderProjectTable() {
   projectsTbody.innerHTML = '';
   projects.forEach(p => {
     const tr = document.createElement('tr');
-    tr.className  = 'projects__row';
+    tr.className    = 'projects__row';
     tr.dataset.slug = p.slug;
 
     const services = Array.isArray(p.services) && p.services.length
       ? p.services.map(s => SERVICE_LABELS[s] || s).join(', ') : '—';
-
-    const hasImages = p.hero_image ? '✓' : '—';
 
     tr.innerHTML = `
       <td class="projects__td projects__td--order">${p.order}</td>
@@ -141,8 +128,9 @@ function renderProjectTable() {
       <td class="projects__td projects__td--meta">${escHtml(services)}</td>
       <td class="projects__td projects__td--meta">${p.featured ? 'Yes' : '—'}</td>
       <td class="projects__td projects__td--actions">
-        <button class="projects__action" type="button" data-action="edit" data-slug="${escHtml(p.slug)}">Edit</button>
-        <button class="projects__action projects__action--danger" type="button" data-action="delete" data-slug="${escHtml(p.slug)}">Delete</button>
+        <a class="projects__action" href="/admin/projects/${escHtml(p.slug)}">Edit</a>
+        <button class="projects__action projects__action--danger" type="button"
+                data-action="delete" data-slug="${escHtml(p.slug)}">Delete</button>
       </td>
     `;
     projectsTbody.appendChild(tr);
@@ -160,363 +148,71 @@ function showProjectsState(state, message) {
 }
 
 
+// ── Banner (success messages from edit page) ──────────────────
+
+function showBanner(message) {
+  const existing = document.getElementById('admin-banner');
+  if (existing) existing.remove();
+  const banner = document.createElement('p');
+  banner.id        = 'admin-banner';
+  banner.className = 'admin__success';
+  banner.style.marginBottom = 'var(--space-4)';
+  banner.textContent = message;
+  authenticatedEl.insertBefore(banner, authenticatedEl.querySelector('.projects__header').nextSibling);
+  setTimeout(() => banner.remove(), 5000);
+}
+
+
 // ── New project button ────────────────────────────────────────
 
-newProjectBtn.addEventListener('click', () => openModal());
+newProjectBtn.addEventListener('click', () => openCreateModal());
 
 
-// ── Row actions ───────────────────────────────────────────────
+// ── Row delete action ─────────────────────────────────────────
 
 projectsTbody.addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-action]');
-  if (!btn) return;
-  const slug   = btn.dataset.slug;
-  const action = btn.dataset.action;
-  if (action === 'edit') {
-    const project = projects.find(p => p.slug === slug);
-    if (project) openModal(project);
-  }
-  if (action === 'delete') openConfirm(slug);
+  const btn = e.target.closest('[data-action="delete"]');
+  if (btn) openConfirm(btn.dataset.slug);
 });
 
 
-// ── Project modal ─────────────────────────────────────────────
+// ── Create modal ──────────────────────────────────────────────
 
-function openModal(project) {
-  clearModalMessages();
-  projectForm.reset();
-  pendingImages = [];
-  renderImagePreviews();
-
-  if (project) {
-    modalTitle.textContent  = 'Edit project';
-    modalSubmit.textContent = 'Save changes';
-    editingSlugInput.value  = project.slug;
-    fieldTitle.value        = project.title;
-    fieldSlug.value         = project.slug;
-    fieldLocation.value     = project.location;
-    fieldYear.value         = project.year;
-    fieldDescription.value  = project.description;
-    fieldOrder.value        = project.order;
-    fieldFeatured.checked   = Boolean(project.featured);
-    serviceCheckboxes.forEach(cb => {
-      cb.checked = Array.isArray(project.services) && project.services.includes(cb.value);
-    });
-    // Show existing images
-    showExistingImages(project);
-  } else {
-    modalTitle.textContent  = 'New project';
-    modalSubmit.textContent = 'Save project';
-    editingSlugInput.value  = '';
-    fieldYear.value         = new Date().getFullYear();
-    fieldOrder.value        = projects.length + 1;
-    fieldFeatured.checked   = true;
-    uploadExisting.hidden   = true;
-    uploadExistingHero.innerHTML = '';
-    existingImages = null;
-  }
-
+function openCreateModal() {
+  createForm.reset();
+  clearModalError();
+  fieldYear.value = new Date().getFullYear();
   modalOverlay.hidden = false;
   document.body.style.overflow = 'hidden';
   fieldTitle.focus();
 }
 
-function closeModal() {
+function closeCreateModal() {
   modalOverlay.hidden = true;
   document.body.style.overflow = '';
-  clearModalMessages();
-  projectForm.reset();
-  pendingImages = [];
-  existingImages = null;
-  renderImagePreviews();
+  clearModalError();
+  createForm.reset();
 }
 
-function showExistingImages(project) {
-  if (!project.hero_image) {
-    uploadExisting.hidden = true;
-    existingImages = null;
-    return;
-  }
-
-  const gallery = Array.isArray(project.gallery) ? project.gallery : [];
-  existingImages = [project.hero_image, ...gallery].map((url, i) => ({ url }));
-  uploadExisting.hidden = false;
-  renderExistingImages();
-}
-
-function renderExistingImages() {
-  if (!existingImages || existingImages.length === 0) {
-    uploadExisting.hidden = true;
-    existingImages = null;
-    return;
-  }
-
-  uploadExisting.hidden = false;
-  uploadExistingHero.innerHTML = '';
-
-  const hint = document.createElement('p');
-  hint.className = 'admin__hint';
-  hint.style.marginBottom = 'var(--space-2)';
-  hint.textContent = 'Drag to reorder. First image becomes hero. Upload new images above to replace all.';
-  uploadExistingHero.appendChild(hint);
-
-  const list = document.createElement('ul');
-  list.className = 'upload__list upload__list--existing';
-  uploadExistingHero.appendChild(list);
-
-  existingImages.forEach((img, i) => {
-    const label = i === 0 ? 'Hero' : `Gallery ${i}`;
-    const li = document.createElement('li');
-    li.className = 'upload__item';
-    li.draggable = true;
-    li.dataset.index = i;
-
-    li.innerHTML = `
-      <span class="upload__drag-handle" aria-hidden="true">⠿</span>
-      <img class="upload__thumb" src="${escHtml(img.url)}" alt="${label}">
-      <span class="upload__item-meta">
-        <span class="upload__item-label">${label}</span>
-        <span class="upload__item-name upload__item-name--url">${escHtml(img.url.split('/').pop())}</span>
-      </span>
-      <button class="upload__remove" type="button" data-index="${i}" aria-label="Remove image">&#215;</button>
-    `;
-
-    // Drag events
-    li.addEventListener('dragstart', (e) => {
-      existingDragSrcIdx = i;
-      li.classList.add('upload__item--dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    li.addEventListener('dragend', () => {
-      li.classList.remove('upload__item--dragging');
-      existingDragSrcIdx = null;
-      list.querySelectorAll('.upload__item').forEach(el => el.classList.remove('upload__item--over'));
-    });
-    li.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      list.querySelectorAll('.upload__item').forEach(el => el.classList.remove('upload__item--over'));
-      li.classList.add('upload__item--over');
-    });
-    li.addEventListener('drop', (e) => {
-      e.preventDefault();
-      if (existingDragSrcIdx === null || existingDragSrcIdx === i) return;
-      const moved = existingImages.splice(existingDragSrcIdx, 1)[0];
-      existingImages.splice(i, 0, moved);
-      renderExistingImages();
-    });
-
-    list.appendChild(li);
-  });
-
-  // Remove buttons
-  list.addEventListener('click', (e) => {
-    const btn = e.target.closest('.upload__remove');
-    if (!btn) return;
-    const idx = Number(btn.dataset.index);
-    existingImages.splice(idx, 1);
-    renderExistingImages();
-  });
-}
-
-modalClose.addEventListener('click', closeModal);
-modalCancel.addEventListener('click', closeModal);
-modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeModal(); });
+modalClose.addEventListener('click', closeCreateModal);
+modalCancel.addEventListener('click', closeCreateModal);
+modalOverlay.addEventListener('click', (e) => { if (e.target === modalOverlay) closeCreateModal(); });
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    if (!modalOverlay.hidden)   closeModal();
+    if (!modalOverlay.hidden)   closeCreateModal();
     if (!confirmOverlay.hidden) closeConfirm();
   }
 });
 
-
-// ── Auto-derive slug ──────────────────────────────────────────
-
+// Auto-derive slug
 fieldTitle.addEventListener('input', () => {
-  if (editingSlugInput.value) return;
   fieldSlug.value = slugify(fieldTitle.value);
 });
 
-
-// ── Image upload zone ─────────────────────────────────────────
-
-uploadZone.addEventListener('click', () => uploadInput.click());
-uploadZone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') uploadInput.click(); });
-
-uploadZone.addEventListener('dragover', (e) => {
+// Create form submit → create project → redirect to edit page
+createForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  uploadZone.classList.add('upload__zone--drag');
-});
-uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('upload__zone--drag'));
-uploadZone.addEventListener('drop', (e) => {
-  e.preventDefault();
-  uploadZone.classList.remove('upload__zone--drag');
-  const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-  if (files.length) processFiles(files);
-});
-
-uploadInput.addEventListener('change', () => {
-  const files = Array.from(uploadInput.files);
-  if (files.length) processFiles(files);
-  uploadInput.value = '';
-});
-
-
-// ── Canvas resize + WebP encode ───────────────────────────────
-
-const MAX_WIDTH    = 1800;
-const WEBP_QUALITY = 0.85;
-
-async function processFiles(files) {
-  if (pendingImages.length + files.length > 20) {
-    showModalError('Maximum 20 images per upload.');
-    return;
-  }
-
-  uploadProcessing.hidden = false;
-  uploadZone.style.pointerEvents = 'none';
-
-  for (const file of files) {
-    try {
-      const processed = await resizeToWebP(file);
-      pendingImages.push(processed);
-    } catch (err) {
-      console.error('Image processing error:', file.name, err);
-      showModalError(`Could not process ${file.name}. Use JPEG or PNG.`);
-    }
-  }
-
-  uploadProcessing.hidden = true;
-  uploadZone.style.pointerEvents = '';
-  assignFilenames();
-  renderImagePreviews();
-}
-
-function resizeToWebP(file) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const objectUrl = URL.createObjectURL(file);
-
-    img.onload = () => {
-      URL.revokeObjectURL(objectUrl);
-
-      let { width, height } = img;
-      if (width > MAX_WIDTH) {
-        height = Math.round(height * MAX_WIDTH / width);
-        width  = MAX_WIDTH;
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width  = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, width, height);
-
-      canvas.toBlob((blob) => {
-        if (!blob) { reject(new Error('Canvas toBlob failed')); return; }
-        const reader = new FileReader();
-        reader.onload = () => resolve({ dataUrl: reader.result, blob, originalName: file.name });
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      }, 'image/webp', WEBP_QUALITY);
-    };
-
-    img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Image load failed')); };
-    img.src = objectUrl;
-  });
-}
-
-// Assign filenames: first = hero.webp, rest = 01.webp, 02.webp...
-function assignFilenames() {
-  pendingImages.forEach((img, i) => {
-    img.filename = i === 0 ? 'hero.webp' : String(i).padStart(2, '0') + '.webp';
-  });
-}
-
-
-// ── Image preview list + drag reorder ────────────────────────
-
-function renderImagePreviews() {
-  if (pendingImages.length === 0) {
-    uploadPreviews.hidden = true;
-    uploadList.innerHTML  = '';
-    return;
-  }
-
-  uploadPreviews.hidden = false;
-  uploadList.innerHTML  = '';
-
-  pendingImages.forEach((img, i) => {
-    const li = document.createElement('li');
-    li.className      = 'upload__item';
-    li.draggable      = true;
-    li.dataset.index  = i;
-
-    const label = i === 0 ? 'Hero' : `Gallery ${i}`;
-    const kb    = Math.round(img.blob.size / 1024);
-
-    li.innerHTML = `
-      <span class="upload__drag-handle" aria-hidden="true">⠿</span>
-      <img class="upload__thumb" src="${img.dataUrl}" alt="${escHtml(img.originalName)}">
-      <span class="upload__item-meta">
-        <span class="upload__item-label">${label}</span>
-        <span class="upload__item-name">${escHtml(img.originalName)}</span>
-        <span class="upload__item-size">${kb} KB</span>
-      </span>
-      <button class="upload__remove" type="button" data-index="${i}" aria-label="Remove image">&#215;</button>
-    `;
-
-    // Drag events
-    li.addEventListener('dragstart', (e) => {
-      dragSrcIndex = i;
-      li.classList.add('upload__item--dragging');
-      e.dataTransfer.effectAllowed = 'move';
-    });
-    li.addEventListener('dragend', () => {
-      li.classList.remove('upload__item--dragging');
-      dragSrcIndex = null;
-      uploadList.querySelectorAll('.upload__item').forEach(el => el.classList.remove('upload__item--over'));
-    });
-    li.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      uploadList.querySelectorAll('.upload__item').forEach(el => el.classList.remove('upload__item--over'));
-      li.classList.add('upload__item--over');
-    });
-    li.addEventListener('drop', (e) => {
-      e.preventDefault();
-      if (dragSrcIndex === null || dragSrcIndex === i) return;
-      const moved = pendingImages.splice(dragSrcIndex, 1)[0];
-      pendingImages.splice(i, 0, moved);
-      assignFilenames();
-      renderImagePreviews();
-    });
-
-    uploadList.appendChild(li);
-  });
-
-  // Remove buttons
-  uploadList.addEventListener('click', (e) => {
-    const btn = e.target.closest('.upload__remove');
-    if (!btn) return;
-    const idx = Number(btn.dataset.index);
-    pendingImages.splice(idx, 1);
-    assignFilenames();
-    renderImagePreviews();
-  });
-}
-
-
-// ── Form submit ───────────────────────────────────────────────
-
-projectForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  clearModalMessages();
-
-  const editingSlug = editingSlugInput.value.trim();
-  const isEdit      = Boolean(editingSlug);
-
-  const services = Array.from(serviceCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+  clearModalError();
 
   const payload = {
     title:       fieldTitle.value.trim(),
@@ -524,9 +220,9 @@ projectForm.addEventListener('submit', async (e) => {
     location:    fieldLocation.value.trim(),
     year:        Number(fieldYear.value),
     description: fieldDescription.value.trim(),
-    services,
-    featured:    fieldFeatured.checked,
-    order:       Number(fieldOrder.value) || (projects.length + 1),
+    services:    [],
+    featured:    true,
+    order:       projects.length + 1,
   };
 
   if (!payload.title)       { showModalError('Title is required.');       return; }
@@ -537,76 +233,23 @@ projectForm.addEventListener('submit', async (e) => {
 
   const originalLabel     = modalSubmit.textContent;
   modalSubmit.disabled    = true;
-  modalSubmit.textContent = 'Saving…';
+  modalSubmit.textContent = 'Creating…';
 
   try {
-    // Step 1: save metadata
-    const url    = isEdit ? `/api/admin/projects/${editingSlug}` : '/api/admin/projects';
-    const method = isEdit ? 'PATCH' : 'POST';
-
-    const res  = await fetch(url, {
-      method,
+    const res  = await fetch('/api/admin/projects', {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body:    JSON.stringify(payload),
     });
     const body = await res.json().catch(() => ({}));
 
-    if (!res.ok) { showModalError(body.error || 'Could not save project.'); return; }
+    if (!res.ok) { showModalError(body.error || 'Could not create project.'); return; }
 
-    // Determine the slug to use for image upload (may have changed on rename)
-    const savedSlug = body.project?.slug || payload.slug;
-
-    // Step 2a: upload new images if any pending (takes priority over reorder)
-    if (pendingImages.length > 0) {
-      modalSubmit.textContent = 'Uploading images…';
-
-      const images = pendingImages.map(img => ({
-        filename: img.filename,
-        data:     img.dataUrl,
-      }));
-
-      const imgRes  = await fetch(`/api/admin/projects/${savedSlug}/images`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body:    JSON.stringify({ images }),
-      });
-      const imgBody = await imgRes.json().catch(() => ({}));
-
-      if (!imgRes.ok) {
-        showModalError(imgBody.error || 'Project saved, but images could not be uploaded. Try again from the edit screen.');
-        await loadProjects();
-        return;
-      }
-
-    } else if (existingImages !== null) {
-      // Step 2b: existing images were reordered or deleted — update projects.json only
-      modalSubmit.textContent = 'Saving images…';
-
-      const heroImage = existingImages[0]?.url || '';
-      const gallery   = existingImages.slice(1).map(img => img.url);
-
-      const imgRes  = await fetch(`/api/admin/projects/${savedSlug}/images/order`, {
-        method:  'PATCH',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body:    JSON.stringify({ hero_image: heroImage, gallery }),
-      });
-      const imgBody = await imgRes.json().catch(() => ({}));
-
-      if (!imgRes.ok) {
-        showModalError(imgBody.error || 'Project saved, but image order could not be updated. Try again.');
-        await loadProjects();
-        return;
-      }
-    }
-
-    closeModal();
-    await loadProjects();
-
-    // Brief published notice
-    projectsError.hidden = true;
+    // Redirect to edit page with "just created" flag
+    window.location.href = `/admin/projects/${payload.slug}?created=1`;
 
   } catch (err) {
-    console.error('Save project error:', err);
+    console.error('Create error:', err);
     showModalError('Could not connect. Check your connection and try again.');
   } finally {
     modalSubmit.disabled    = false;
@@ -640,7 +283,7 @@ confirmOverlay.addEventListener('click', (e) => { if (e.target === confirmOverla
 
 confirmDelete.addEventListener('click', async () => {
   if (!slugToDelete) return;
-  const slug = slugToDelete;
+  const slug                = slugToDelete;
   const originalLabel       = confirmDelete.textContent;
   confirmDelete.disabled    = true;
   confirmDelete.textContent = 'Deleting…';
@@ -655,7 +298,7 @@ confirmDelete.addEventListener('click', async () => {
       return;
     }
     closeConfirm();
-    await loadProjects();
+    window.location.href = '/admin?deleted=1';
   } catch (err) {
     console.error('Delete error:', err);
     confirmError.textContent = 'Could not connect. Try again.';
@@ -672,14 +315,11 @@ confirmDelete.addEventListener('click', async () => {
 function showModalError(message) {
   modalError.textContent = message;
   modalError.hidden      = false;
-  modalSuccess.hidden    = true;
 }
 
-function clearModalMessages() {
-  modalError.textContent   = '';
-  modalError.hidden        = true;
-  modalSuccess.textContent = '';
-  modalSuccess.hidden      = true;
+function clearModalError() {
+  modalError.textContent = '';
+  modalError.hidden      = true;
 }
 
 function redirectToLogin() { window.location.href = '/admin/login'; }
