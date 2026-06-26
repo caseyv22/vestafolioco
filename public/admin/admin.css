@@ -916,3 +916,10 @@
   color: var(--color-forest);
   border-bottom-color: var(--color-gold);
 }
+
+/* Nav active state */
+.admin__nav-link--active {
+  color: var(--color-forest);
+  border-bottom: 1px solid var(--color-gold);
+  padding-bottom: 1px;
+}

@@ -1,0 +1,178 @@
+/* /admin/dashboard.css — dashboard stats, panels, badges */
+
+.dash__header {
+  margin-bottom: var(--space-6);
+}
+
+.dash__header .admin__heading {
+  margin-bottom: 0;
+}
+
+/* ── Stat cards ───────────────────────────────────────────── */
+
+.dash__stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+@media (min-width: 768px) {
+  .dash__stats {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.dash__stat {
+  background-color: color-mix(in srgb, var(--color-forest) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-sage) 20%, transparent);
+  padding: var(--space-5) var(--space-5);
+}
+
+.dash__stat-value {
+  font-family: var(--font-display);
+  font-size: var(--text-display-lg);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-forest);
+  line-height: 1;
+  margin: 0 0 var(--space-2) 0;
+}
+
+.dash__stat-value--alert {
+  color: var(--color-gold);
+}
+
+.dash__stat-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-micro);
+  text-transform: uppercase;
+  color: var(--color-sage);
+  margin: 0;
+}
+
+/* ── Panels ───────────────────────────────────────────────── */
+
+.dash__panels {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-6);
+}
+
+@media (min-width: 900px) {
+  .dash__panels {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.dash__panel {
+  border: 1px solid color-mix(in srgb, var(--color-sage) 20%, transparent);
+}
+
+.dash__panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 20%, transparent);
+}
+
+.dash__panel-link {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-micro);
+  text-transform: uppercase;
+  color: var(--color-sage);
+  text-decoration: none;
+  transition: color var(--transition-hover);
+}
+
+.dash__panel-link:hover {
+  color: var(--color-gold);
+}
+
+.dash__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  text-decoration: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 12%, transparent);
+  transition: background-color var(--transition-hover);
+}
+
+.dash__row:last-child {
+  border-bottom: none;
+}
+
+.dash__row:hover {
+  background-color: color-mix(in srgb, var(--color-forest) 4%, transparent);
+}
+
+.dash__row-primary {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-forest);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash__row-secondary {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro);
+  color: var(--color-sage);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dash__empty {
+  padding: var(--space-5);
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  color: var(--color-sage);
+  margin: 0;
+}
+
+/* ── Status badges ────────────────────────────────────────── */
+
+.dash__badge {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: var(--font-weight-medium);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.dash__badge--neutral {
+  background-color: color-mix(in srgb, var(--color-sage) 15%, transparent);
+  color: var(--color-sage);
+}
+
+.dash__badge--gold {
+  background-color: color-mix(in srgb, var(--color-gold) 15%, transparent);
+  color: color-mix(in srgb, var(--color-gold) 80%, var(--color-forest));
+}
+
+.dash__badge--green {
+  background-color: color-mix(in srgb, var(--color-sage) 20%, transparent);
+  color: var(--color-forest);
+}
+
+.dash__badge--blue {
+  background-color: color-mix(in srgb, var(--color-forest) 10%, transparent);
+  color: var(--color-forest);
+}

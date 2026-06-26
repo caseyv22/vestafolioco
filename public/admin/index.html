@@ -9,206 +9,136 @@
   <link rel="stylesheet" href="/css/tokens.css">
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/admin/admin.css">
+  <link rel="stylesheet" href="/admin/dashboard.css">
 </head>
 <body class="admin-page">
-
   <nav class="admin__nav" aria-label="Studio admin">
     <a class="admin__nav-logo" href="/admin" aria-label="Vesta Folio admin home">
       <img src="/brand/vesta-folio-horizontal.svg" alt="Vesta Folio" width="160">
     </a>
     <div class="admin__nav-links">
+      <a class="admin__nav-link admin__nav-link--active" href="/admin" aria-current="page">Dashboard</a>
+      <a class="admin__nav-link" href="/admin/projects">Projects</a>
+      <a class="admin__nav-link" href="/admin/leads">Leads</a>
       <a class="admin__nav-link" href="/admin/account">Account</a>
       <button class="admin__nav-logout" id="logout-btn" type="button">Log out</button>
     </div>
   </nav>
 
   <main class="admin__main admin__main--wide">
+    <div class="admin__loading" id="page-loading"><p>One moment.</p></div>
+    <div id="page-content" hidden>
 
-    <div class="admin__loading" id="admin-loading"><p>One moment.</p></div>
-
-    <div id="admin-authenticated" hidden>
-
-      <!-- Tab bar -->
-      <div class="admin__tabs">
-        <button class="admin__tab admin__tab--active" id="tab-portfolio" type="button">Portfolio</button>
-        <button class="admin__tab" id="tab-clients" type="button">Client projects</button>
+      <div class="dash__header">
+        <p class="admin__label">STUDIO ADMIN</p>
+        <h1 class="admin__heading">Dashboard.</h1>
       </div>
 
-      <!-- ── Portfolio tab ─────────────────────────────── -->
-      <div id="panel-portfolio">
-
-        <div class="projects__header">
-          <div>
-            <p class="admin__label">PUBLIC SITE</p>
-            <h1 class="admin__heading">Portfolio.</h1>
-          </div>
-          <button class="admin__btn-primary" id="new-project-btn" type="button">New project</button>
+      <!-- Stat cards -->
+      <div class="dash__stats">
+        <div class="dash__stat">
+          <p class="dash__stat-value" id="stat-inquiries">—</p>
+          <p class="dash__stat-label">Inquiries this month</p>
         </div>
-
-        <div class="projects__loading" id="projects-loading"><p>Loading…</p></div>
-        <p class="admin__error" id="projects-error" hidden></p>
-
-        <div class="projects__table-wrap" id="projects-table-wrap" hidden>
-          <table class="projects__table">
-            <thead>
-              <tr>
-                <th class="projects__th projects__th--order">#</th>
-                <th class="projects__th">Title</th>
-                <th class="projects__th projects__th--meta">Location</th>
-                <th class="projects__th projects__th--meta">Year</th>
-                <th class="projects__th projects__th--meta">Services</th>
-                <th class="projects__th projects__th--meta">Featured</th>
-                <th class="projects__th projects__th--actions">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="projects-tbody"></tbody>
-          </table>
+        <div class="dash__stat">
+          <p class="dash__stat-value dash__stat-value--alert" id="stat-unassigned">—</p>
+          <p class="dash__stat-label">Awaiting response</p>
         </div>
-
-        <div class="projects__empty" id="projects-empty" hidden>
-          <p class="admin__body admin__body--muted">No portfolio projects yet.</p>
+        <div class="dash__stat">
+          <p class="dash__stat-value" id="stat-active">—</p>
+          <p class="dash__stat-label">Active projects</p>
         </div>
-
+        <div class="dash__stat">
+          <p class="dash__stat-value" id="stat-delivered">—</p>
+          <p class="dash__stat-label">Delivered this month</p>
+        </div>
       </div>
 
-      <!-- ── Client projects tab ───────────────────────── -->
-      <div id="panel-clients" hidden>
+      <div class="dash__panels">
 
-        <div class="projects__header">
-          <div>
-            <p class="admin__label">PORTAL</p>
-            <h1 class="admin__heading">Client projects.</h1>
+        <!-- Recent leads -->
+        <div class="dash__panel">
+          <div class="dash__panel-header">
+            <p class="admin__label">RECENT LEADS</p>
+            <a class="dash__panel-link" href="/admin/leads">View all</a>
           </div>
-          <button class="admin__btn-primary" id="new-cp-btn" type="button">New project</button>
+          <div id="recent-leads"></div>
         </div>
 
-        <div class="projects__loading" id="cp-loading"><p>Loading…</p></div>
-        <p class="admin__error" id="cp-error" hidden></p>
-
-        <div class="projects__table-wrap" id="cp-table-wrap" hidden>
-          <table class="projects__table">
-            <thead>
-              <tr>
-                <th class="projects__th">Title</th>
-                <th class="projects__th projects__th--meta">Location</th>
-                <th class="projects__th projects__th--meta">Year</th>
-                <th class="projects__th projects__th--meta">Services</th>
-                <th class="projects__th projects__th--actions">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="cp-tbody"></tbody>
-          </table>
-        </div>
-
-        <div class="projects__empty" id="cp-empty" hidden>
-          <p class="admin__body admin__body--muted">No client projects yet.</p>
+        <!-- Active projects -->
+        <div class="dash__panel">
+          <div class="dash__panel-header">
+            <p class="admin__label">CLIENT PROJECTS</p>
+            <a class="dash__panel-link" href="/admin/projects">View all</a>
+          </div>
+          <div id="active-projects"></div>
         </div>
 
       </div>
 
     </div>
-
   </main>
 
-  <!-- ── Portfolio create modal ──────────────────────────────── -->
-  <div class="modal-overlay" id="modal-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="modal-title">
-    <div class="modal modal--narrow">
-      <div class="modal__header">
-        <h2 class="modal__title" id="modal-title">New portfolio project</h2>
-        <button class="modal__close" id="modal-close" type="button" aria-label="Close">&#215;</button>
-      </div>
-      <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-4);">
-        Fill in the basics. You'll add images and details on the next screen.
-      </p>
-      <p class="admin__error" id="modal-error" hidden></p>
-      <form class="modal__form" id="create-form" novalidate>
-        <div class="admin__field">
-          <label class="admin__label-input" for="field-title">Title</label>
-          <input class="admin__input" type="text" id="field-title" name="title" maxlength="200" autocomplete="off" required>
-        </div>
-        <div class="admin__field">
-          <label class="admin__label-input" for="field-slug">Slug</label>
-          <input class="admin__input" type="text" id="field-slug" name="slug" maxlength="80" autocomplete="off" required>
-          <p class="admin__hint">Auto-derived from title.</p>
-        </div>
-        <div class="admin__field">
-          <label class="admin__label-input" for="field-location">Location</label>
-          <input class="admin__input" type="text" id="field-location" name="location" maxlength="200" autocomplete="off" required>
-        </div>
-        <div class="admin__field">
-          <label class="admin__label-input" for="field-year">Year</label>
-          <input class="admin__input" type="number" id="field-year" name="year" min="2000" max="2100" required>
-        </div>
-        <div class="admin__field">
-          <label class="admin__label-input" for="field-description">Description</label>
-          <textarea class="admin__input admin__textarea" id="field-description" name="description" maxlength="2000" rows="3" required></textarea>
-        </div>
-        <div class="modal__footer">
-          <button class="admin__btn-ghost" type="button" id="modal-cancel">Cancel</button>
-          <button class="admin__btn-primary" type="submit" id="modal-submit">Create project</button>
-        </div>
-      </form>
-    </div>
-  </div>
+  <script type="module">
+    const logoutBtn = document.getElementById('logout-btn');
+    logoutBtn.addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/admin/login';
+    });
 
-  <!-- ── Client project create modal ─────────────────────────── -->
-  <div class="modal-overlay" id="cp-modal-overlay" hidden aria-modal="true" role="dialog" aria-labelledby="cp-modal-title">
-    <div class="modal modal--narrow">
-      <div class="modal__header">
-        <h2 class="modal__title" id="cp-modal-title">New client project</h2>
-        <button class="modal__close" id="cp-modal-close" type="button" aria-label="Close">&#215;</button>
-      </div>
-      <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-4);">
-        Fill in the basics. You'll add images, originals, and invite the client on the next screen.
-      </p>
-      <p class="admin__error" id="cp-modal-error" hidden></p>
-      <form class="modal__form" id="cp-create-form" novalidate>
-        <div class="admin__field">
-          <label class="admin__label-input" for="cp-field-title">Title</label>
-          <input class="admin__input" type="text" id="cp-field-title" name="title" maxlength="200" autocomplete="off" required>
-        </div>
-        <div class="admin__field">
-          <label class="admin__label-input" for="cp-field-slug">Slug</label>
-          <input class="admin__input" type="text" id="cp-field-slug" name="slug" maxlength="80" autocomplete="off" required>
-          <p class="admin__hint">Auto-derived from title.</p>
-        </div>
-        <div class="admin__field">
-          <label class="admin__label-input" for="cp-field-location">Location</label>
-          <input class="admin__input" type="text" id="cp-field-location" name="location" maxlength="200" autocomplete="off" required>
-        </div>
-        <div class="admin__field">
-          <label class="admin__label-input" for="cp-field-year">Year</label>
-          <input class="admin__input" type="number" id="cp-field-year" name="year" min="2000" max="2100" required>
-        </div>
-        <div class="admin__field">
-          <label class="admin__label-input" for="cp-field-description">Description</label>
-          <textarea class="admin__input admin__textarea" id="cp-field-description" name="description" maxlength="2000" rows="3" required></textarea>
-        </div>
-        <div class="modal__footer">
-          <button class="admin__btn-ghost" type="button" id="cp-modal-cancel">Cancel</button>
-          <button class="admin__btn-primary" type="submit" id="cp-modal-submit">Create project</button>
-        </div>
-      </form>
-    </div>
-  </div>
+    (async () => {
+      const me = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
+      if (!me.ok) { window.location.href = '/admin/login'; return; }
 
-  <!-- ── Delete confirmation ───────────────────────────────── -->
-  <div class="modal-overlay" id="confirm-overlay" hidden aria-modal="true" role="dialog">
-    <div class="modal modal--narrow">
-      <div class="modal__header">
-        <h2 class="modal__title" id="confirm-title">Delete project</h2>
-        <button class="modal__close" id="confirm-close" type="button" aria-label="Close">&#215;</button>
-      </div>
-      <p class="admin__body" id="confirm-body"></p>
-      <p class="admin__hint" style="margin-bottom:var(--space-4);">This cannot be undone.</p>
-      <p class="admin__error" id="confirm-error" hidden></p>
-      <div class="modal__footer">
-        <button class="admin__btn-ghost" type="button" id="confirm-cancel">Cancel</button>
-        <button class="admin__btn-danger" type="button" id="confirm-delete">Delete</button>
-      </div>
-    </div>
-  </div>
+      const res  = await fetch('/api/admin/dashboard', { headers: { Accept: 'application/json' } });
+      const body = res.ok ? await res.json() : null;
 
-  <script src="/admin/admin.js" type="module"></script>
+      document.getElementById('page-loading').hidden = true;
+      document.getElementById('page-content').hidden = false;
+
+      if (!body) return;
+
+      const s = body.stats || {};
+      document.getElementById('stat-inquiries').textContent  = s.inquiries_this_month ?? '—';
+      document.getElementById('stat-unassigned').textContent = s.unassigned_leads ?? '—';
+      document.getElementById('stat-active').textContent     = s.active_projects ?? '—';
+      document.getElementById('stat-delivered').textContent  = s.delivered_this_month ?? '—';
+
+      // Recent leads
+      const leadsEl = document.getElementById('recent-leads');
+      const leads   = body.recent_leads || [];
+      if (leads.length === 0) {
+        leadsEl.innerHTML = '<p class="dash__empty">No leads yet.</p>';
+      } else {
+        leadsEl.innerHTML = leads.map(l => `
+          <a class="dash__row" href="/admin/leads/${l.id}">
+            <span class="dash__row-primary">${esc(l.name)}</span>
+            <span class="dash__row-secondary">${esc(l.property_address)}</span>
+            <span class="dash__badge dash__badge--${statusClass(l.status)}">${esc(l.status)}</span>
+          </a>
+        `).join('');
+      }
+
+      // Active projects
+      const projEl   = document.getElementById('active-projects');
+      const projects = body.active_projects || [];
+      if (projects.length === 0) {
+        projEl.innerHTML = '<p class="dash__empty">No client projects yet.</p>';
+      } else {
+        projEl.innerHTML = projects.map(p => `
+          <a class="dash__row" href="/admin/client-project?id=${p.id}">
+            <span class="dash__row-primary">${esc(p.title)}</span>
+            <span class="dash__row-secondary">${esc(p.location)} · ${p.year}</span>
+          </a>
+        `).join('');
+      }
+    })();
+
+    function statusClass(s) {
+      const map = { Unassigned: 'neutral', Contacted: 'blue', Booked: 'gold', Filming: 'gold', Editing: 'gold', Delivered: 'green', Archived: 'neutral' };
+      return map[s] || 'neutral';
+    }
+    function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  </script>
 </body>
 </html>

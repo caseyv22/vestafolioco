@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Leads — Vesta Folio</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/brand/favicon.ico">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/admin/admin.css">
+  <link rel="stylesheet" href="/admin/dashboard.css">
+  <link rel="stylesheet" href="/admin/leads.css">
+</head>
+<body class="admin-page">
+  <nav class="admin__nav" aria-label="Studio admin">
+    <a class="admin__nav-logo" href="/admin" aria-label="Vesta Folio admin home">
+      <img src="/brand/vesta-folio-horizontal.svg" alt="Vesta Folio" width="160">
+    </a>
+    <div class="admin__nav-links">
+      <a class="admin__nav-link" href="/admin">Dashboard</a>
+      <a class="admin__nav-link" href="/admin/projects">Projects</a>
+      <a class="admin__nav-link admin__nav-link--active" href="/admin/leads" aria-current="page">Leads</a>
+      <a class="admin__nav-link" href="/admin/account">Account</a>
+      <button class="admin__nav-logout" id="logout-btn" type="button">Log out</button>
+    </div>
+  </nav>
+
+  <main class="admin__main admin__main--wide">
+    <div class="admin__loading" id="page-loading"><p>One moment.</p></div>
+
+    <!-- ── LIST VIEW ──────────────────────────────────────────── -->
+    <div id="list-view" hidden>
+      <div class="projects__header">
+        <div>
+          <p class="admin__label">INQUIRIES</p>
+          <h1 class="admin__heading">Leads.</h1>
+        </div>
+      </div>
+
+      <div class="leads__filters">
+        <div class="leads__search-wrap">
+          <input class="leads__search" type="search" id="search-input" placeholder="Search name, email, address…" autocomplete="off">
+        </div>
+        <div class="leads__status-filters" id="status-filters">
+          <button class="leads__filter leads__filter--active" data-status="">All</button>
+          <button class="leads__filter" data-status="Unassigned">Unassigned</button>
+          <button class="leads__filter" data-status="Contacted">Contacted</button>
+          <button class="leads__filter" data-status="Booked">Booked</button>
+          <button class="leads__filter" data-status="Filming">Filming</button>
+          <button class="leads__filter" data-status="Editing">Editing</button>
+          <button class="leads__filter" data-status="Delivered">Delivered</button>
+          <button class="leads__filter" data-status="Archived">Archived</button>
+        </div>
+      </div>
+
+      <p class="admin__error" id="page-error" hidden></p>
+
+      <div class="projects__table-wrap" id="leads-table-wrap" hidden>
+        <table class="projects__table leads__table">
+          <thead>
+            <tr>
+              <th class="projects__th">Name</th>
+              <th class="projects__th projects__th--meta">Address</th>
+              <th class="projects__th projects__th--meta">Date</th>
+              <th class="projects__th projects__th--meta">Status</th>
+              <th class="projects__th projects__th--actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="leads-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="projects__empty" id="leads-empty" hidden>
+        <p class="admin__body admin__body--muted">No leads match the current filter.</p>
+      </div>
+
+      <div class="leads__pagination" id="pagination" hidden>
+        <button class="admin__btn-ghost" id="prev-btn" type="button" disabled>← Previous</button>
+        <span class="leads__page-info" id="page-info"></span>
+        <button class="admin__btn-ghost" id="next-btn" type="button">Next →</button>
+      </div>
+    </div>
+
+    <!-- ── DETAIL VIEW ────────────────────────────────────────── -->
+    <div id="detail-view" hidden>
+      <div id="detail-error-wrap" hidden>
+        <p class="admin__body" id="detail-error-msg"></p>
+        <a class="projects__action" href="/admin/leads">← Back to leads</a>
+      </div>
+
+      <div id="detail-content" hidden>
+        <a class="project-edit__back" href="/admin/leads">← All leads</a>
+
+        <div class="lead__header">
+          <div>
+            <p class="admin__label">LEAD</p>
+            <h1 class="admin__heading" id="lead-name"></h1>
+            <p class="admin__body admin__body--muted" id="lead-address"></p>
+          </div>
+          <div class="lead__header-actions">
+            <span class="dash__badge" id="status-badge"></span>
+            <button class="admin__btn-primary" id="create-project-btn" type="button">Create client project</button>
+          </div>
+        </div>
+
+        <div class="lead__grid">
+          <div class="lead__details">
+            <section class="project-edit__section">
+              <h2 class="project-edit__section-heading">Contact</h2>
+              <dl class="lead__dl">
+                <div class="lead__dl-row"><dt>Name</dt><dd id="d-name"></dd></div>
+                <div class="lead__dl-row"><dt>Email</dt><dd><a id="d-email" href="#"></a></dd></div>
+                <div class="lead__dl-row"><dt>Brokerage</dt><dd id="d-brokerage"></dd></div>
+                <div class="lead__dl-row"><dt>Received</dt><dd id="d-received"></dd></div>
+              </dl>
+            </section>
+
+            <section class="project-edit__section">
+              <h2 class="project-edit__section-heading">Property</h2>
+              <dl class="lead__dl">
+                <div class="lead__dl-row"><dt>Address</dt><dd id="d-address"></dd></div>
+                <div class="lead__dl-row"><dt>Listing date</dt><dd id="d-listing-date"></dd></div>
+                <div class="lead__dl-row"><dt>Sq ft</dt><dd id="d-sqft"></dd></div>
+                <div class="lead__dl-row"><dt>Bedrooms</dt><dd id="d-beds"></dd></div>
+                <div class="lead__dl-row"><dt>Bathrooms</dt><dd id="d-baths"></dd></div>
+                <div class="lead__dl-row"><dt>Listing price</dt><dd id="d-price"></dd></div>
+                <div class="lead__dl-row"><dt>Services</dt><dd id="d-services"></dd></div>
+              </dl>
+            </section>
+
+            <section class="project-edit__section">
+              <h2 class="project-edit__section-heading">Notes from client</h2>
+              <p class="admin__body" id="d-notes"></p>
+            </section>
+          </div>
+
+          <div class="lead__sidebar">
+            <section class="project-edit__section lead__sidebar-section">
+              <h2 class="project-edit__section-heading">Status</h2>
+              <p class="admin__error" id="status-error" hidden></p>
+              <p class="admin__success" id="status-success" hidden></p>
+              <div class="admin__field">
+                <label class="admin__label-input" for="status-select">Current status</label>
+                <select class="portal__select lead__status-select" id="status-select">
+                  <option value="Unassigned">Unassigned</option>
+                  <option value="Contacted">Contacted</option>
+                  <option value="Booked">Booked</option>
+                  <option value="Filming">Filming</option>
+                  <option value="Editing">Editing</option>
+                  <option value="Delivered">Delivered</option>
+                  <option value="Archived">Archived</option>
+                </select>
+              </div>
+              <div class="admin__field" style="margin-top:var(--space-4);">
+                <label class="admin__label-input" for="notes-internal">Internal notes</label>
+                <textarea class="admin__input admin__textarea" id="notes-internal" rows="5" placeholder="Pricing, scheduling, follow-up notes…"></textarea>
+              </div>
+              <div class="project-edit__actions" style="margin-top:var(--space-4);">
+                <button class="admin__btn-primary" id="save-status-btn" type="button">Save</button>
+              </div>
+              <div id="linked-project-wrap" hidden style="margin-top:var(--space-6);">
+                <p class="admin__label" style="margin-bottom:var(--space-2);">LINKED PROJECT</p>
+                <a class="projects__action" id="linked-project-link" href="#">View project</a>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+  <script src="/admin/leads.js" type="module"></script>
+</body>
+</html>
