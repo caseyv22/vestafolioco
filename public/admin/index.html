@@ -111,7 +111,7 @@
         leadsEl.innerHTML = '<p class="dash__empty">No leads yet.</p>';
       } else {
         leadsEl.innerHTML = leads.map(l => `
-          <a class="dash__row" href="/admin/leads/${l.id}">
+          <a class="dash__row" href="/admin/leads?id=${l.id}">
             <span class="dash__row-primary">${esc(l.name)}</span>
             <span class="dash__row-secondary">${esc(l.property_address)}</span>
             <span class="dash__badge dash__badge--${statusClass(l.status)}">${esc(l.status)}</span>
