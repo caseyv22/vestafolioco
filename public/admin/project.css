@@ -1,8 +1,7 @@
 /* ============================================================
-   /admin/project.css
-   Project edit page — layout and section styles.
-   Relies on admin.css for base tokens and components.
-   All CSS variables verified against tokens.css.
+   /admin/project.css — chunk 8b
+   Project edit page: single-column layout, tabbed Files section.
+   All tokens verified against tokens.css.
    ============================================================ */
 
 /* ----------------------------------------------------------
@@ -61,6 +60,7 @@
   padding-top: var(--space-6);
   padding-bottom: var(--space-8);
   border-top: 1px solid color-mix(in srgb, var(--color-sage) 20%, transparent);
+  max-width: var(--max-width-content);
 }
 
 .project-edit__section:first-of-type {
@@ -86,15 +86,23 @@
   grid-template-columns: 1fr 1fr;
   gap: var(--space-4) var(--space-6);
   margin-bottom: var(--space-5);
-  max-width: var(--max-width-content);
 }
 
 .project-edit__field--full {
   grid-column: 1 / -1;
 }
 
+@media (max-width: 600px) {
+  .project-edit__grid {
+    grid-template-columns: 1fr;
+  }
+  .project-edit__field--full {
+    grid-column: 1;
+  }
+}
+
 /* ----------------------------------------------------------
-   Section action row (save button)
+   Save / action row
    ---------------------------------------------------------- */
 
 .project-edit__actions {
@@ -104,29 +112,65 @@
 }
 
 /* ----------------------------------------------------------
-   Taller textarea for description on a full page
+   Files section — header with inline tabs
    ---------------------------------------------------------- */
 
-.admin__textarea--tall {
-  min-height: 8rem;
+.project-edit__files-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0;
+}
+
+.project-edit__files-header .project-edit__section-heading {
+  margin-bottom: 0;
+}
+
+.project-edit__file-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 25%, transparent);
+  align-self: flex-end;
+}
+
+.project-edit__file-tab {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-micro);
+  text-transform: uppercase;
+  color: var(--color-sage);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color var(--transition-hover), border-color var(--transition-hover);
+}
+
+.project-edit__file-tab:hover {
+  color: var(--color-forest);
+}
+
+.project-edit__file-tab--active {
+  color: var(--color-forest);
+  border-bottom-color: var(--color-gold);
+}
+
+/* Divider under the header row */
+.project-edit__files-header {
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 20%, transparent);
+  margin-bottom: var(--space-5);
+}
+
+.project-edit__files-desc {
+  margin-bottom: var(--space-4);
 }
 
 /* ----------------------------------------------------------
-   Responsive
-   ---------------------------------------------------------- */
-
-@media (max-width: 600px) {
-  .project-edit__grid {
-    grid-template-columns: 1fr;
-  }
-
-  .project-edit__field--full {
-    grid-column: 1;
-  }
-}
-
-/* ----------------------------------------------------------
-   Client access section (chunk 6d)
+   Client access — invite form
    ---------------------------------------------------------- */
 
 .project-edit__invite-form {
@@ -146,7 +190,16 @@
   flex-shrink: 0;
 }
 
-/* File list items (no thumbnail, no drag handle) */
+@media (max-width: 640px) {
+  .project-edit__invite-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ----------------------------------------------------------
+   File list items (originals — no drag handle)
+   ---------------------------------------------------------- */
+
 .upload__list--files .upload__item {
   cursor: default;
 }
@@ -156,52 +209,4 @@
   color: var(--color-sage);
   flex-shrink: 0;
   line-height: 1;
-}
-
-@media (max-width: 640px) {
-  .project-edit__invite-fields {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ----------------------------------------------------------
-   Two-column page layout (chunk 7c)
-   Left:  Details + Client access
-   Right: Images + Originals (sticky)
-   ---------------------------------------------------------- */
-
-.project-edit__layout {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--space-8);
-  align-items: start;
-}
-
-@media (min-width: 900px) {
-  .project-edit__layout {
-    grid-template-columns: 1fr 420px;
-  }
-}
-
-.project-edit__main {
-  min-width: 0;
-}
-
-.project-edit__sidebar {
-  min-width: 0;
-}
-
-@media (min-width: 900px) {
-  .project-edit__sidebar {
-    position: sticky;
-    top: calc(var(--nav-height) + var(--space-6));
-    max-height: calc(100vh - var(--nav-height) - var(--space-12));
-    overflow-y: auto;
-  }
-}
-
-/* Sidebar section — no top border, no top padding at start */
-.project-edit__section--sidebar {
-  border-top: none;
-  padding-top: 0;
 }

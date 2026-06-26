@@ -18,7 +18,9 @@
       <img src="/brand/vesta-folio-horizontal.svg" alt="Vesta Folio" width="160">
     </a>
     <div class="admin__nav-links">
-      <a class="admin__nav-link" href="/admin">Projects</a>
+      <a class="admin__nav-link" href="/admin">Dashboard</a>
+      <a class="admin__nav-link" href="/admin/projects">Projects</a>
+      <a class="admin__nav-link" href="/admin/leads">Leads</a>
       <a class="admin__nav-link" href="/admin/account">Account</a>
       <button class="admin__nav-logout" id="logout-btn" type="button">Log out</button>
     </div>
@@ -31,36 +33,28 @@
     <div id="page-error" hidden>
       <p class="admin__label">ERROR</p>
       <p class="admin__body" id="page-error-msg"></p>
-      <a class="projects__action" href="/admin">← Back to projects</a>
+      <a class="projects__action" href="/admin/projects">← Back to projects</a>
     </div>
 
     <div id="page-content" hidden>
 
       <div class="project-edit__created" id="created-banner" hidden>
-        <p class="project-edit__created-text">
-          Project created. Now add images, set services, and adjust any details below.
-        </p>
+        <p class="project-edit__created-text">Project created. Add images and invite the client below.</p>
       </div>
 
       <div class="project-edit__header">
-        <a class="project-edit__back" href="/admin">← All projects</a>
+        <a class="project-edit__back" href="/admin/projects">← All projects</a>
         <div class="project-edit__header-meta">
           <p class="admin__label">EDIT PROJECT</p>
           <h1 class="admin__heading" id="page-title">…</h1>
         </div>
       </div>
 
-      <p class="admin__error" id="page-save-error" hidden></p>
+      <p class="admin__error"   id="page-save-error"   hidden></p>
       <p class="admin__success" id="page-save-success" hidden></p>
 
-      <div class="project-edit__layout">
-
-      <!-- ── Left column: Details + Client access ─────── -->
-      <div class="project-edit__main">
-        <form id="project-form" novalidate>
-<form id="project-form" novalidate>
-
-        <!-- ── Section: Details ───────────────────────────── -->
+      <!-- ── Section 1: Details ──────────────────────────────── -->
+      <form id="project-form" novalidate>
         <section class="project-edit__section">
           <h2 class="project-edit__section-heading">Details</h2>
           <div class="project-edit__grid">
@@ -100,16 +94,16 @@
 
             <div class="admin__field project-edit__field--full">
               <label class="admin__label-input" for="field-description">Description</label>
-              <textarea class="admin__input admin__textarea admin__textarea--tall"
+              <textarea class="admin__input admin__textarea"
                         id="field-description" name="description"
-                        maxlength="2000" rows="5" required></textarea>
+                        maxlength="2000" rows="3" required></textarea>
             </div>
 
             <div class="admin__field">
               <label class="admin__label-input" for="field-youtube">YouTube ID</label>
               <input class="admin__input" type="text" id="field-youtube" name="youtube_id"
                      maxlength="20" autocomplete="off" placeholder="e.g. dQw4w9WgXcQ">
-              <p class="admin__hint">The video ID from the YouTube URL. Optional.</p>
+              <p class="admin__hint">Optional.</p>
             </div>
 
             <div class="admin__field">
@@ -143,18 +137,94 @@
             </button>
           </div>
         </section>
-        </form>
+      </form>
 
-        <section class="project-edit__section">
+      <!-- ── Section 2: Files (tabbed) ───────────────────────── -->
+      <section class="project-edit__section">
+        <div class="project-edit__files-header">
+          <h2 class="project-edit__section-heading">Files</h2>
+          <div class="project-edit__file-tabs" role="tablist">
+            <button class="project-edit__file-tab project-edit__file-tab--active"
+                    id="tab-images" role="tab" aria-selected="true"
+                    aria-controls="panel-images" type="button">Images</button>
+            <button class="project-edit__file-tab"
+                    id="tab-originals" role="tab" aria-selected="false"
+                    aria-controls="panel-originals" type="button">Originals</button>
+          </div>
+        </div>
+
+        <!-- Images panel -->
+        <div id="panel-images" role="tabpanel" aria-labelledby="tab-images">
+          <p class="admin__body admin__body--muted project-edit__files-desc">
+            These appear on the public site. Resized to 1800px wide, exported as WebP. First image is the hero.
+          </p>
+          <p class="admin__error"   id="images-error"   hidden></p>
+          <p class="admin__success" id="images-success" hidden></p>
+
+          <div class="upload__zone" id="upload-zone" tabindex="0" role="button"
+               aria-label="Drop images here or click to select">
+            <p class="upload__zone-text">Drop images here, or <span class="upload__zone-link">click to select</span></p>
+            <p class="upload__zone-hint">JPEG or PNG · Max 1800px wide · WebP at 85% · First image becomes hero</p>
+            <input type="file" id="upload-input" accept="image/jpeg,image/png,image/webp" multiple hidden>
+          </div>
+
+          <p class="upload__processing" id="upload-processing" hidden>Processing…</p>
+
+          <div class="upload__previews" id="upload-previews" hidden>
+            <p class="admin__hint upload__reorder-hint">Drag to reorder. First image is the hero.</p>
+            <ul class="upload__list" id="upload-list"></ul>
+            <div class="project-edit__actions" style="margin-top:var(--space-4);">
+              <button class="admin__btn-primary" type="button" id="upload-save-btn">Upload images</button>
+            </div>
+          </div>
+
+          <div id="existing-images-wrap" hidden>
+            <p class="admin__label" style="margin-top:var(--space-5);margin-bottom:var(--space-2);">Current images</p>
+            <div id="existing-images-content"></div>
+          </div>
+        </div>
+
+        <!-- Originals panel -->
+        <div id="panel-originals" role="tabpanel" aria-labelledby="tab-originals" hidden>
+          <p class="admin__body admin__body--muted project-edit__files-desc">
+            Full-resolution files for client download. Stored privately — not visible on the public site.
+          </p>
+          <p class="admin__error"   id="originals-error"   hidden></p>
+          <p class="admin__success" id="originals-success" hidden></p>
+
+          <div class="upload__zone" id="originals-zone" tabindex="0" role="button"
+               aria-label="Drop files here or click to select">
+            <p class="upload__zone-text">Drop files here, or <span class="upload__zone-link">click to select</span></p>
+            <p class="upload__zone-hint">Any file type · Uploaded as-is</p>
+            <input type="file" id="originals-input" multiple hidden>
+          </div>
+
+          <p class="upload__processing" id="originals-processing" hidden>Uploading…</p>
+
+          <div class="upload__previews" id="originals-previews" hidden>
+            <ul class="upload__list upload__list--files" id="originals-list"></ul>
+            <div class="project-edit__actions" style="margin-top:var(--space-4);">
+              <button class="admin__btn-primary" type="button" id="originals-save-btn">Upload originals</button>
+            </div>
+          </div>
+
+          <div id="existing-originals-wrap" hidden>
+            <p class="admin__label" style="margin-top:var(--space-5);margin-bottom:var(--space-2);">Uploaded originals</p>
+            <div id="existing-originals-content"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Section 3: Client access ────────────────────────── -->
+      <section class="project-edit__section">
         <h2 class="project-edit__section-heading">Client access</h2>
         <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-5);">
           Invite a client to view this project in the portal. They'll receive an email with a link to set their password.
         </p>
 
-        <p class="admin__error" id="invite-error" hidden></p>
+        <p class="admin__error"   id="invite-error"   hidden></p>
         <p class="admin__success" id="invite-success" hidden></p>
 
-        <!-- Invite form -->
         <form class="project-edit__invite-form" id="invite-form" novalidate>
           <div class="project-edit__invite-fields">
             <div class="admin__field">
@@ -168,112 +238,21 @@
                      maxlength="320" autocomplete="off" required>
             </div>
             <div class="project-edit__actions" style="align-self:flex-end;padding-bottom:var(--space-2);">
-              <button class="admin__btn-primary" type="submit" id="invite-submit">
-                Send invite
-              </button>
+              <button class="admin__btn-primary" type="submit" id="invite-submit">Send invite</button>
             </div>
           </div>
         </form>
 
-        <!-- Current client list -->
         <div id="clients-wrap" hidden>
-          <p class="admin__label" style="margin-top:var(--space-6);margin-bottom:var(--space-3);">
-            Access granted
-          </p>
+          <p class="admin__label" style="margin-top:var(--space-6);margin-bottom:var(--space-3);">Access granted</p>
           <div id="clients-list"></div>
         </div>
-
         <div id="clients-empty" hidden>
           <p class="admin__body admin__body--muted">No clients have access to this project yet.</p>
         </div>
-
       </section>
-      </div><!-- /project-edit__main -->
-
-      <!-- ── Right column: Images + Originals (sticky) ── -->
-      <aside class="project-edit__sidebar">
-        <section class="project-edit__section project-edit__section--sidebar">
-          <!-- ── Section: Images ───────────────────────────── -->
-        <section class="project-edit__section">
-          <h2 class="project-edit__section-heading">Images</h2>
-          <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-4);">
-            These appear on the public site. Resized to 1800px wide, exported as WebP.
-            First image is the hero.
-          </p>
-
-          <p class="admin__error" id="images-error" hidden></p>
-          <p class="admin__success" id="images-success" hidden></p>
-
-          <div class="upload__zone" id="upload-zone" tabindex="0" role="button"
-               aria-label="Drop images here or click to select">
-            <p class="upload__zone-text">Drop images here, or <span class="upload__zone-link">click to select</span></p>
-            <p class="upload__zone-hint">JPEG or PNG · Max 1800px wide · WebP at 85% quality · First image becomes hero</p>
-            <input type="file" id="upload-input" accept="image/jpeg,image/png,image/webp" multiple hidden>
-          </div>
-
-          <p class="upload__processing" id="upload-processing" hidden>Processing images…</p>
-
-          <div class="upload__previews" id="upload-previews" hidden>
-            <p class="admin__hint upload__reorder-hint">Drag to reorder. First image is the hero.</p>
-            <ul class="upload__list" id="upload-list"></ul>
-            <div class="project-edit__actions" style="margin-top:var(--space-4);">
-              <button class="admin__btn-primary" type="button" id="upload-save-btn">
-                Upload images
-              </button>
-            </div>
-          </div>
-
-          <div id="existing-images-wrap" hidden>
-            <p class="admin__label" style="margin-top:var(--space-5);margin-bottom:var(--space-2);">
-              Current images
-            </p>
-            <div id="existing-images-content"></div>
-          </div>
-        </section>
-          <!-- ── Section: Originals ─────────────────────────── -->
-        <section class="project-edit__section">
-          <h2 class="project-edit__section-heading">Originals</h2>
-          <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-4);">
-            Full-resolution files for client download. Stored privately — not visible on the public site.
-            Any file type accepted.
-          </p>
-
-          <p class="admin__error" id="originals-error" hidden></p>
-          <p class="admin__success" id="originals-success" hidden></p>
-
-          <div class="upload__zone" id="originals-zone" tabindex="0" role="button"
-               aria-label="Drop files here or click to select">
-            <p class="upload__zone-text">Drop files here, or <span class="upload__zone-link">click to select</span></p>
-            <p class="upload__zone-hint">JPEG, TIFF, PNG, DNG accepted · No resizing · Uploaded as-is</p>
-            <input type="file" id="originals-input" multiple hidden>
-          </div>
-
-          <p class="upload__processing" id="originals-processing" hidden>Uploading…</p>
-
-          <div class="upload__previews" id="originals-previews" hidden>
-            <ul class="upload__list upload__list--files" id="originals-list"></ul>
-            <div class="project-edit__actions" style="margin-top:var(--space-4);">
-              <button class="admin__btn-primary" type="button" id="originals-save-btn">
-                Upload originals
-              </button>
-            </div>
-          </div>
-
-          <!-- Existing originals list -->
-          <div id="existing-originals-wrap" hidden>
-            <p class="admin__label" style="margin-top:var(--space-5);margin-bottom:var(--space-2);">
-              Uploaded originals
-            </p>
-            <div id="existing-originals-content"></div>
-          </div>
-        </section>
-        </section>
-      </aside><!-- /project-edit__sidebar -->
-
-    </div><!-- /project-edit__layout -->
 
     </div><!-- /page-content -->
-
   </main>
 
   <script src="/admin/project.js" type="module"></script>

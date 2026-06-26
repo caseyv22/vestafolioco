@@ -84,6 +84,27 @@ const SERVICE_LABELS = {
 };
 
 
+// ── File tab switching ───────────────────────────────────────
+
+const tabImages    = document.getElementById('tab-images');
+const tabOriginals = document.getElementById('tab-originals');
+const panelImages  = document.getElementById('panel-images');
+const panelOriginals = document.getElementById('panel-originals');
+
+function switchFileTab(tab) {
+  const isImages = tab === 'images';
+  tabImages.classList.toggle('project-edit__file-tab--active', isImages);
+  tabOriginals.classList.toggle('project-edit__file-tab--active', !isImages);
+  tabImages.setAttribute('aria-selected', isImages ? 'true' : 'false');
+  tabOriginals.setAttribute('aria-selected', isImages ? 'false' : 'true');
+  panelImages.hidden   = !isImages;
+  panelOriginals.hidden = isImages;
+}
+
+tabImages.addEventListener('click', () => switchFileTab('images'));
+tabOriginals.addEventListener('click', () => switchFileTab('originals'));
+
+
 // ── Init ──────────────────────────────────────────────────────
 
 (async function init() {
