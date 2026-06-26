@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client portal — Vesta Folio</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/brand/favicon.ico">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/admin/login.css">
+</head>
+<body class="login-page">
+  <main class="login">
+    <div class="login__inner">
+      <a class="login__logo" href="/" aria-label="Vesta Folio home">
+        <img src="/brand/vesta-folio-horizontal.svg" alt="Vesta Folio" width="180">
+      </a>
+      <p class="login__label">CLIENT PORTAL</p>
+      <h1 class="login__heading">Sign in.</h1>
+      <p class="login__error" id="login-error" hidden></p>
+      <form class="login__form" id="login-form" novalidate>
+        <div class="login__field">
+          <label class="login__label-input" for="email">Email</label>
+          <input class="login__input" type="email" id="email" name="email"
+                 autocomplete="email" required>
+        </div>
+        <div class="login__field">
+          <label class="login__label-input" for="password">Password</label>
+          <input class="login__input" type="password" id="password" name="password"
+                 autocomplete="current-password" required>
+        </div>
+        <button class="login__submit" type="submit" id="login-submit">Sign in</button>
+      </form>
+      <p class="login__footer">
+        <a class="login__link" href="/portal/forgot-password">Forgot password?</a>
+      </p>
+    </div>
+  </main>
+  <script type="module">
+    const form   = document.getElementById('login-form');
+    const error  = document.getElementById('login-error');
+    const submit = document.getElementById('login-submit');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      error.hidden = true;
+      submit.disabled = true;
+      submit.textContent = 'Signing in…';
+      try {
+        const res  = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email:    form.email.value.trim(),
+            password: form.password.value,
+          }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (res.ok) {
+          window.location.href = body.redirect || '/portal';
+        } else {
+          error.textContent = body.error || 'Could not sign in.';
+          error.hidden = false;
+        }
+      } catch {
+        error.textContent = 'Could not connect. Try again.';
+        error.hidden = false;
+      } finally {
+        submit.disabled = false;
+        submit.textContent = 'Sign in';
+      }
+    });
+  </script>
+</body>
+</html>

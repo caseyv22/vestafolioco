@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My projects — Vesta Folio</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/brand/favicon.ico">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/admin/admin.css">
+  <link rel="stylesheet" href="/portal/portal.css">
+</head>
+<body class="admin-page">
+
+  <nav class="admin__nav" aria-label="Client portal">
+    <a class="admin__nav-logo" href="/portal" aria-label="Vesta Folio portal home">
+      <img src="/brand/vesta-folio-horizontal.svg" alt="Vesta Folio" width="160">
+    </a>
+    <div class="admin__nav-links">
+      <a class="admin__nav-link" href="/portal/account">Account</a>
+      <button class="admin__nav-logout" id="logout-btn" type="button">Sign out</button>
+    </div>
+  </nav>
+
+  <main class="admin__main admin__main--wide">
+
+    <div class="admin__loading" id="page-loading"><p>One moment.</p></div>
+    <p class="admin__error" id="page-error" hidden></p>
+
+    <div id="page-content" hidden>
+
+      <div class="portal__header">
+        <div>
+          <p class="admin__label">YOUR PROJECTS</p>
+          <h1 class="admin__heading">Projects.</h1>
+        </div>
+      </div>
+
+      <!-- Filters -->
+      <div class="portal__filters" id="portal-filters" hidden>
+        <div class="portal__filter">
+          <label class="admin__label-input" for="filter-year">Year</label>
+          <select class="portal__select" id="filter-year">
+            <option value="">All years</option>
+          </select>
+        </div>
+        <div class="portal__filter">
+          <label class="admin__label-input" for="filter-city">City</label>
+          <select class="portal__select" id="filter-city">
+            <option value="">All cities</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Project grid -->
+      <div class="portal__grid" id="portal-grid"></div>
+
+      <!-- Empty state -->
+      <div class="portal__empty" id="portal-empty" hidden>
+        <p class="admin__body admin__body--muted">No projects match the selected filters.</p>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script type="module">
+    const logoutBtn   = document.getElementById('logout-btn');
+    const loading     = document.getElementById('page-loading');
+    const pageError   = document.getElementById('page-error');
+    const content     = document.getElementById('page-content');
+    const grid        = document.getElementById('portal-grid');
+    const emptyEl     = document.getElementById('portal-empty');
+    const filtersEl   = document.getElementById('portal-filters');
+    const filterYear  = document.getElementById('filter-year');
+    const filterCity  = document.getElementById('filter-city');
+
+    let allProjects = [];
+
+    logoutBtn.addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/portal/login';
+    });
+
+    (async () => {
+      const me = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
+      if (!me.ok) { window.location.href = '/portal/login'; return; }
+
+      const res  = await fetch('/api/portal/projects', { headers: { Accept: 'application/json' } });
+      const body = res.ok ? await res.json() : null;
+
+      if (!body) {
+        loading.hidden = true;
+        pageError.textContent = 'Could not load projects.';
+        pageError.hidden = false;
+        return;
+      }
+
+      allProjects = body.projects || [];
+      loading.hidden = true;
+      content.hidden = false;
+
+      if (allProjects.length === 0) {
+        emptyEl.hidden = false;
+        return;
+      }
+
+      // Build filter options
+      const years  = [...new Set(allProjects.map(p => p.year))].sort((a,b) => b - a);
+      const cities = [...new Set(allProjects.map(p => extractCity(p.location)))].sort();
+
+      years.forEach(y => {
+        const opt = document.createElement('option');
+        opt.value = y; opt.textContent = y;
+        filterYear.appendChild(opt);
+      });
+      cities.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c; opt.textContent = c;
+        filterCity.appendChild(opt);
+      });
+
+      if (years.length > 1 || cities.length > 1) filtersEl.hidden = false;
+
+      renderGrid();
+
+      filterYear.addEventListener('change', renderGrid);
+      filterCity.addEventListener('change', renderGrid);
+    })();
+
+    function extractCity(location) {
+      // "Los Angeles, CA" → "Los Angeles"
+      return (location || '').split(',')[0].trim();
+    }
+
+    function renderGrid() {
+      const year = filterYear.value;
+      const city = filterCity.value;
+
+      const filtered = allProjects.filter(p => {
+        if (year && String(p.year) !== year) return false;
+        if (city && extractCity(p.location) !== city) return false;
+        return true;
+      });
+
+      grid.innerHTML = '';
+      emptyEl.hidden = filtered.length > 0;
+
+      filtered.forEach((p, i) => {
+        const card = document.createElement('a');
+        card.className = 'portal__card';
+        card.href      = `/portal/project?slug=${encodeURIComponent(p.slug)}`;
+
+        const hasImage = p.hero_image;
+        const num      = String(i + 1).padStart(2, '0');
+
+        card.innerHTML = `
+          <div class="portal__card-image-wrap">
+            ${hasImage
+              ? `<img class="portal__card-image" src="${escHtml(p.hero_image)}" alt="${escHtml(p.title)}" loading="${i === 0 ? 'eager' : 'lazy'}">`
+              : `<div class="portal__card-placeholder"><span>${num}</span></div>`
+            }
+          </div>
+          <div class="portal__card-meta">
+            <span class="portal__card-num">${num}</span>
+            <h2 class="portal__card-title">${escHtml(p.title)}</h2>
+            <span class="portal__card-location">${escHtml(p.location)} · ${p.year}</span>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    function escHtml(s) {
+      return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  </script>
+</body>
+</html>

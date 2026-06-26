@@ -1,0 +1,297 @@
+/* ============================================================
+   /portal/portal.css
+   Client portal — project grid, viewer, filters, download.
+   Builds on admin.css base. All tokens verified against tokens.css.
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   Portal nav override — "My projects" active state
+   ---------------------------------------------------------- */
+
+.admin__nav-link--active {
+  color: var(--color-forest);
+}
+
+/* ----------------------------------------------------------
+   Portal header
+   ---------------------------------------------------------- */
+
+.portal__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.portal__header .admin__heading {
+  margin-bottom: 0;
+}
+
+/* ----------------------------------------------------------
+   Filters
+   ---------------------------------------------------------- */
+
+.portal__filters {
+  display: flex;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.portal__filter {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.portal__select {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-forest);
+  background-color: transparent;
+  border: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 40%, transparent);
+  padding: var(--space-1) 0;
+  padding-right: var(--space-4);
+  border-radius: 0;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  min-width: 140px;
+  transition: border-color var(--transition-hover);
+}
+
+.portal__select:focus {
+  border-bottom-color: var(--color-gold);
+}
+
+/* ----------------------------------------------------------
+   Project grid
+   ---------------------------------------------------------- */
+
+.portal__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+  margin-bottom: var(--space-8);
+}
+
+.portal__empty {
+  padding: var(--space-8) 0;
+}
+
+@media (min-width: 640px) {
+  .portal__grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .portal__grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
+/* Project card */
+.portal__card {
+  text-decoration: none;
+  display: block;
+  transition: opacity var(--transition-hover);
+}
+
+.portal__card:hover {
+  opacity: 0.88;
+}
+
+.portal__card-image-wrap {
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background-color: var(--color-forest);
+  margin-bottom: var(--space-3);
+  position: relative;
+}
+
+.portal__card-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.portal__card:hover .portal__card-image {
+  transform: scale(1.03);
+}
+
+.portal__card-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: clamp(3rem, 8vw, 5rem);
+  color: color-mix(in srgb, var(--color-gold) 25%, transparent);
+}
+
+.portal__card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.portal__card-num {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-micro);
+  color: var(--color-gold);
+}
+
+.portal__card-title {
+  font-family: var(--font-display);
+  font-size: var(--text-display-md);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-forest);
+  line-height: var(--leading-snug);
+  margin: 0;
+}
+
+.portal__card-location {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro-lg);
+  letter-spacing: var(--tracking-wide);
+  color: var(--color-sage);
+}
+
+/* ----------------------------------------------------------
+   Project detail header
+   ---------------------------------------------------------- */
+
+.portal__project-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.portal__project-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.portal__download-btn {
+  text-decoration: none;
+  display: inline-block;
+}
+
+.portal__download-hint {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro);
+  color: var(--color-sage);
+}
+
+/* ----------------------------------------------------------
+   Gallery viewer
+   ---------------------------------------------------------- */
+
+.portal__viewer {
+  background-color: var(--color-forest);
+  margin-bottom: var(--space-6);
+}
+
+.portal__viewer-main {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  position: relative;
+}
+
+.portal__viewer-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.portal__thumbs {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  background-color: var(--color-forest);
+  padding: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-sage) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+.portal__thumbs::-webkit-scrollbar { height: 3px; }
+.portal__thumbs::-webkit-scrollbar-track { background: transparent; }
+.portal__thumbs::-webkit-scrollbar-thumb { background-color: var(--color-sage); }
+
+.portal__thumb {
+  flex-shrink: 0;
+  width: 72px;
+  height: 54px;
+  overflow: hidden;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity var(--transition-hover);
+}
+
+.portal__thumb:hover { opacity: 0.8; }
+
+.portal__thumb--active {
+  opacity: 1;
+  outline: 2px solid var(--color-gold);
+  outline-offset: -2px;
+}
+
+.portal__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .portal__thumb {
+    width: 96px;
+    height: 72px;
+  }
+}
+
+/* ----------------------------------------------------------
+   YouTube reel
+   ---------------------------------------------------------- */
+
+.portal__reel {
+  margin-bottom: var(--space-8);
+}
+
+.portal__reel-wrap {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+}
+
+.portal__reel-iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}

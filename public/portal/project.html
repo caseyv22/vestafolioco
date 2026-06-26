@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project — Vesta Folio</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/brand/favicon.ico">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/admin/admin.css">
+  <link rel="stylesheet" href="/portal/portal.css">
+</head>
+<body class="admin-page">
+
+  <nav class="admin__nav" aria-label="Client portal">
+    <a class="admin__nav-logo" href="/portal" aria-label="Vesta Folio portal home">
+      <img src="/brand/vesta-folio-horizontal.svg" alt="Vesta Folio" width="160">
+    </a>
+    <div class="admin__nav-links">
+      <a class="admin__nav-link" href="/portal">My projects</a>
+      <a class="admin__nav-link" href="/portal/account">Account</a>
+      <button class="admin__nav-logout" id="logout-btn" type="button">Sign out</button>
+    </div>
+  </nav>
+
+  <main class="admin__main admin__main--wide">
+
+    <div class="admin__loading" id="page-loading"><p>One moment.</p></div>
+
+    <div id="page-error-wrap" hidden>
+      <p class="admin__body" id="page-error-msg"></p>
+      <a class="projects__action" href="/portal">← Back to projects</a>
+    </div>
+
+    <div id="page-content" hidden>
+
+      <a class="project-edit__back" href="/portal">← All projects</a>
+
+      <div class="portal__project-header">
+        <div>
+          <p class="admin__label" id="project-location"></p>
+          <h1 class="admin__heading" id="project-title"></h1>
+          <p class="admin__body admin__body--muted" id="project-description"></p>
+        </div>
+        <div class="portal__project-actions">
+          <a class="admin__btn-primary portal__download-btn" id="download-btn" href="#" target="_self">
+            Download originals
+          </a>
+          <span class="portal__download-hint" id="download-hint" hidden>
+            No originals available yet.
+          </span>
+        </div>
+      </div>
+
+      <!-- Gallery lightbox -->
+      <div class="portal__viewer" id="portal-viewer">
+        <div class="portal__viewer-main">
+          <img class="portal__viewer-image" id="viewer-image" src="" alt="">
+        </div>
+        <div class="portal__thumbs" id="portal-thumbs"></div>
+      </div>
+
+      <!-- YouTube reel -->
+      <div class="portal__reel" id="portal-reel" hidden>
+        <p class="admin__label" style="margin-bottom:var(--space-3);">Cinematic tour</p>
+        <div class="portal__reel-wrap">
+          <iframe id="reel-iframe" class="portal__reel-iframe"
+            frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen loading="lazy"></iframe>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script type="module">
+    const logoutBtn   = document.getElementById('logout-btn');
+    const loading     = document.getElementById('page-loading');
+    const errorWrap   = document.getElementById('page-error-wrap');
+    const errorMsg    = document.getElementById('page-error-msg');
+    const content     = document.getElementById('page-content');
+
+    const projectTitle    = document.getElementById('project-title');
+    const projectLocation = document.getElementById('project-location');
+    const projectDesc     = document.getElementById('project-description');
+    const downloadBtn     = document.getElementById('download-btn');
+    const downloadHint    = document.getElementById('download-hint');
+
+    const viewerImage = document.getElementById('viewer-image');
+    const thumbsWrap  = document.getElementById('portal-thumbs');
+
+    const reelSection = document.getElementById('portal-reel');
+    const reelIframe  = document.getElementById('reel-iframe');
+
+    let allImages    = [];
+    let activeIndex  = 0;
+
+    logoutBtn.addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/portal/login';
+    });
+
+    (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const slug   = params.get('slug') || '';
+
+      if (!slug) { showError('No project specified.'); return; }
+
+      const me = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
+      if (!me.ok) { window.location.href = '/portal/login'; return; }
+
+      const res  = await fetch(`/api/portal/projects/${encodeURIComponent(slug)}`, {
+        headers: { Accept: 'application/json' },
+      });
+      const body = res.ok ? await res.json() : null;
+
+      if (!body?.project) { showError('Project not found.'); return; }
+
+      const p = body.project;
+      document.title = `${p.title} — Vesta Folio`;
+      projectTitle.textContent    = p.title;
+      projectLocation.textContent = `${p.location} · ${p.year}`;
+      projectDesc.textContent     = p.description;
+
+      // Gallery
+      allImages = [p.hero_image, ...(p.gallery || [])].filter(Boolean);
+
+      if (allImages.length > 0) {
+        viewerImage.src = allImages[0];
+        viewerImage.alt = p.title;
+        renderThumbs();
+      }
+
+      // Download button
+      downloadBtn.href = `/api/portal/projects/${encodeURIComponent(slug)}/download`;
+      // We don't know if originals exist yet — show button optimistically
+      // Worker returns 404 with JSON if no originals; browser will get that as a failed download
+      // For now just show the button; 6d will add originals upload which makes it meaningful
+
+      // YouTube reel
+      if (p.youtube_id) {
+        reelIframe.src  = `https://www.youtube.com/embed/${p.youtube_id}?rel=0&modestbranding=1`;
+        reelIframe.title = `${p.title} — cinematic tour`;
+        reelSection.hidden = false;
+      }
+
+      loading.hidden  = true;
+      content.hidden  = false;
+    })();
+
+    function renderThumbs() {
+      thumbsWrap.innerHTML = '';
+      if (allImages.length <= 1) return;
+
+      allImages.forEach((src, i) => {
+        const btn = document.createElement('button');
+        btn.className = `portal__thumb${i === 0 ? ' portal__thumb--active' : ''}`;
+        btn.type      = 'button';
+        btn.setAttribute('aria-label', `View image ${i + 1}`);
+        btn.dataset.index = i;
+
+        const img = document.createElement('img');
+        img.src     = src;
+        img.loading = 'lazy';
+        btn.appendChild(img);
+
+        btn.addEventListener('click', () => setActive(i));
+        thumbsWrap.appendChild(btn);
+      });
+    }
+
+    function setActive(idx) {
+      activeIndex       = idx;
+      viewerImage.src   = allImages[idx];
+      thumbsWrap.querySelectorAll('.portal__thumb').forEach((b, i) => {
+        b.classList.toggle('portal__thumb--active', i === idx);
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (allImages.length <= 1) return;
+      if (e.key === 'ArrowRight') setActive((activeIndex + 1) % allImages.length);
+      if (e.key === 'ArrowLeft')  setActive((activeIndex - 1 + allImages.length) % allImages.length);
+    });
+
+    function showError(msg) {
+      loading.hidden       = true;
+      errorWrap.hidden     = false;
+      errorMsg.textContent = msg;
+    }
+  </script>
+</body>
+</html>

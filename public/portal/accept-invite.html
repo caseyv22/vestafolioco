@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Set your password — Vesta Folio</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/brand/favicon.ico">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/admin/login.css">
+</head>
+<body class="login-page">
+  <main class="login">
+    <div class="login__inner">
+      <a class="login__logo" href="/" aria-label="Vesta Folio home">
+        <img src="/brand/vesta-folio-horizontal.svg" alt="Vesta Folio" width="180">
+      </a>
+      <p class="login__label">CLIENT PORTAL</p>
+
+      <!-- Invalid token state -->
+      <div id="invalid-state" hidden>
+        <h1 class="login__heading">This link has expired.</h1>
+        <p class="login__body">Ask Vesta Folio to send a new invite link.</p>
+      </div>
+
+      <!-- Set password state -->
+      <div id="form-state" hidden>
+        <h1 class="login__heading">Set your password.</h1>
+        <p class="login__body">Choose a password to access your project gallery.</p>
+        <p class="login__error" id="invite-error" hidden></p>
+        <form class="login__form" id="invite-form" novalidate>
+          <div class="login__field">
+            <label class="login__label-input" for="password">Password</label>
+            <input class="login__input" type="password" id="password" name="password"
+                   autocomplete="new-password" required minlength="8">
+            <p class="login__hint">At least 8 characters.</p>
+          </div>
+          <div class="login__field">
+            <label class="login__label-input" for="confirm">Confirm password</label>
+            <input class="login__input" type="password" id="confirm" name="confirm"
+                   autocomplete="new-password" required>
+          </div>
+          <button class="login__submit" type="submit" id="invite-submit">Access my gallery</button>
+        </form>
+      </div>
+    </div>
+  </main>
+  <script type="module">
+    const params  = new URLSearchParams(window.location.search);
+    const token   = params.get('token') || '';
+
+    const invalidState = document.getElementById('invalid-state');
+    const formState    = document.getElementById('form-state');
+    const inviteError  = document.getElementById('invite-error');
+    const inviteForm   = document.getElementById('invite-form');
+    const inviteSubmit = document.getElementById('invite-submit');
+
+    if (!token) {
+      invalidState.hidden = false;
+    } else {
+      formState.hidden = false;
+    }
+
+    inviteForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      inviteError.hidden = true;
+
+      const password = inviteForm.password.value;
+      const confirm  = inviteForm.confirm.value;
+
+      if (password.length < 8) {
+        inviteError.textContent = 'Password must be at least 8 characters.';
+        inviteError.hidden = false;
+        return;
+      }
+      if (password !== confirm) {
+        inviteError.textContent = 'Passwords do not match.';
+        inviteError.hidden = false;
+        return;
+      }
+
+      inviteSubmit.disabled = true;
+      inviteSubmit.textContent = 'Setting up…';
+
+      try {
+        const res  = await fetch('/api/portal/accept-invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, password }),
+        });
+        const body = await res.json().catch(() => ({}));
+
+        if (res.ok) {
+          window.location.href = body.redirect || '/portal';
+          return;
+        }
+
+        // Token expired or invalid
+        if (res.status === 400 && body.error && body.error.includes('expired')) {
+          formState.hidden   = true;
+          invalidState.hidden = false;
+          return;
+        }
+
+        inviteError.textContent = body.error || 'Could not set password.';
+        inviteError.hidden = false;
+      } catch {
+        inviteError.textContent = 'Could not connect. Try again.';
+        inviteError.hidden = false;
+      } finally {
+        inviteSubmit.disabled = false;
+        inviteSubmit.textContent = 'Access my gallery';
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account — Vesta Folio</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/brand/favicon.ico">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/admin/admin.css">
+  <link rel="stylesheet" href="/portal/portal.css">
+</head>
+<body class="admin-page">
+  <nav class="admin__nav" aria-label="Client portal">
+    <a class="admin__nav-logo" href="/portal" aria-label="Vesta Folio portal home">
+      <img src="/brand/vesta-folio-horizontal.svg" alt="Vesta Folio" width="160">
+    </a>
+    <div class="admin__nav-links">
+      <a class="admin__nav-link" href="/portal">My projects</a>
+      <a class="admin__nav-link admin__nav-link--active" href="/portal/account" aria-current="page">Account</a>
+      <button class="admin__nav-logout" id="logout-btn" type="button">Sign out</button>
+    </div>
+  </nav>
+  <main class="admin__main">
+    <div class="admin__loading" id="page-loading"><p>One moment.</p></div>
+    <div id="page-content" hidden>
+      <p class="admin__label">ACCOUNT</p>
+      <h1 class="admin__heading">Your account.</h1>
+      <p class="admin__body">Signed in as <span id="user-email" class="admin__email"></span>.</p>
+      <section class="admin__section">
+        <h2 class="admin__section-heading">Change password</h2>
+        <form class="admin__form" id="password-form" novalidate>
+          <div class="admin__field">
+            <label class="admin__label-input" for="old-password">Current password</label>
+            <input class="admin__input" type="password" id="old-password" name="old_password" autocomplete="current-password" required>
+          </div>
+          <div class="admin__field">
+            <label class="admin__label-input" for="new-password">New password</label>
+            <input class="admin__input" type="password" id="new-password" name="new_password" autocomplete="new-password" required minlength="8">
+            <p class="admin__hint">At least 8 characters.</p>
+          </div>
+          <div class="admin__field">
+            <label class="admin__label-input" for="confirm-password">Confirm new password</label>
+            <input class="admin__input" type="password" id="confirm-password" name="confirm_password" autocomplete="new-password" required>
+          </div>
+          <p class="admin__error" id="password-error" hidden></p>
+          <p class="admin__success" id="password-success" hidden>Password updated.</p>
+          <button class="admin__submit" type="submit" id="password-submit">Update password</button>
+        </form>
+      </section>
+    </div>
+  </main>
+  <script type="module">
+    const logoutBtn = document.getElementById('logout-btn');
+    const loading   = document.getElementById('page-loading');
+    const content   = document.getElementById('page-content');
+    const emailEl   = document.getElementById('user-email');
+    const form      = document.getElementById('password-form');
+    const error     = document.getElementById('password-error');
+    const success   = document.getElementById('password-success');
+    const submit    = document.getElementById('password-submit');
+
+    (async () => {
+      const res  = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
+      const body = res.ok ? await res.json() : null;
+      if (!body?.user) { window.location.href = '/portal/login'; return; }
+      emailEl.textContent = body.user.email;
+      loading.hidden = true;
+      content.hidden = false;
+    })();
+
+    logoutBtn.addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/portal/login';
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      error.hidden = true; success.hidden = true;
+      const old_password     = form.old_password.value;
+      const new_password     = form.new_password.value;
+      const confirm_password = form.confirm_password.value;
+      if (new_password.length < 8) { error.textContent = 'New password must be at least 8 characters.'; error.hidden = false; return; }
+      if (new_password !== confirm_password) { error.textContent = 'New passwords do not match.'; error.hidden = false; return; }
+      submit.disabled = true; submit.textContent = 'Updating…';
+      try {
+        const res  = await fetch('/api/auth/change-password', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ old_password, new_password }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (res.ok) { form.reset(); success.hidden = false; setTimeout(() => success.hidden = true, 6000); return; }
+        error.textContent = body.error || 'Could not update password.';
+        error.hidden = false;
+      } catch { error.textContent = 'Could not connect. Try again.'; error.hidden = false; }
+      finally { submit.disabled = false; submit.textContent = 'Update password'; }
+    });
+  </script>
+</body>
+</html>
