@@ -60,7 +60,11 @@ let slugToDelete    = null;
 // filename: 'hero.webp' for index 0, '01.webp', '02.webp'... for the rest
 let pendingImages   = [];
 // Drag-and-drop reorder state
-let dragSrcIndex    = null;
+let dragSrcIndex       = null;
+// Existing images being reordered/deleted: [{ url, label }]
+// Mutated in place; null = unchanged (don't send to Worker)
+let existingImages     = null;
+let existingDragSrcIdx = null;
 
 
 // ── Auth gate ─────────────────────────────────────────────────
@@ -209,6 +213,7 @@ function openModal(project) {
     fieldFeatured.checked   = true;
     uploadExisting.hidden   = true;
     uploadExistingHero.innerHTML = '';
+    existingImages = null;
   }
 
   modalOverlay.hidden = false;
@@ -222,29 +227,96 @@ function closeModal() {
   clearModalMessages();
   projectForm.reset();
   pendingImages = [];
+  existingImages = null;
   renderImagePreviews();
 }
 
 function showExistingImages(project) {
   if (!project.hero_image) {
     uploadExisting.hidden = true;
+    existingImages = null;
     return;
   }
-  uploadExisting.hidden = false;
-  const gallery = Array.isArray(project.gallery) ? project.gallery : [];
-  const allImages = [project.hero_image, ...gallery];
 
-  uploadExistingHero.innerHTML = `
-    <div class="upload__existing-grid">
-      ${allImages.map((src, i) => `
-        <div class="upload__existing-item">
-          <img class="upload__existing-thumb" src="${escHtml(src)}" alt="${i === 0 ? 'Hero image' : `Gallery image ${i}`}">
-          <span class="upload__existing-label">${i === 0 ? 'Hero' : `Gallery ${i}`}</span>
-        </div>
-      `).join('')}
-    </div>
-    <p class="admin__hint" style="margin-top:var(--space-2);">Upload new images to replace all of the above.</p>
-  `;
+  const gallery = Array.isArray(project.gallery) ? project.gallery : [];
+  existingImages = [project.hero_image, ...gallery].map((url, i) => ({ url }));
+  uploadExisting.hidden = false;
+  renderExistingImages();
+}
+
+function renderExistingImages() {
+  if (!existingImages || existingImages.length === 0) {
+    uploadExisting.hidden = true;
+    existingImages = null;
+    return;
+  }
+
+  uploadExisting.hidden = false;
+  uploadExistingHero.innerHTML = '';
+
+  const hint = document.createElement('p');
+  hint.className = 'admin__hint';
+  hint.style.marginBottom = 'var(--space-2)';
+  hint.textContent = 'Drag to reorder. First image becomes hero. Upload new images above to replace all.';
+  uploadExistingHero.appendChild(hint);
+
+  const list = document.createElement('ul');
+  list.className = 'upload__list upload__list--existing';
+  uploadExistingHero.appendChild(list);
+
+  existingImages.forEach((img, i) => {
+    const label = i === 0 ? 'Hero' : `Gallery ${i}`;
+    const li = document.createElement('li');
+    li.className = 'upload__item';
+    li.draggable = true;
+    li.dataset.index = i;
+
+    li.innerHTML = `
+      <span class="upload__drag-handle" aria-hidden="true">⠿</span>
+      <img class="upload__thumb" src="${escHtml(img.url)}" alt="${label}">
+      <span class="upload__item-meta">
+        <span class="upload__item-label">${label}</span>
+        <span class="upload__item-name upload__item-name--url">${escHtml(img.url.split('/').pop())}</span>
+      </span>
+      <button class="upload__remove" type="button" data-index="${i}" aria-label="Remove image">&#215;</button>
+    `;
+
+    // Drag events
+    li.addEventListener('dragstart', (e) => {
+      existingDragSrcIdx = i;
+      li.classList.add('upload__item--dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    li.addEventListener('dragend', () => {
+      li.classList.remove('upload__item--dragging');
+      existingDragSrcIdx = null;
+      list.querySelectorAll('.upload__item').forEach(el => el.classList.remove('upload__item--over'));
+    });
+    li.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      list.querySelectorAll('.upload__item').forEach(el => el.classList.remove('upload__item--over'));
+      li.classList.add('upload__item--over');
+    });
+    li.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (existingDragSrcIdx === null || existingDragSrcIdx === i) return;
+      const moved = existingImages.splice(existingDragSrcIdx, 1)[0];
+      existingImages.splice(i, 0, moved);
+      renderExistingImages();
+    });
+
+    list.appendChild(li);
+  });
+
+  // Remove buttons
+  list.addEventListener('click', (e) => {
+    const btn = e.target.closest('.upload__remove');
+    if (!btn) return;
+    const idx = Number(btn.dataset.index);
+    existingImages.splice(idx, 1);
+    renderExistingImages();
+  });
 }
 
 modalClose.addEventListener('click', closeModal);
@@ -484,13 +556,12 @@ projectForm.addEventListener('submit', async (e) => {
     // Determine the slug to use for image upload (may have changed on rename)
     const savedSlug = body.project?.slug || payload.slug;
 
-    // Step 2: upload images if any pending
+    // Step 2a: upload new images if any pending (takes priority over reorder)
     if (pendingImages.length > 0) {
       modalSubmit.textContent = 'Uploading images…';
 
       const images = pendingImages.map(img => ({
         filename: img.filename,
-        // Send raw base64 (strip data URI prefix — Worker handles both)
         data:     img.dataUrl,
       }));
 
@@ -502,8 +573,27 @@ projectForm.addEventListener('submit', async (e) => {
       const imgBody = await imgRes.json().catch(() => ({}));
 
       if (!imgRes.ok) {
-        // Metadata saved but images failed — tell the user
         showModalError(imgBody.error || 'Project saved, but images could not be uploaded. Try again from the edit screen.');
+        await loadProjects();
+        return;
+      }
+
+    } else if (existingImages !== null) {
+      // Step 2b: existing images were reordered or deleted — update projects.json only
+      modalSubmit.textContent = 'Saving images…';
+
+      const heroImage = existingImages[0]?.url || '';
+      const gallery   = existingImages.slice(1).map(img => img.url);
+
+      const imgRes  = await fetch(`/api/admin/projects/${savedSlug}/images/order`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body:    JSON.stringify({ hero_image: heroImage, gallery }),
+      });
+      const imgBody = await imgRes.json().catch(() => ({}));
+
+      if (!imgRes.ok) {
+        showModalError(imgBody.error || 'Project saved, but image order could not be updated. Try again.');
         await loadProjects();
         return;
       }
