@@ -54,8 +54,11 @@
       <p class="admin__success" id="page-save-success" hidden></p>
 
       <div class="project-edit__layout">
+
+      <!-- ── Left column: Details + Client access ─────── -->
       <div class="project-edit__main">
-      <form id="project-form" novalidate>
+        <form id="project-form" novalidate>
+<form id="project-form" novalidate>
 
         <!-- ── Details ───────────────────────────────────── -->
         <section class="project-edit__section">
@@ -192,7 +195,50 @@
         </div>
       </section>
       </aside><!-- /project-edit__sidebar -->
-      </div><!-- /project-edit__layout -->
+      </div><!-- /project-edit__layout --
+        </form>
+
+        <section class="project-edit__section">
+        <h2 class="project-edit__section-heading">Client access</h2>
+        <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-5);">
+          Invite a client to view this project in the portal.
+        </p>
+        <p class="admin__error" id="invite-error" hidden></p>
+        <p class="admin__success" id="invite-success" hidden></p>
+        <form class="project-edit__invite-form" id="invite-form" novalidate>
+          <div class="project-edit__invite-fields">
+            <div class="admin__field">
+              <label class="admin__label-input" for="invite-name">Name</label>
+              <input class="admin__input" type="text" id="invite-name" name="name" maxlength="200" autocomplete="off" placeholder="Full name">
+            </div>
+            <div class="admin__field">
+              <label class="admin__label-input" for="invite-email">Email</label>
+              <input class="admin__input" type="email" id="invite-email" name="email" maxlength="320" autocomplete="off" required>
+            </div>
+            <div class="project-edit__actions" style="align-self:flex-end;padding-bottom:var(--space-2);">
+              <button class="admin__btn-primary" type="submit" id="invite-submit">Send invite</button>
+            </div>
+          </div>
+        </form>
+        <div id="clients-wrap" hidden>
+          <p class="admin__label" style="margin-top:var(--space-6);margin-bottom:var(--space-3);">Access granted</p>
+          <div id="clients-list"></div>
+        </div>
+        <div id="clients-empty" hidden>
+          <p class="admin__body admin__body--muted">No clients have access yet.</p>
+        </div>
+      </section>
+      </div><!-- /project-edit__main -->
+
+      <!-- ── Right column: Images + Originals (sticky) ── -->
+      <aside class="project-edit__sidebar">
+        <section class="project-edit__section project-edit__section--sidebar">
+          
+          
+        </section>
+      </aside><!-- /project-edit__sidebar -->
+
+    </div><!-- /project-edit__layout -->
 
     </div><!-- /page-content -->
   </main>

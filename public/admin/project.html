@@ -54,8 +54,11 @@
       <p class="admin__success" id="page-save-success" hidden></p>
 
       <div class="project-edit__layout">
+
+      <!-- ── Left column: Details + Client access ─────── -->
       <div class="project-edit__main">
-      <form id="project-form" novalidate>
+        <form id="project-form" novalidate>
+<form id="project-form" novalidate>
 
         <!-- ── Section: Details ───────────────────────────── -->
         <section class="project-edit__section">
@@ -140,88 +143,9 @@
             </button>
           </div>
         </section>
+        </form>
 
-        <!-- ── Section: Images ───────────────────────────── -->
         <section class="project-edit__section">
-          <h2 class="project-edit__section-heading">Images</h2>
-          <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-4);">
-            These appear on the public site. Resized to 1800px wide, exported as WebP.
-            First image is the hero.
-          </p>
-
-          <p class="admin__error" id="images-error" hidden></p>
-          <p class="admin__success" id="images-success" hidden></p>
-
-          <div class="upload__zone" id="upload-zone" tabindex="0" role="button"
-               aria-label="Drop images here or click to select">
-            <p class="upload__zone-text">Drop images here, or <span class="upload__zone-link">click to select</span></p>
-            <p class="upload__zone-hint">JPEG or PNG · Max 1800px wide · WebP at 85% quality · First image becomes hero</p>
-            <input type="file" id="upload-input" accept="image/jpeg,image/png,image/webp" multiple hidden>
-          </div>
-
-          <p class="upload__processing" id="upload-processing" hidden>Processing images…</p>
-
-          <div class="upload__previews" id="upload-previews" hidden>
-            <p class="admin__hint upload__reorder-hint">Drag to reorder. First image is the hero.</p>
-            <ul class="upload__list" id="upload-list"></ul>
-            <div class="project-edit__actions" style="margin-top:var(--space-4);">
-              <button class="admin__btn-primary" type="button" id="upload-save-btn">
-                Upload images
-              </button>
-            </div>
-          </div>
-
-          <div id="existing-images-wrap" hidden>
-            <p class="admin__label" style="margin-top:var(--space-5);margin-bottom:var(--space-2);">
-              Current images
-            </p>
-            <div id="existing-images-content"></div>
-          </div>
-        </section>
-
-        <!-- ── Section: Originals ─────────────────────────── -->
-        <section class="project-edit__section">
-          <h2 class="project-edit__section-heading">Originals</h2>
-          <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-4);">
-            Full-resolution files for client download. Stored privately — not visible on the public site.
-            Any file type accepted.
-          </p>
-
-          <p class="admin__error" id="originals-error" hidden></p>
-          <p class="admin__success" id="originals-success" hidden></p>
-
-          <div class="upload__zone" id="originals-zone" tabindex="0" role="button"
-               aria-label="Drop files here or click to select">
-            <p class="upload__zone-text">Drop files here, or <span class="upload__zone-link">click to select</span></p>
-            <p class="upload__zone-hint">JPEG, TIFF, PNG, DNG accepted · No resizing · Uploaded as-is</p>
-            <input type="file" id="originals-input" multiple hidden>
-          </div>
-
-          <p class="upload__processing" id="originals-processing" hidden>Uploading…</p>
-
-          <div class="upload__previews" id="originals-previews" hidden>
-            <ul class="upload__list upload__list--files" id="originals-list"></ul>
-            <div class="project-edit__actions" style="margin-top:var(--space-4);">
-              <button class="admin__btn-primary" type="button" id="originals-save-btn">
-                Upload originals
-              </button>
-            </div>
-          </div>
-
-          <!-- Existing originals list -->
-          <div id="existing-originals-wrap" hidden>
-            <p class="admin__label" style="margin-top:var(--space-5);margin-bottom:var(--space-2);">
-              Uploaded originals
-            </p>
-            <div id="existing-originals-content"></div>
-          </div>
-        </section>
-
-      </form>
-      </div><!-- /project-edit__main -->
-
-      <aside class="project-edit__sidebar">
-      <section class="project-edit__section project-edit__section--sidebar">
         <h2 class="project-edit__section-heading">Client access</h2>
         <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-5);">
           Invite a client to view this project in the portal. They'll receive an email with a link to set their password.
@@ -264,8 +188,89 @@
         </div>
 
       </section>
+      </div><!-- /project-edit__main -->
+
+      <!-- ── Right column: Images + Originals (sticky) ── -->
+      <aside class="project-edit__sidebar">
+        <section class="project-edit__section project-edit__section--sidebar">
+          <!-- ── Section: Images ───────────────────────────── -->
+        <section class="project-edit__section">
+          <h2 class="project-edit__section-heading">Images</h2>
+          <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-4);">
+            These appear on the public site. Resized to 1800px wide, exported as WebP.
+            First image is the hero.
+          </p>
+
+          <p class="admin__error" id="images-error" hidden></p>
+          <p class="admin__success" id="images-success" hidden></p>
+
+          <div class="upload__zone" id="upload-zone" tabindex="0" role="button"
+               aria-label="Drop images here or click to select">
+            <p class="upload__zone-text">Drop images here, or <span class="upload__zone-link">click to select</span></p>
+            <p class="upload__zone-hint">JPEG or PNG · Max 1800px wide · WebP at 85% quality · First image becomes hero</p>
+            <input type="file" id="upload-input" accept="image/jpeg,image/png,image/webp" multiple hidden>
+          </div>
+
+          <p class="upload__processing" id="upload-processing" hidden>Processing images…</p>
+
+          <div class="upload__previews" id="upload-previews" hidden>
+            <p class="admin__hint upload__reorder-hint">Drag to reorder. First image is the hero.</p>
+            <ul class="upload__list" id="upload-list"></ul>
+            <div class="project-edit__actions" style="margin-top:var(--space-4);">
+              <button class="admin__btn-primary" type="button" id="upload-save-btn">
+                Upload images
+              </button>
+            </div>
+          </div>
+
+          <div id="existing-images-wrap" hidden>
+            <p class="admin__label" style="margin-top:var(--space-5);margin-bottom:var(--space-2);">
+              Current images
+            </p>
+            <div id="existing-images-content"></div>
+          </div>
+        </section>
+          <!-- ── Section: Originals ─────────────────────────── -->
+        <section class="project-edit__section">
+          <h2 class="project-edit__section-heading">Originals</h2>
+          <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-4);">
+            Full-resolution files for client download. Stored privately — not visible on the public site.
+            Any file type accepted.
+          </p>
+
+          <p class="admin__error" id="originals-error" hidden></p>
+          <p class="admin__success" id="originals-success" hidden></p>
+
+          <div class="upload__zone" id="originals-zone" tabindex="0" role="button"
+               aria-label="Drop files here or click to select">
+            <p class="upload__zone-text">Drop files here, or <span class="upload__zone-link">click to select</span></p>
+            <p class="upload__zone-hint">JPEG, TIFF, PNG, DNG accepted · No resizing · Uploaded as-is</p>
+            <input type="file" id="originals-input" multiple hidden>
+          </div>
+
+          <p class="upload__processing" id="originals-processing" hidden>Uploading…</p>
+
+          <div class="upload__previews" id="originals-previews" hidden>
+            <ul class="upload__list upload__list--files" id="originals-list"></ul>
+            <div class="project-edit__actions" style="margin-top:var(--space-4);">
+              <button class="admin__btn-primary" type="button" id="originals-save-btn">
+                Upload originals
+              </button>
+            </div>
+          </div>
+
+          <!-- Existing originals list -->
+          <div id="existing-originals-wrap" hidden>
+            <p class="admin__label" style="margin-top:var(--space-5);margin-bottom:var(--space-2);">
+              Uploaded originals
+            </p>
+            <div id="existing-originals-content"></div>
+          </div>
+        </section>
+        </section>
       </aside><!-- /project-edit__sidebar -->
-      </div><!-- /project-edit__layout -->
+
+    </div><!-- /project-edit__layout -->
 
     </div><!-- /page-content -->
 

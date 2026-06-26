@@ -165,9 +165,9 @@
 }
 
 /* ----------------------------------------------------------
-   Two-column page layout (chunk 7b)
-   Left: main content (Details, Images, Originals)
-   Right: sticky sidebar (Client access)
+   Two-column page layout (chunk 7c)
+   Left:  Details + Client access
+   Right: Images + Originals (sticky)
    ---------------------------------------------------------- */
 
 .project-edit__layout {
@@ -179,7 +179,7 @@
 
 @media (min-width: 900px) {
   .project-edit__layout {
-    grid-template-columns: 1fr 340px;
+    grid-template-columns: 1fr 420px;
   }
 }
 
@@ -195,10 +195,12 @@
   .project-edit__sidebar {
     position: sticky;
     top: calc(var(--nav-height) + var(--space-6));
+    max-height: calc(100vh - var(--nav-height) - var(--space-12));
+    overflow-y: auto;
   }
 }
 
-/* Sidebar section — remove top border and padding-top since it's the first item */
+/* Sidebar section — no top border, no top padding at start */
 .project-edit__section--sidebar {
   border-top: none;
   padding-top: 0;
