@@ -848,3 +848,34 @@
   display: block;
   margin-bottom: var(--space-1);
 }
+
+/* Existing image grid in edit mode (chunk 5b polish) */
+.upload__existing-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.upload__existing-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+}
+
+.upload__existing-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-micro);
+  text-transform: uppercase;
+  color: var(--color-sage);
+}
+
+.upload__existing-thumb {
+  width: 80px;
+  height: 60px;
+  object-fit: cover;
+  display: block;
+}

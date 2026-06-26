@@ -231,10 +231,19 @@ function showExistingImages(project) {
     return;
   }
   uploadExisting.hidden = false;
-  const galleryCount = Array.isArray(project.gallery) ? project.gallery.length : 0;
+  const gallery = Array.isArray(project.gallery) ? project.gallery : [];
+  const allImages = [project.hero_image, ...gallery];
+
   uploadExistingHero.innerHTML = `
-    <img class="upload__existing-thumb" src="${escHtml(project.hero_image)}" alt="Current hero image">
-    ${galleryCount > 0 ? `<p class="admin__hint">${galleryCount} gallery image${galleryCount > 1 ? 's' : ''} stored.</p>` : ''}
+    <div class="upload__existing-grid">
+      ${allImages.map((src, i) => `
+        <div class="upload__existing-item">
+          <img class="upload__existing-thumb" src="${escHtml(src)}" alt="${i === 0 ? 'Hero image' : `Gallery image ${i}`}">
+          <span class="upload__existing-label">${i === 0 ? 'Hero' : `Gallery ${i}`}</span>
+        </div>
+      `).join('')}
+    </div>
+    <p class="admin__hint" style="margin-top:var(--space-2);">Upload new images to replace all of the above.</p>
   `;
 }
 
