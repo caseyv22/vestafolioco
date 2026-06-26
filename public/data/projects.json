@@ -4,7 +4,7 @@
     "title": "Bright Crescenta Valley Oasis",
     "location": "Crescenta Valley / Tujunga, CA",
     "year": 2026,
-    "description": "A sun-drenched Spanish revival set against the foothills of Crescenta Valley. Arched doorways, warm tile, and a backyard that catches the light from morning through golden hour ÃÂÃÂ¢ÃÂÃÂÃÂÃÂ documented across all three disciplines.",
+    "description": "A sun-drenched Spanish revival set against the foothills of Crescenta Valley. Arched doorways, warm tile, and a backyard that catches the light from morning through golden hour ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ documented across all three disciplines.",
     "hero_image": "/images/projects/crescenta-valley-spanish/hero.webp",
     "gallery": [
       "/images/projects/crescenta-valley-spanish/01.webp",
@@ -39,5 +39,22 @@
     "featured": true,
     "order": 2,
     "published_at": "2026-06-20"
+  },
+  {
+    "slug": "test-new-project",
+    "title": "Test New Project",
+    "location": "Glendale, CA",
+    "year": 2026,
+    "description": "The best glendale house",
+    "hero_image": "",
+    "gallery": [],
+    "services": [
+      "hdr",
+      "cinematic",
+      "staging"
+    ],
+    "featured": true,
+    "order": 3,
+    "published_at": "2026-06-26"
   }
 ]
