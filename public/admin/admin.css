@@ -879,3 +879,40 @@
   object-fit: cover;
   display: block;
 }
+
+
+/* ----------------------------------------------------------
+   Admin tabs (chunk 7a)
+   ---------------------------------------------------------- */
+
+.admin__tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 25%, transparent);
+  margin-bottom: var(--space-6);
+}
+
+.admin__tab {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-micro);
+  text-transform: uppercase;
+  color: var(--color-sage);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  transition: color var(--transition-hover), border-color var(--transition-hover);
+  margin-bottom: -1px;
+}
+
+.admin__tab:hover {
+  color: var(--color-forest);
+}
+
+.admin__tab--active {
+  color: var(--color-forest);
+  border-bottom-color: var(--color-gold);
+}
