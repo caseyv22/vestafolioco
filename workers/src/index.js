@@ -120,6 +120,14 @@ export default {
       return cors(new Response('Method not allowed', { status: 405 }));
     }
 
+    const imagesOrderMatch = path.match(/^\/api\/admin\/projects\/([^/]+)\/images\/order$/);
+    if (imagesOrderMatch) {
+      const slug = imagesOrderMatch[1];
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'PATCH')   return cors(await handleReorderImages(request, env, slug));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
     return cors(new Response('Not found', { status: 404 }));
   },
 };
@@ -367,6 +375,36 @@ async function handleUploadImages(request, env, slug) {
     // Images already in R2 — don't fail silently on the JSON update
     if (err.status === 409) return json({ error: 'This project was updated in another tab. Please reload and try again.' }, 409);
     return json({ error: 'Images uploaded but could not update projects.json. Please reload and try again.' }, 500);
+  }
+}
+
+// PATCH /api/admin/projects/:slug/images/order — reorder or delete existing images
+// Receives { hero_image: string, gallery: string[] }
+// Updates projects.json only — no R2 interaction.
+async function handleReorderImages(request, env, slug) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+
+  const heroImage = typeof data.hero_image === 'string' ? data.hero_image.trim() : '';
+  const gallery   = Array.isArray(data.gallery) ? data.gallery.filter(u => typeof u === 'string' && u.trim()) : [];
+
+  try {
+    const { projects, sha } = await ghReadProjects(env);
+    const idx = projects.findIndex(p => p.slug === slug);
+    if (idx === -1) return json({ error: 'Project not found.' }, 404);
+
+    projects[idx].hero_image = heroImage;
+    projects[idx].gallery    = gallery;
+
+    await ghWriteProjects(env, projects, sha, `Reorder images: ${slug}`);
+    return json({ ok: true, hero_image: heroImage, gallery });
+  } catch (err) {
+    console.error('Reorder images error:', err);
+    if (err.status === 409) return json({ error: 'This project was updated in another tab. Please reload and try again.' }, 409);
+    return json({ error: 'Could not update image order.' }, 500);
   }
 }
 
