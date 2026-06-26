@@ -1,10 +1,10 @@
 [
   {
     "slug": "crescenta-valley-spanish",
-    "title": "Bright Crescenta Valley Oasis",
+    "title": "Bright Crescenta Valley Oasis 2",
     "location": "Crescenta Valley / Tujunga, CA",
     "year": 2026,
-    "description": "A sun-drenched Spanish revival set against the foothills of Crescenta Valley. Arched doorways, warm tile, and a backyard that catches the light from morning through golden hour — documented across all three disciplines.",
+    "description": "A sun-drenched Spanish revival set against the foothills of Crescenta Valley. Arched doorways, warm tile, and a backyard that catches the light from morning through golden hour â documented across all three disciplines.",
     "hero_image": "/images/projects/crescenta-valley-spanish/hero.webp",
     "gallery": [
       "/images/projects/crescenta-valley-spanish/01.webp",
@@ -12,7 +12,11 @@
       "/images/projects/crescenta-valley-spanish/03.webp",
       "/images/projects/crescenta-valley-spanish/04.webp"
     ],
-    "services": ["hdr", "cinematic", "staging"],
+    "services": [
+      "hdr",
+      "cinematic",
+      "staging"
+    ],
     "featured": true,
     "order": 1,
     "published_at": "2026-06-20"
@@ -29,7 +33,9 @@
       "/images/projects/los-angeles-sunshine/02.webp",
       "/images/projects/los-angeles-sunshine/03.webp"
     ],
-    "services": ["hdr"],
+    "services": [
+      "hdr"
+    ],
     "featured": true,
     "order": 2,
     "published_at": "2026-06-20"
