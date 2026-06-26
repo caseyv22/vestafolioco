@@ -48,7 +48,7 @@ async function loadProjects() {
 }
 
 function buildProjectCard(project, index) {
-  const num = pad(index + 1);
+  const num     = pad(index + 1);
   const isFirst = index === 0;
 
   const card = document.createElement('article');
@@ -58,8 +58,6 @@ function buildProjectCard(project, index) {
   card.setAttribute('aria-label', `View project: ${project.title}`);
   card.dataset.slug = project.slug;
 
-  // No lazy loading — images load immediately on page paint
-  // First image gets fetchpriority=high for fastest LCP
   card.innerHTML = `
     <div class="work__card-image-wrap">
       <div class="work__card-placeholder">
@@ -106,8 +104,12 @@ function renderWork(projects) {
 
 
 /* ----------------------------------------------------------
-   PROJECT MODAL
+   PROJECT MODAL — hero + thumbnail gallery lightbox
    ---------------------------------------------------------- */
+
+// Currently active large image index within [hero, ...gallery]
+let activeImageIndex = 0;
+let currentImages    = []; // [hero_url, ...gallery_urls]
 
 function openModal(project, index) {
   const overlay = $('.modal-overlay');
@@ -116,30 +118,78 @@ function openModal(project, index) {
 
   const num = pad(index + 1);
 
+  // Build image list: hero first, then gallery
+  currentImages = [
+    project.hero_image,
+    ...(project.gallery || []),
+  ].filter(Boolean);
+
+  activeImageIndex = 0;
+
   const serviceItems = (project.services || [])
     .map(s => `<span class="modal__service-tag">${SERVICE_LABELS[s] || s}</span>`)
     .join('');
 
-  const galleryImages = (project.gallery || [])
-    .map(src => `<img class="modal__gallery-image" src="${src}" alt="${project.title} gallery" loading="lazy">`)
-    .join('');
+  // Thumbnail strip — only shown if there are gallery images
+  const thumbsHtml = currentImages.length > 1
+    ? `<div class="modal__thumbs" role="list">
+        ${currentImages.map((src, i) => `
+          <button
+            class="modal__thumb${i === 0 ? ' modal__thumb--active' : ''}"
+            type="button"
+            data-index="${i}"
+            aria-label="View image ${i + 1}"
+            role="listitem"
+          >
+            <img src="${src}" alt="${project.title} image ${i + 1}" loading="lazy">
+          </button>
+        `).join('')}
+       </div>`
+    : '';
 
   modal.innerHTML = `
     <button class="modal__close" aria-label="Close project">&#x2715;</button>
-    <div class="modal__hero">
-      <img class="modal__hero-image" src="${project.hero_image}" alt="${project.title}">
+
+    <div class="modal__viewer">
+      <div class="modal__hero">
+        <img class="modal__hero-image" id="modal-active-image" src="${currentImages[0]}" alt="${project.title}">
+      </div>
+      ${thumbsHtml}
     </div>
+
     <div class="modal__body">
       <p class="modal__number t-micro">${num}</p>
       <h2 class="modal__title">${project.title}</h2>
       <p class="modal__location">${project.location} · ${project.year}</p>
       <p class="modal__description">${project.description}</p>
-      ${galleryImages ? `<div class="modal__gallery">${galleryImages}</div>` : ''}
       ${serviceItems ? `<div class="modal__services">${serviceItems}</div>` : ''}
     </div>
   `;
 
+  // Close button
   $('.modal__close', modal).addEventListener('click', closeModal);
+
+  // Thumbnail clicks
+  $$('.modal__thumb', modal).forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx   = Number(btn.dataset.index);
+      const img   = $('#modal-active-image', modal);
+      const thumbs = $$('.modal__thumb', modal);
+
+      activeImageIndex = idx;
+      img.src          = currentImages[idx];
+
+      thumbs.forEach((t, i) => t.classList.toggle('modal__thumb--active', i === idx));
+    });
+  });
+
+  // Keyboard: left/right arrow navigation
+  modal._keyHandler = (e) => {
+    if (currentImages.length <= 1) return;
+    if (e.key === 'ArrowRight') cycleImage(modal, 1);
+    if (e.key === 'ArrowLeft')  cycleImage(modal, -1);
+  };
+  document.addEventListener('keydown', modal._keyHandler);
 
   overlay.classList.add('is-open');
   document.body.style.overflow = 'hidden';
@@ -147,11 +197,29 @@ function openModal(project, index) {
   modal.focus();
 }
 
+function cycleImage(modal, direction) {
+  activeImageIndex = (activeImageIndex + direction + currentImages.length) % currentImages.length;
+  const img    = $('#modal-active-image', modal);
+  const thumbs = $$('.modal__thumb', modal);
+  img.src      = currentImages[activeImageIndex];
+  thumbs.forEach((t, i) => t.classList.toggle('modal__thumb--active', i === activeImageIndex));
+}
+
 function closeModal() {
   const overlay = $('.modal-overlay');
+  const modal   = $('.modal');
   if (!overlay) return;
+
+  // Remove keyboard handler
+  if (modal && modal._keyHandler) {
+    document.removeEventListener('keydown', modal._keyHandler);
+    modal._keyHandler = null;
+  }
+
   overlay.classList.remove('is-open');
   document.body.style.overflow = '';
+  currentImages    = [];
+  activeImageIndex = 0;
 }
 
 function initModal() {
@@ -163,7 +231,10 @@ function initModal() {
   });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeModal();
+    const overlay = $('.modal-overlay');
+    if (overlay && overlay.classList.contains('is-open') && e.key === 'Escape') {
+      closeModal();
+    }
   });
 }
 
@@ -181,7 +252,6 @@ function initNav() {
     nav.classList.toggle('is-filled', hero.getBoundingClientRect().bottom <= 0);
   }
 
-  // Check immediately on load
   applyFilled();
 
   const observer = new IntersectionObserver(
@@ -218,7 +288,7 @@ function initMobileMenu() {
 
 
 /* ----------------------------------------------------------
-   INQUIRY FORM — posts to /api/inquiries (Worker)
+   INQUIRY FORM
    ---------------------------------------------------------- */
 
 function initInquiryForm() {
@@ -229,8 +299,8 @@ function initInquiryForm() {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const submitBtn = $('[type="submit"]', form);
-    const originalLabel = submitBtn ? submitBtn.textContent : '';
+    const submitBtn      = $('[type="submit"]', form);
+    const originalLabel  = submitBtn ? submitBtn.textContent : '';
 
     clearError(form);
 
@@ -238,7 +308,6 @@ function initInquiryForm() {
 
     const payload = Object.fromEntries(new FormData(form).entries());
     payload.services = $$('input[name="services"]:checked', form).map(cb => cb.value);
-    // FormData picks up cf-turnstile-response automatically; rename for cleaner API field
     if (payload['cf-turnstile-response']) {
       payload.turnstile_token = payload['cf-turnstile-response'];
       delete payload['cf-turnstile-response'];
@@ -246,9 +315,9 @@ function initInquiryForm() {
 
     try {
       const res = await fetch('/api/inquiries', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body:    JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -257,16 +326,14 @@ function initInquiryForm() {
         return;
       }
 
-      // Server returned a non-2xx — surface the message and reset Turnstile
-      // (tokens are single-use; user needs a fresh one to retry)
       resetTurnstile();
-
       let message = 'Something went wrong. Please try again, or email vestafolioco@gmail.com directly.';
       try {
         const body = await res.json();
         if (body && body.error) message = body.error;
-      } catch { /* response wasn't JSON; keep default */ }
+      } catch { /* keep default */ }
       showError(form, message);
+
     } catch (err) {
       console.error('Inquiry network error:', err);
       resetTurnstile();
