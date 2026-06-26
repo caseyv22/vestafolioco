@@ -229,6 +229,7 @@ async function handleUpdateProject(request, env, slug) {
       services:    data.services    !== undefined ? data.services           : existing.services,
       featured:    data.featured    !== undefined ? Boolean(data.featured)  : existing.featured,
       order:       data.order       !== undefined ? Number(data.order)      : existing.order,
+      youtube_id:  data.youtube_id  !== undefined ? (data.youtube_id || '') : (existing.youtube_id || ''),
     };
 
     await ghWriteProjects(env, projects, sha, `Update project: ${slug}`);
@@ -513,6 +514,9 @@ function validateProjectPayload(data, requireAll) {
   if (data.title       !== undefined && (typeof data.title !== 'string'       || data.title.length > 200))       return { error: 'Title is invalid.' };
   if (data.location    !== undefined && (typeof data.location !== 'string'    || data.location.length > 200))    return { error: 'Location is invalid.' };
   if (data.description !== undefined && (typeof data.description !== 'string' || data.description.length > 2000)) return { error: 'Description is too long.' };
+  if (data.youtube_id  !== undefined && data.youtube_id !== '' && (typeof data.youtube_id !== 'string' || data.youtube_id.length > 20 || !/^[a-zA-Z0-9_-]+$/.test(data.youtube_id))) {
+    return { error: 'YouTube ID is invalid.' };
+  }
   if (data.year !== undefined) {
     const y = Number(data.year);
     if (isNaN(y) || y < 2000 || y > 2100) return { error: 'Year must be a valid year.' };
