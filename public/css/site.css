@@ -1358,3 +1358,32 @@
     height: 72px;
   }
 }
+
+
+/* ----------------------------------------------------------
+   PROJECT MODAL — YouTube reel embed (chunk 6a)
+   ---------------------------------------------------------- */
+
+.modal__reel {
+  background-color: var(--color-forest);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid color-mix(in srgb, var(--color-gold) 30%, transparent);
+}
+
+/* Responsive 16:9 iframe wrapper */
+.modal__reel-wrap {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+}
+
+.modal__reel-iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
