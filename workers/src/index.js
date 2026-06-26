@@ -187,6 +187,28 @@ export default {
       return cors(new Response('Method not allowed', { status: 405 }));
     }
 
+    // ── Admin: leads ─────────────────────────────────────────
+    if (path === '/api/admin/leads') {
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')     return cors(await handleListLeads(request, env));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    const leadMatch = path.match(/^\/api\/admin\/leads\/(\d+)$/);
+    if (leadMatch) {
+      const id = Number(leadMatch[1]);
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')     return cors(await handleGetLead(request, env, id));
+      if (request.method === 'PATCH')   return cors(await handleUpdateLead(request, env, id));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    if (path === '/api/admin/dashboard') {
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')     return cors(await handleDashboard(request, env));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
     // ── Admin: client projects ───────────────────────────────
     if (path === '/api/admin/client-projects') {
       if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
@@ -986,6 +1008,149 @@ async function handlePortalDownload(request, env, slug) {
   } catch (err) {
     console.error('Portal download error:', err);
     return json({ error: 'Could not generate download.' }, 500);
+  }
+}
+
+
+/* ----------------------------------------------------------
+   ADMIN: DASHBOARD
+   ---------------------------------------------------------- */
+
+async function handleDashboard(request, env) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+
+  try {
+    const now       = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+
+    const [inquiriesMonth, unassigned, activeProjects, deliveredMonth, recentLeads, activeProjectsList] = await Promise.all([
+      env.DB.prepare(`SELECT COUNT(*) as count FROM inquiries WHERE received_at >= ?`).bind(monthStart).first(),
+      env.DB.prepare(`SELECT COUNT(*) as count FROM inquiries WHERE status = 'Unassigned'`).first(),
+      env.DB.prepare(`SELECT COUNT(*) as count FROM client_projects cp JOIN client_project_access_v2 cpa ON cpa.client_project_id = cp.id WHERE cp.id IN (SELECT DISTINCT client_project_id FROM client_project_access_v2)`).first(),
+      env.DB.prepare(`SELECT COUNT(*) as count FROM inquiries WHERE status = 'Delivered' AND received_at >= ?`).bind(monthStart).first(),
+      env.DB.prepare(`SELECT id, name, email, property_address, status, received_at FROM inquiries ORDER BY received_at DESC LIMIT 5`).all(),
+      env.DB.prepare(`SELECT id, title, location, year FROM client_projects ORDER BY created_at DESC LIMIT 5`).all(),
+    ]);
+
+    return json({
+      ok: true,
+      stats: {
+        inquiries_this_month: inquiriesMonth?.count || 0,
+        unassigned_leads:     unassigned?.count || 0,
+        active_projects:      activeProjects?.count || 0,
+        delivered_this_month: deliveredMonth?.count || 0,
+      },
+      recent_leads:    recentLeads.results || [],
+      active_projects: activeProjectsList.results || [],
+    });
+  } catch (err) {
+    console.error('Dashboard error:', err);
+    return json({ error: 'Could not load dashboard.' }, 500);
+  }
+}
+
+
+/* ----------------------------------------------------------
+   ADMIN: LEADS
+   ---------------------------------------------------------- */
+
+const LEAD_STATUSES = ['Unassigned', 'Contacted', 'Booked', 'Filming', 'Editing', 'Delivered', 'Archived'];
+
+// GET /api/admin/leads?status=&search=&limit=&offset=
+async function handleListLeads(request, env) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+
+  const url    = new URL(request.url);
+  const status = url.searchParams.get('status') || '';
+  const search = url.searchParams.get('search') || '';
+  const limit  = Math.min(Number(url.searchParams.get('limit') || 50), 100);
+  const offset = Number(url.searchParams.get('offset') || 0);
+
+  try {
+    let where  = '1=1';
+    const binds = [];
+
+    if (status && LEAD_STATUSES.includes(status)) {
+      where += ' AND status = ?';
+      binds.push(status);
+    }
+    if (search) {
+      where += ' AND (name LIKE ? OR email LIKE ? OR property_address LIKE ?)';
+      const q = `%${search}%`;
+      binds.push(q, q, q);
+    }
+
+    const rows = await env.DB
+      .prepare(`SELECT id, name, email, brokerage, property_address, listing_date, services, status, received_at, sq_ft, bedrooms, bathrooms, listing_price, client_project_id FROM inquiries WHERE ${where} ORDER BY received_at DESC LIMIT ? OFFSET ?`)
+      .bind(...binds, limit, offset).all();
+
+    const total = await env.DB
+      .prepare(`SELECT COUNT(*) as count FROM inquiries WHERE ${where}`)
+      .bind(...binds).first();
+
+    return json({ ok: true, leads: rows.results || [], total: total?.count || 0 });
+  } catch (err) {
+    console.error('List leads error:', err);
+    return json({ error: 'Could not load leads.' }, 500);
+  }
+}
+
+// GET /api/admin/leads/:id
+async function handleGetLead(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+
+  try {
+    const row = await env.DB
+      .prepare(`SELECT * FROM inquiries WHERE id = ?`)
+      .bind(id).first();
+    if (!row) return json({ error: 'Lead not found.' }, 404);
+    return json({ ok: true, lead: row });
+  } catch (err) {
+    console.error('Get lead error:', err);
+    return json({ error: 'Could not load lead.' }, 500);
+  }
+}
+
+// PATCH /api/admin/leads/:id
+// Body: { status?, notes_internal?, client_project_id? }
+async function handleUpdateLead(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+
+  const updates = [];
+  const binds   = [];
+
+  if (data.status !== undefined) {
+    if (!LEAD_STATUSES.includes(data.status)) return json({ error: 'Invalid status.' }, 400);
+    updates.push('status = ?'); binds.push(data.status);
+  }
+  if (data.notes_internal !== undefined) {
+    updates.push('notes_internal = ?'); binds.push(data.notes_internal || null);
+  }
+  if (data.client_project_id !== undefined) {
+    updates.push('client_project_id = ?'); binds.push(data.client_project_id || null);
+  }
+
+  if (updates.length === 0) return json({ error: 'Nothing to update.' }, 400);
+
+  binds.push(id);
+  try {
+    await env.DB.prepare(`UPDATE inquiries SET ${updates.join(', ')} WHERE id = ?`).bind(...binds).run();
+    const updated = await env.DB.prepare('SELECT * FROM inquiries WHERE id = ?').bind(id).first();
+    return json({ ok: true, lead: updated });
+  } catch (err) {
+    console.error('Update lead error:', err);
+    return json({ error: 'Could not update lead.' }, 500);
   }
 }
 
@@ -1806,8 +1971,15 @@ async function logInquiry(d, env) {
   try {
     const services = Array.isArray(d.services) ? d.services.join(',') : null;
     await env.DB
-      .prepare(`INSERT INTO inquiries (name, email, brokerage, property_address, listing_date, services, notes) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-      .bind(d.name, d.email, d.brokerage || null, d.property_address, d.listing_date || null, services, d.notes || null)
+      .prepare(`INSERT INTO inquiries (name, email, brokerage, property_address, listing_date, services, notes, sq_ft, bedrooms, bathrooms, listing_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .bind(
+        d.name, d.email, d.brokerage || null, d.property_address,
+        d.listing_date || null, services, d.notes || null,
+        d.sq_ft ? Number(d.sq_ft) : null,
+        d.bedrooms ? Number(d.bedrooms) : null,
+        d.bathrooms ? Number(d.bathrooms) : null,
+        d.listing_price ? Number(d.listing_price) : null
+      )
       .run();
   } catch (err) {
     console.error('D1 inquiry log failure (non-blocking):', err);
