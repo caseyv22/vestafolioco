@@ -187,6 +187,67 @@ export default {
       return cors(new Response('Method not allowed', { status: 405 }));
     }
 
+    // ── Admin: client projects ───────────────────────────────
+    if (path === '/api/admin/client-projects') {
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')     return cors(await handleListClientProjects(request, env));
+      if (request.method === 'POST')    return cors(await handleCreateClientProject(request, env));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    const cpMatch = path.match(/^\/api\/admin\/client-projects\/(\d+)$/);
+    if (cpMatch) {
+      const id = Number(cpMatch[1]);
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')     return cors(await handleGetClientProject(request, env, id));
+      if (request.method === 'PATCH')   return cors(await handleUpdateClientProject(request, env, id));
+      if (request.method === 'DELETE')  return cors(await handleDeleteClientProject(request, env, id));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    const cpImagesMatch = path.match(/^\/api\/admin\/client-projects\/(\d+)\/images$/);
+    if (cpImagesMatch) {
+      const id = Number(cpImagesMatch[1]);
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'POST')    return cors(await handleUploadClientImages(request, env, id));
+      if (request.method === 'PATCH')   return cors(await handleReorderClientImages(request, env, id));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    const cpOriginalsMatch = path.match(/^\/api\/admin\/client-projects\/(\d+)\/originals$/);
+    if (cpOriginalsMatch) {
+      const id = Number(cpOriginalsMatch[1]);
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')     return cors(await handleListClientOriginals(request, env, id));
+      if (request.method === 'POST')    return cors(await handleUploadClientOriginal(request, env, id));
+      if (request.method === 'DELETE')  return cors(await handleDeleteClientOriginal(request, env, id));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    const cpInviteMatch = path.match(/^\/api\/admin\/client-projects\/(\d+)\/invite$/);
+    if (cpInviteMatch) {
+      const id = Number(cpInviteMatch[1]);
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'POST')    return cors(await handleInviteToClientProject(request, env, id));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    const cpClientsMatch = path.match(/^\/api\/admin\/client-projects\/(\d+)\/clients$/);
+    if (cpClientsMatch) {
+      const id = Number(cpClientsMatch[1]);
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')     return cors(await handleListClientProjectClients(request, env, id));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    const revokeV2Match = path.match(/^\/api\/admin\/clients\/(\d+)\/access\/cp\/(\d+)$/);
+    if (revokeV2Match) {
+      const [, userId, projectId] = revokeV2Match;
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'DELETE')  return cors(await handleRevokeClientProjectAccess(request, env, Number(userId), Number(projectId)));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
     // /api/admin/projects/:slug/originals
     const originalsMatch = path.match(/^\/api\/admin\/projects\/([^/]+)\/originals$/);
     if (originalsMatch) {
@@ -830,99 +891,91 @@ async function requireClient(request, env) {
   return { user, response: null };
 }
 
-// GET /api/portal/projects
-// Returns projects the client has access to, with public projects.json data merged.
+// GET /api/portal/projects — reads from D1 client_projects
 async function handlePortalProjects(request, env) {
   const { user, response } = await requireClient(request, env);
   if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
 
   try {
-    // Get client's accessible slugs
-    const accessRows = await env.DB
-      .prepare('SELECT project_slug FROM client_project_access WHERE user_id = ? ORDER BY granted_at DESC')
+    const rows = await env.DB
+      .prepare(`SELECT cp.* FROM client_projects cp
+                JOIN client_project_access_v2 cpa ON cpa.client_project_id = cp.id
+                WHERE cpa.user_id = ?
+                ORDER BY cp.created_at DESC`)
       .bind(user.id).all();
-    const slugs = (accessRows.results || []).map(r => r.project_slug);
 
-    if (slugs.length === 0) return json({ ok: true, projects: [] });
-
-    // Fetch projects.json for metadata
-    const { projects: allProjects } = await ghReadProjects(env);
-
-    const clientProjects = slugs
-      .map(slug => allProjects.find(p => p.slug === slug))
-      .filter(Boolean);
-
-    return json({ ok: true, projects: clientProjects });
+    const projects = (rows.results || []).map(r => parseClientProject(r));
+    return json({ ok: true, projects });
   } catch (err) {
     console.error('Portal projects error:', err);
     return json({ error: 'Could not load projects.' }, 500);
   }
 }
 
-// GET /api/portal/projects/:slug
+// GET /api/portal/projects/:id (id is numeric)
 async function handlePortalProject(request, env, slug) {
   const { user, response } = await requireClient(request, env);
   if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+
+  // slug param may be numeric id or slug string
+  const isId = /^\d+$/.test(slug);
 
   try {
-    // Verify access
+    const col    = isId ? 'cp.id' : 'cp.slug';
+    const val    = isId ? Number(slug) : slug;
     const access = await env.DB
-      .prepare('SELECT 1 FROM client_project_access WHERE user_id = ? AND project_slug = ?')
-      .bind(user.id, slug).first();
+      .prepare(`SELECT cp.* FROM client_projects cp
+                JOIN client_project_access_v2 cpa ON cpa.client_project_id = cp.id
+                WHERE ${col} = ? AND cpa.user_id = ?`)
+      .bind(val, user.id).first();
+
     if (!access) return json({ error: 'Project not found.' }, 404);
-
-    const { projects } = await ghReadProjects(env);
-    const project = projects.find(p => p.slug === slug);
-    if (!project) return json({ error: 'Project not found.' }, 404);
-
-    return json({ ok: true, project });
+    return json({ ok: true, project: parseClientProject(access) });
   } catch (err) {
     console.error('Portal project error:', err);
     return json({ error: 'Could not load project.' }, 500);
   }
 }
 
-// GET /api/portal/projects/:slug/download
-// Streams a ZIP of all files under originals/[slug]/ in the ORIGINALS R2 bucket.
+// GET /api/portal/projects/:id/download
 async function handlePortalDownload(request, env, slug) {
   const { user, response } = await requireClient(request, env);
   if (response) return response;
-
   if (!env.ORIGINALS) return json({ error: 'Originals storage not configured.' }, 500);
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
 
+  const isId = /^\d+$/.test(slug);
   try {
-    // Verify access
+    const col    = isId ? 'cp.id' : 'cp.slug';
+    const val    = isId ? Number(slug) : slug;
     const access = await env.DB
-      .prepare('SELECT 1 FROM client_project_access WHERE user_id = ? AND project_slug = ?')
-      .bind(user.id, slug).first();
+      .prepare(`SELECT cp.id, cp.slug FROM client_projects cp
+                JOIN client_project_access_v2 cpa ON cpa.client_project_id = cp.id
+                WHERE ${col} = ? AND cpa.user_id = ?`)
+      .bind(val, user.id).first();
+
     if (!access) return json({ error: 'Not authorized.' }, 403);
 
-    // List all objects under originals/[slug]/
-    const listed = await env.ORIGINALS.list({ prefix: `originals/${slug}/` });
+    const listed = await env.ORIGINALS.list({ prefix: `originals/${access.slug}/` });
     const keys   = (listed.objects || []).map(o => o.key).filter(k => !k.endsWith('/'));
 
-    if (keys.length === 0) {
-      return json({ error: 'No originals available for this project yet.' }, 404);
-    }
+    if (keys.length === 0) return json({ error: 'No originals available yet.' }, 404);
 
-    // Fetch all files and build ZIP in memory
-    // Workers runtime supports enough memory for < 128MB total
     const files = [];
     for (const key of keys) {
       const obj = await env.ORIGINALS.get(key);
       if (!obj) continue;
-      const bytes    = await obj.arrayBuffer();
-      const filename = key.split('/').pop();
-      files.push({ filename, bytes });
+      files.push({ filename: key.split('/').pop(), bytes: await obj.arrayBuffer() });
     }
 
     const zipBytes = buildZip(files);
-
     return new Response(zipBytes, {
       status: 200,
       headers: {
         'Content-Type':        'application/zip',
-        'Content-Disposition': `attachment; filename="${slug}-originals.zip"`,
+        'Content-Disposition': `attachment; filename="${access.slug}-originals.zip"`,
         'Content-Length':      String(zipBytes.byteLength),
       },
     });
@@ -930,6 +983,418 @@ async function handlePortalDownload(request, env, slug) {
     console.error('Portal download error:', err);
     return json({ error: 'Could not generate download.' }, 500);
   }
+}
+
+
+/* ----------------------------------------------------------
+   ADMIN: CLIENT PROJECT CRUD (D1-backed)
+   ---------------------------------------------------------- */
+
+function parseClientProject(row) {
+  return {
+    id:          row.id,
+    slug:        row.slug,
+    title:       row.title,
+    location:    row.location,
+    year:        row.year,
+    description: row.description,
+    youtube_id:  row.youtube_id || '',
+    services:    row.services ? row.services.split(',') : [],
+    hero_image:  row.hero_image || '',
+    gallery:     row.gallery ? JSON.parse(row.gallery) : [],
+    created_at:  row.created_at,
+    updated_at:  row.updated_at,
+  };
+}
+
+function validateClientProjectPayload(data, requireAll) {
+  if (requireAll) {
+    if (!isNonEmptyString(data.title))       return { error: 'Title is required.' };
+    if (!isNonEmptyString(data.slug))        return { error: 'Slug is required.' };
+    if (!isNonEmptyString(data.location))    return { error: 'Location is required.' };
+    if (!data.year || isNaN(Number(data.year))) return { error: 'Year is required.' };
+    if (!isNonEmptyString(data.description)) return { error: 'Description is required.' };
+  }
+  if (data.slug !== undefined) {
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(data.slug)) return { error: 'Slug must be lowercase letters, numbers, and hyphens only.' };
+    if (data.slug.length > 80) return { error: 'Slug is too long.' };
+  }
+  if (data.youtube_id !== undefined && data.youtube_id !== '' &&
+      (typeof data.youtube_id !== 'string' || data.youtube_id.length > 20 || !/^[a-zA-Z0-9_-]+$/.test(data.youtube_id))) {
+    return { error: 'YouTube ID is invalid.' };
+  }
+  if (data.services !== undefined) {
+    if (!Array.isArray(data.services)) return { error: 'Services must be an array.' };
+    const allowed = new Set(['hdr', 'cinematic', 'staging']);
+    if (data.services.some(s => !allowed.has(s))) return { error: 'Unknown service value.' };
+  }
+  return { error: null };
+}
+
+// GET /api/admin/client-projects
+async function handleListClientProjects(request, env) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+  try {
+    const rows = await env.DB.prepare('SELECT * FROM client_projects ORDER BY created_at DESC').all();
+    return json({ ok: true, projects: (rows.results || []).map(parseClientProject) });
+  } catch (err) {
+    console.error('List client projects error:', err);
+    return json({ error: 'Could not load projects.' }, 500);
+  }
+}
+
+// POST /api/admin/client-projects
+async function handleCreateClientProject(request, env) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+
+  const v = validateClientProjectPayload(data, true);
+  if (v.error) return json({ error: v.error }, 400);
+
+  try {
+    const existing = await env.DB.prepare('SELECT id FROM client_projects WHERE slug = ?').bind(data.slug).first();
+    if (existing) return json({ error: 'A project with that slug already exists.' }, 409);
+
+    const services = Array.isArray(data.services) ? data.services.join(',') : '';
+    const result   = await env.DB
+      .prepare('INSERT INTO client_projects (slug, title, location, year, description, youtube_id, services) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .bind(data.slug, data.title.trim(), data.location.trim(), Number(data.year), data.description.trim(), data.youtube_id || '', services)
+      .run();
+
+    const project = await env.DB.prepare('SELECT * FROM client_projects WHERE id = ?').bind(result.meta.last_row_id).first();
+    return json({ ok: true, project: parseClientProject(project) }, 201);
+  } catch (err) {
+    console.error('Create client project error:', err);
+    return json({ error: 'Could not create project.' }, 500);
+  }
+}
+
+// GET /api/admin/client-projects/:id
+async function handleGetClientProject(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+  try {
+    const row = await env.DB.prepare('SELECT * FROM client_projects WHERE id = ?').bind(id).first();
+    if (!row) return json({ error: 'Project not found.' }, 404);
+    return json({ ok: true, project: parseClientProject(row) });
+  } catch (err) {
+    console.error('Get client project error:', err);
+    return json({ error: 'Could not load project.' }, 500);
+  }
+}
+
+// PATCH /api/admin/client-projects/:id
+async function handleUpdateClientProject(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+
+  const v = validateClientProjectPayload(data, false);
+  if (v.error) return json({ error: v.error }, 400);
+
+  try {
+    const existing = await env.DB.prepare('SELECT * FROM client_projects WHERE id = ?').bind(id).first();
+    if (!existing) return json({ error: 'Project not found.' }, 404);
+
+    if (data.slug && data.slug !== existing.slug) {
+      const collision = await env.DB.prepare('SELECT id FROM client_projects WHERE slug = ? AND id != ?').bind(data.slug, id).first();
+      if (collision) return json({ error: 'A project with that slug already exists.' }, 409);
+    }
+
+    const slug        = data.slug        !== undefined ? data.slug                : existing.slug;
+    const title       = data.title       !== undefined ? data.title.trim()        : existing.title;
+    const location    = data.location    !== undefined ? data.location.trim()     : existing.location;
+    const year        = data.year        !== undefined ? Number(data.year)        : existing.year;
+    const description = data.description !== undefined ? data.description.trim()  : existing.description;
+    const youtube_id  = data.youtube_id  !== undefined ? (data.youtube_id || '')  : (existing.youtube_id || '');
+    const services    = data.services    !== undefined ? data.services.join(',')  : (existing.services || '');
+
+    await env.DB
+      .prepare(`UPDATE client_projects SET slug=?, title=?, location=?, year=?, description=?, youtube_id=?, services=?, updated_at=datetime('now') WHERE id=?`)
+      .bind(slug, title, location, year, description, youtube_id, services, id).run();
+
+    const updated = await env.DB.prepare('SELECT * FROM client_projects WHERE id = ?').bind(id).first();
+    return json({ ok: true, project: parseClientProject(updated) });
+  } catch (err) {
+    console.error('Update client project error:', err);
+    return json({ error: 'Could not update project.' }, 500);
+  }
+}
+
+// DELETE /api/admin/client-projects/:id
+async function handleDeleteClientProject(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+  try {
+    await env.DB.prepare('DELETE FROM client_projects WHERE id = ?').bind(id).run();
+    return json({ ok: true });
+  } catch (err) {
+    console.error('Delete client project error:', err);
+    return json({ error: 'Could not delete project.' }, 500);
+  }
+}
+
+// POST /api/admin/client-projects/:id/images
+async function handleUploadClientImages(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.IMAGES) return json({ error: 'Image storage not configured.' }, 500);
+  if (!env.DB)    return json({ error: 'Service unavailable.' }, 500);
+
+  const project = await env.DB.prepare('SELECT slug FROM client_projects WHERE id = ?').bind(id).first();
+  if (!project) return json({ error: 'Project not found.' }, 404);
+
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+
+  const images = data.images;
+  if (!Array.isArray(images) || images.length === 0) return json({ error: 'No images provided.' }, 400);
+  if (images.length > 20) return json({ error: 'Maximum 20 images per upload.' }, 400);
+
+  const imagesBaseUrl = env.IMAGES_BASE_URL || 'https://images.vestafolioco.com';
+  const uploadedUrls  = [];
+
+  for (const img of images) {
+    if (!img.data || !img.filename || !/^(hero|[0-9]{2})\.webp$/.test(img.filename)) {
+      return json({ error: `Invalid image entry.` }, 400);
+    }
+    const key    = `client-projects/${project.slug}/${img.filename}`;
+    const binary = base64ToUint8Array(img.data);
+    await env.IMAGES.put(key, binary, { httpMetadata: { contentType: 'image/webp' } });
+    uploadedUrls.push({ filename: img.filename, url: `${imagesBaseUrl}/${key}` });
+  }
+
+  const heroEntry    = uploadedUrls.find(u => u.filename === 'hero.webp');
+  const galleryEntries = uploadedUrls.filter(u => u.filename !== 'hero.webp').sort((a,b) => a.filename.localeCompare(b.filename));
+
+  const existingRow = await env.DB.prepare('SELECT hero_image, gallery FROM client_projects WHERE id = ?').bind(id).first();
+  const heroImage   = heroEntry ? heroEntry.url : (existingRow?.hero_image || '');
+  const gallery     = galleryEntries.length > 0 ? galleryEntries.map(u => u.url) : (existingRow?.gallery ? JSON.parse(existingRow.gallery) : []);
+
+  await env.DB
+    .prepare(`UPDATE client_projects SET hero_image=?, gallery=?, updated_at=datetime('now') WHERE id=?`)
+    .bind(heroImage, JSON.stringify(gallery), id).run();
+
+  return json({ ok: true, hero_image: heroImage, gallery, uploaded: uploadedUrls.length });
+}
+
+// PATCH /api/admin/client-projects/:id/images — reorder/delete
+async function handleReorderClientImages(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+
+  const heroImage = typeof data.hero_image === 'string' ? data.hero_image.trim() : '';
+  const gallery   = Array.isArray(data.gallery) ? data.gallery.filter(u => typeof u === 'string') : [];
+
+  try {
+    await env.DB
+      .prepare(`UPDATE client_projects SET hero_image=?, gallery=?, updated_at=datetime('now') WHERE id=?`)
+      .bind(heroImage, JSON.stringify(gallery), id).run();
+    return json({ ok: true, hero_image: heroImage, gallery });
+  } catch (err) {
+    console.error('Reorder client images error:', err);
+    return json({ error: 'Could not update image order.' }, 500);
+  }
+}
+
+// GET /api/admin/client-projects/:id/originals
+async function handleListClientOriginals(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.ORIGINALS || !env.DB) return json({ error: 'Storage not configured.' }, 500);
+  const project = await env.DB.prepare('SELECT slug FROM client_projects WHERE id = ?').bind(id).first();
+  if (!project) return json({ error: 'Project not found.' }, 404);
+  try {
+    const listed = await env.ORIGINALS.list({ prefix: `originals/${project.slug}/` });
+    const files  = (listed.objects || []).filter(o => !o.key.endsWith('/')).map(o => ({ key: o.key, name: o.key.split('/').pop(), size: o.size }));
+    return json({ ok: true, files });
+  } catch (err) {
+    console.error('List client originals error:', err);
+    return json({ error: 'Could not list originals.' }, 500);
+  }
+}
+
+// POST /api/admin/client-projects/:id/originals
+async function handleUploadClientOriginal(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.ORIGINALS || !env.DB) return json({ error: 'Storage not configured.' }, 500);
+  const project = await env.DB.prepare('SELECT slug FROM client_projects WHERE id = ?').bind(id).first();
+  if (!project) return json({ error: 'Project not found.' }, 404);
+  try {
+    const formData = await request.formData();
+    const file     = formData.get('file');
+    if (!file) return json({ error: 'No file provided.' }, 400);
+    const safeName = (file.name || 'upload').split(/[/\]/).pop().replace(/[^a-zA-Z0-9._-]/g, '_');
+    const key      = `originals/${project.slug}/${safeName}`;
+    await env.ORIGINALS.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type || 'application/octet-stream' } });
+    return json({ ok: true, key, name: safeName });
+  } catch (err) {
+    console.error('Upload client original error:', err);
+    return json({ error: 'Could not upload file.' }, 500);
+  }
+}
+
+// DELETE /api/admin/client-projects/:id/originals
+async function handleDeleteClientOriginal(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.ORIGINALS || !env.DB) return json({ error: 'Storage not configured.' }, 500);
+  const project = await env.DB.prepare('SELECT slug FROM client_projects WHERE id = ?').bind(id).first();
+  if (!project) return json({ error: 'Project not found.' }, 404);
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+  const key = data?.key || '';
+  if (!key || !key.startsWith(`originals/${project.slug}/`)) return json({ error: 'Invalid key.' }, 400);
+  try {
+    await env.ORIGINALS.delete(key);
+    return json({ ok: true });
+  } catch (err) {
+    console.error('Delete client original error:', err);
+    return json({ error: 'Could not delete file.' }, 500);
+  }
+}
+
+// POST /api/admin/client-projects/:id/invite
+async function handleInviteToClientProject(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+
+  const email = isNonEmptyString(data?.email) ? data.email.trim().toLowerCase() : '';
+  const name  = isNonEmptyString(data?.name)  ? data.name.trim() : '';
+
+  if (!email || !isEmail(email)) return json({ error: 'A valid email is required.' }, 400);
+
+  const project = await env.DB.prepare('SELECT id, slug, title FROM client_projects WHERE id = ?').bind(id).first();
+  if (!project) return json({ error: 'Project not found.' }, 404);
+
+  try {
+    let user = await env.DB.prepare('SELECT id, email, name FROM users WHERE email = ?').bind(email).first();
+    if (!user) {
+      const ph     = await bcrypt.hash(generateSessionToken(), 12);
+      const result = await env.DB.prepare('INSERT INTO users (email, password_hash, role, name) VALUES (?, ?, ?, ?)').bind(email, ph, 'client', name || null).run();
+      user = { id: result.meta.last_row_id, email, name: name || null };
+    } else if (name && !user.name) {
+      await env.DB.prepare('UPDATE users SET name = ? WHERE id = ?').bind(name, user.id).run();
+    }
+
+    await env.DB.prepare('INSERT OR IGNORE INTO client_project_access_v2 (user_id, client_project_id) VALUES (?, ?)').bind(user.id, id).run();
+
+    // Invalidate old tokens + generate new
+    await env.DB.prepare(`UPDATE password_resets SET used_at = datetime('now') WHERE user_id = ? AND used_at IS NULL`).bind(user.id).run();
+    const token     = generateSessionToken();
+    const expiresAt = new Date(Date.now() + INVITE_DAYS * 24 * 60 * 60 * 1000).toISOString();
+    await env.DB.prepare('INSERT INTO password_resets (token, user_id, expires_at) VALUES (?, ?, ?)').bind(token, user.id, expiresAt).run();
+
+    try { await sendClientProjectInviteEmail(env, user.email, user.name, token, project.title); }
+    catch (err) { console.error('Client project invite email failed:', err); }
+
+    return json({ ok: true, user_id: user.id });
+  } catch (err) {
+    console.error('Invite to client project error:', err);
+    return json({ error: 'Could not send invite.' }, 500);
+  }
+}
+
+// GET /api/admin/client-projects/:id/clients
+async function handleListClientProjectClients(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+  try {
+    const rows = await env.DB
+      .prepare(`SELECT u.id, u.email, u.name, u.last_login_at, cpa.granted_at
+                FROM client_project_access_v2 cpa
+                JOIN users u ON u.id = cpa.user_id
+                WHERE cpa.client_project_id = ?
+                ORDER BY cpa.granted_at DESC`)
+      .bind(id).all();
+    return json({ ok: true, clients: rows.results || [] });
+  } catch (err) {
+    console.error('List project clients error:', err);
+    return json({ error: 'Could not load clients.' }, 500);
+  }
+}
+
+// DELETE /api/admin/clients/:userId/access/cp/:projectId
+async function handleRevokeClientProjectAccess(request, env, userId, projectId) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+  try {
+    await env.DB.prepare('DELETE FROM client_project_access_v2 WHERE user_id = ? AND client_project_id = ?').bind(userId, projectId).run();
+    return json({ ok: true });
+  } catch (err) {
+    console.error('Revoke client project access error:', err);
+    return json({ error: 'Could not revoke access.' }, 500);
+  }
+}
+
+async function sendClientProjectInviteEmail(env, recipientEmail, recipientName, token, projectTitle) {
+  if (!env.RESEND_API_KEY) { console.warn('RESEND_API_KEY not set.'); return; }
+  const fromAddress = env.INQUIRY_FROM || 'hello@vestafolioco.com';
+  const inviteLink  = `https://vestafolioco.com/portal/accept-invite?token=${encodeURIComponent(token)}`;
+  const firstName   = recipientName ? String(recipientName).trim().split(/\s+/)[0] : null;
+  const greeting    = firstName ? `Hello, ${esc(firstName)}.` : 'Hello.';
+  const safeLink    = esc(inviteLink);
+  const safeTitle   = esc(projectTitle);
+
+  const html = `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/><title>Your project gallery is ready</title></head>
+<body style="margin:0;padding:0;background-color:#F2EDE3;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#F2EDE3;"><tr><td align="center" style="padding:48px 16px;">
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px;background-color:#F2EDE3;">
+<tr><td style="padding-bottom:32px;"><span style="font-family:'Cormorant Garamond',Georgia,serif;font-size:22px;font-weight:400;letter-spacing:0.18em;color:#1F2E2A;text-transform:uppercase;">VESTA FOLIO</span></td></tr>
+<tr><td style="border-top:1px solid #A8884E;padding:0;line-height:0;height:1px;font-size:0;">&nbsp;</td></tr>
+<tr><td style="padding:40px 0 16px 0;"><h1 style="margin:0;font-family:'Cormorant Garamond',Georgia,serif;font-size:32px;font-weight:400;line-height:1.2;color:#1F2E2A;">Your gallery is ready.</h1></td></tr>
+<tr><td style="padding:0 0 32px 0;">
+<p style="margin:0 0 16px 0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:16px;color:#1F2E2A;">${greeting}</p>
+<p style="margin:0 0 16px 0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:16px;color:#1F2E2A;">Your project <strong>${safeTitle}</strong> is ready to view. Use the link below to set your password and access your gallery.</p>
+<p style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:15px;color:#4A5C57;">The link expires in ${INVITE_DAYS} days.</p>
+</td></tr>
+<tr><td style="padding:0 0 32px 0;"><table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td style="background-color:#A8884E;"><a href="${safeLink}" style="display:inline-block;padding:16px 32px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;font-weight:500;letter-spacing:0.22em;text-transform:uppercase;color:#1F2E2A;text-decoration:none;">Access your gallery</a></td></tr></table></td></tr>
+<tr><td style="padding:0 0 32px 0;"><p style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:13px;color:#4A5C57;">Or paste this link:<br/><span style="color:#1F2E2A;word-break:break-all;">${safeLink}</span></p></td></tr>
+<tr><td style="border-top:1px solid #A8884E;padding:0;line-height:0;height:1px;font-size:0;">&nbsp;</td></tr>
+<tr><td style="padding:24px 0 0 0;"><p style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:13px;color:#4A5C57;">— Vesta Folio<br/>vestafolioco.com · Los Angeles</p></td></tr>
+</table></td></tr></table></body></html>`;
+
+  const text = `${greeting}
+
+Your project "${projectTitle}" is ready to view. Use the link below to set your password and access your gallery.
+
+${inviteLink}
+
+The link expires in ${INVITE_DAYS} days.
+
+— Vesta Folio
+vestafolioco.com · Los Angeles
+`;
+
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: `Vesta Folio <${fromAddress}>`, to: [recipientEmail], subject: `Your gallery is ready — ${projectTitle}`, html, text }),
+  });
+  if (!res.ok) { const b = await res.text().catch(() => ''); throw new Error(`Resend error ${res.status}: ${b}`); }
 }
 
 
