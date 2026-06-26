@@ -85,7 +85,7 @@ function initList() {
       tbody.innerHTML = '';
       leads.forEach(l => {
         const tr = document.createElement('tr'); tr.className = 'projects__row leads__row';
-        const date = l.received_at ? new Date(l.received_at).toLocaleDateString() : '—';
+        const date = l.received_at ? new Date(l.received_at).toLocaleDateString() : '-';
         tr.innerHTML = `
           <td class="projects__td projects__td--title">
             <span class="projects__title">${esc(l.name)}</span>
@@ -108,7 +108,7 @@ function initList() {
         pagination.hidden = false;
         prevBtn.disabled  = currentOffset === 0;
         nextBtn.disabled  = currentOffset + LIMIT >= totalLeads;
-        pageInfo.textContent = `Page ${currentPage} of ${totalPages} · ${totalLeads} leads`;
+        pageInfo.textContent = `Page ${currentPage} of ${totalPages} . ${totalLeads} leads`;
       } else { pagination.hidden = true; }
     } catch { pageError.textContent = 'Could not connect.'; pageError.hidden = false; }
   }
@@ -156,23 +156,23 @@ function initDetail(leadId) {
   logoutBtn.addEventListener('click', async () => { await fetch('/api/auth/logout', { method: 'POST' }); window.location.href = '/admin/login'; });
 
   function populate(l) {
-    document.title = `${l.name} — Vesta Folio`;
+    document.title = `${l.name} - Vesta Folio`;
     document.getElementById('lead-name').textContent    = l.name;
     document.getElementById('lead-address').textContent = l.property_address;
     document.getElementById('d-name').textContent       = l.name;
     const emailEl = document.getElementById('d-email');
     emailEl.textContent = l.email; emailEl.href = `mailto:${l.email}`;
-    document.getElementById('d-brokerage').textContent    = l.brokerage || '—';
-    document.getElementById('d-received').textContent     = l.received_at ? new Date(l.received_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }) : '—';
+    document.getElementById('d-brokerage').textContent    = l.brokerage || '-';
+    document.getElementById('d-received').textContent     = l.received_at ? new Date(l.received_at).toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric' }) : '-';
     document.getElementById('d-address').textContent      = l.property_address;
-    document.getElementById('d-listing-date').textContent = l.listing_date || '—';
-    document.getElementById('d-sqft').textContent         = l.sq_ft ? `${Number(l.sq_ft).toLocaleString()} sq ft` : '—';
-    document.getElementById('d-beds').textContent         = l.bedrooms ?? '—';
-    document.getElementById('d-baths').textContent        = l.bathrooms ?? '—';
-    document.getElementById('d-price').textContent        = l.listing_price ? `$${Number(l.listing_price).toLocaleString()}` : '—';
-    const svcs = l.services ? l.services.split(',').map(s => SERVICE_LABELS[s] || s).join(', ') : '—';
+    document.getElementById('d-listing-date').textContent = l.listing_date || '-';
+    document.getElementById('d-sqft').textContent         = l.sq_ft ? `${Number(l.sq_ft).toLocaleString()} sq ft` : '-';
+    document.getElementById('d-beds').textContent         = l.bedrooms ?? '-';
+    document.getElementById('d-baths').textContent        = l.bathrooms ?? '-';
+    document.getElementById('d-price').textContent        = l.listing_price ? `$${Number(l.listing_price).toLocaleString()}` : '-';
+    const svcs = l.services ? l.services.split(',').map(s => SERVICE_LABELS[s] || s).join(', ') : '-';
     document.getElementById('d-services').textContent = svcs;
-    document.getElementById('d-notes').textContent    = l.notes || '—';
+    document.getElementById('d-notes').textContent    = l.notes || '-';
     statusSelect.value = l.status || 'Unassigned';
     notesEl.value      = l.notes_internal || '';
     updateBadge(l.status);
@@ -187,7 +187,7 @@ function initDetail(leadId) {
 
   saveBtn.addEventListener('click', async () => {
     statusError.hidden = true; statusSuccess.hidden = true;
-    const orig = saveBtn.textContent; saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+    const orig = saveBtn.textContent; saveBtn.disabled = true; saveBtn.textContent = 'Saving...';
     try {
       const res  = await fetch(`/api/admin/leads/${leadId}`, { method:'PATCH', headers:{'Content-Type':'application/json',Accept:'application/json'}, body: JSON.stringify({ status: statusSelect.value, notes_internal: notesEl.value }) });
       const body = await res.json().catch(() => ({}));
@@ -202,7 +202,7 @@ function initDetail(leadId) {
   createBtn.addEventListener('click', async () => {
     if (!currentLead) return;
     if (currentLead.client_project_id) { window.location.href = `/admin/client-project?id=${currentLead.client_project_id}`; return; }
-    const orig = createBtn.textContent; createBtn.disabled = true; createBtn.textContent = 'Creating…';
+    const orig = createBtn.textContent; createBtn.disabled = true; createBtn.textContent = 'Creating...';
     const slug = slugify(currentLead.property_address || currentLead.name);
     const payload = {
       title: currentLead.property_address || currentLead.name,
