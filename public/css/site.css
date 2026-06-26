@@ -1268,3 +1268,93 @@
   text-transform: uppercase;
   color: var(--color-gold);
 }
+
+
+/* ----------------------------------------------------------
+   PROJECT MODAL — thumbnail strip (chunk 5b)
+   Replaces the old stacked gallery grid with a viewer:
+   large active image + scrollable thumbnail strip below.
+   ---------------------------------------------------------- */
+
+/* Viewer wraps the hero image + thumbnail strip */
+.modal__viewer {
+  background-color: var(--color-forest);
+}
+
+/* Hero image — taller on desktop for the viewer layout */
+.modal__hero {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  background-color: var(--color-forest);
+  position: relative;
+}
+
+.modal__hero-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity 150ms ease;
+}
+
+/* Thumbnail strip */
+.modal__thumbs {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  background-color: var(--color-forest);
+  padding: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-sage) transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+.modal__thumbs::-webkit-scrollbar {
+  height: 3px;
+}
+
+.modal__thumbs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal__thumbs::-webkit-scrollbar-thumb {
+  background-color: var(--color-sage);
+}
+
+.modal__thumb {
+  flex-shrink: 0;
+  width: 72px;
+  height: 54px;
+  overflow: hidden;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  opacity: 0.5;
+  transition: opacity var(--transition-hover);
+}
+
+.modal__thumb:hover {
+  opacity: 0.8;
+}
+
+.modal__thumb--active {
+  opacity: 1;
+  outline: 2px solid var(--color-gold);
+  outline-offset: -2px;
+}
+
+.modal__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .modal__thumb {
+    width: 96px;
+    height: 72px;
+  }
+}
