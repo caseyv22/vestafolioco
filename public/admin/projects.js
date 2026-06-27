@@ -69,7 +69,7 @@ function slugify(s) { return s.toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().
     const me = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
     if (!me.ok) { window.location.href = '/admin/login'; return; }
     const meData = await me.json();
-    if (meData.role === 'super_admin') {
+    if (meData.user.role === 'super_admin') {
       const navTeam = document.getElementById('nav-team');
       if (navTeam) navTeam.hidden = false;
     }

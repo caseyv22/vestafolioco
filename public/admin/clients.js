@@ -25,8 +25,8 @@ function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('en-US', {
     const me = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
     if (!me.ok) { window.location.href = '/admin/login'; return; }
     const meData = await me.json();
-    if (meData.role !== 'admin' && meData.role !== 'super_admin') { window.location.href = '/admin/login'; return; }
-    if (meData.role === 'super_admin') {
+    if (meData.user.role !== 'admin' && meData.user.role !== 'super_admin') { window.location.href = '/admin/login'; return; }
+    if (meData.user.role === 'super_admin') {
       const navTeam = document.getElementById('nav-team');
       if (navTeam) navTeam.hidden = false;
     }

@@ -37,8 +37,8 @@ function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('en-US', {
     const me = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
     if (!me.ok) { window.location.href = '/admin/login'; return; }
     const meData = await me.json();
-    if (meData.role !== 'super_admin') { window.location.href = '/admin'; return; }
-    currentUserId = meData.id || meData.user_id;
+    if (meData.user.role !== 'super_admin') { window.location.href = '/admin'; return; }
+    currentUserId = meData.user.id;
     pageLoading.hidden = true; pageContent.hidden = false;
     await loadTeam();
   } catch { window.location.href = '/admin/login'; }

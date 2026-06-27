@@ -743,7 +743,7 @@ async function handleInviteClient(request, env) {
       .prepare('SELECT id, email, name, role FROM users WHERE email = ?')
       .bind(email).first();
 
-    if (user && user.role === 'admin') {
+    if (user && (user.role === 'admin' || user.role === 'super_admin')) {
       return json({ error: 'This email belongs to a studio admin account and cannot be invited as a client.' }, 400);
     }
 
@@ -968,7 +968,7 @@ async function handleAcceptInvite(request, env) {
 async function requireClient(request, env) {
   const user = await getCurrentUser(request, env);
   if (!user) return { user: null, response: json({ error: 'Not authenticated.' }, 401) };
-  if (user.role !== 'client' && user.role !== 'admin') {
+  if (user.role !== 'client' && user.role !== 'admin' && user.role !== 'super_admin') {
     return { user: null, response: json({ error: 'Not authorized.' }, 403) };
   }
   return { user, response: null };
@@ -1535,7 +1535,7 @@ async function handleInviteToClientProject(request, env, id) {
 
   try {
     let user = await env.DB.prepare('SELECT id, email, name, role FROM users WHERE email = ?').bind(email).first();
-    if (user && user.role === 'admin') {
+    if (user && (user.role === 'admin' || user.role === 'super_admin')) {
       return json({ error: 'This email belongs to a studio admin account and cannot be invited as a client.' }, 400);
     }
     if (!user) {
@@ -2213,7 +2213,7 @@ async function handleLogin(request, env) {
     catch (err) { console.error('last_login_at update failed:', err); }
 
     const cookie   = buildSessionCookie(token, SESSION_DAYS * 24 * 60 * 60);
-    const redirect = user.role === 'admin' ? '/admin' : '/portal';
+    const redirect = (user.role === 'admin' || user.role === 'super_admin') ? '/admin' : '/portal';
     return new Response(JSON.stringify({ ok: true, redirect, user: { email: user.email, role: user.role, name: user.name } }), {
       status: 200, headers: { 'Content-Type': 'application/json', 'Set-Cookie': cookie },
     });
