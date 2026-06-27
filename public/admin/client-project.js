@@ -36,16 +36,7 @@ const imagesSuccess         = document.getElementById('images-success');
 const existingImagesWrap    = document.getElementById('existing-images-wrap');
 const existingImagesContent = document.getElementById('existing-images-content');
 
-const originalsZone             = document.getElementById('originals-zone');
-const originalsInput            = document.getElementById('originals-input');
-const originalsProcessing       = document.getElementById('originals-processing');
-const originalsPreviews         = document.getElementById('originals-previews');
-const originalsList             = document.getElementById('originals-list');
-const originalsSaveBtn          = document.getElementById('originals-save-btn');
-const originalsError            = document.getElementById('originals-error');
-const originalsSuccess          = document.getElementById('originals-success');
-const existingOriginalsWrap     = document.getElementById('existing-originals-wrap');
-const existingOriginalsContent  = document.getElementById('existing-originals-content');
+/* originals removed */
 
 const inviteForm    = document.getElementById('invite-form');
 const inviteName    = document.getElementById('invite-name');
@@ -77,7 +68,7 @@ const videosSuccess   = document.getElementById('videos-success');
 let currentId      = null;
 let currentProject = null;
 let pendingImages  = [];
-let pendingOriginals = [];
+let pendingVideoFiles = [];
 let existingImages = null;
 let dragSrcIndex   = null;
 let existingDragIdx= null;
@@ -92,13 +83,11 @@ const PLATFORM_LABELS = { youtube: 'YouTube', reels: 'Reels', tiktok: 'TikTok' }
 
 const tabDetails     = document.getElementById('tab-details');
 const tabImages      = document.getElementById('tab-images');
-const tabOriginals   = document.getElementById('tab-originals');
 const panelDetails   = document.getElementById('panel-details');
 const panelImages    = document.getElementById('panel-images');
-const panelOriginals = document.getElementById('panel-originals');
 
-const allTabs   = [tabDetails, tabImages, tabOriginals];
-const allPanels = [panelDetails, panelImages, panelOriginals];
+const allTabs   = [tabDetails, tabImages];
+const allPanels = [panelDetails, panelImages];
 
 function switchTab(activeTab) {
   allTabs.forEach(t => {
@@ -111,7 +100,7 @@ function switchTab(activeTab) {
 
 tabDetails.addEventListener('click',   () => switchTab(tabDetails));
 tabImages.addEventListener('click',    () => switchTab(tabImages));
-tabOriginals.addEventListener('click', () => switchTab(tabOriginals));
+
 
 // -- Init ------------------------------------------------------
 
@@ -150,7 +139,7 @@ tabOriginals.addEventListener('click', () => switchTab(tabOriginals));
     pageLoading.hidden = true;
     pageContent.hidden = false;
 
-    await Promise.all([loadClients(), loadOriginals()]);
+    await Promise.all([loadClients(), loadVideoFiles()]);
   } catch (err) {
     console.error('Load error:', err);
     showPageError('Could not connect.');
@@ -442,77 +431,91 @@ async function saveExistingImageOrder() {
   } catch { showImagesError('Could not connect.'); renderExistingImages(currentProject); }
 }
 
-// -- Originals -------------------------------------------------
+// -- Video files -----------------------------------------------
 
-originalsZone.addEventListener('click', () => originalsInput.click());
-originalsZone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') originalsInput.click(); });
-originalsZone.addEventListener('dragover', (e) => { e.preventDefault(); originalsZone.classList.add('upload__zone--drag'); });
-originalsZone.addEventListener('dragleave', () => originalsZone.classList.remove('upload__zone--drag'));
-originalsZone.addEventListener('drop', (e) => { e.preventDefault(); originalsZone.classList.remove('upload__zone--drag'); if (e.dataTransfer.files.length) queueOriginals(Array.from(e.dataTransfer.files)); });
-originalsInput.addEventListener('change', () => { if (originalsInput.files.length) queueOriginals(Array.from(originalsInput.files)); originalsInput.value = ''; });
+const vfZone         = document.getElementById('vf-zone');
+const vfInput        = document.getElementById('vf-input');
+const vfProcessing   = document.getElementById('vf-processing');
+const vfPendingWrap  = document.getElementById('vf-pending-wrap');
+const vfPendingList  = document.getElementById('vf-pending-list');
+const vfUploadBtn    = document.getElementById('vf-upload-btn');
+const vfError        = document.getElementById('vf-error');
+const vfSuccess      = document.getElementById('vf-success');
+const vfExistingWrap = document.getElementById('vf-existing-wrap');
+const vfExistingContent = document.getElementById('vf-existing-content');
 
-function queueOriginals(files) {
-  if (pendingOriginals.length + files.length > 50) { showOriginalsError('Maximum 50 files.'); return; }
-  files.forEach(f => pendingOriginals.push({ file: f, name: f.name }));
-  renderOriginalsPreviews();
+vfZone.addEventListener('click', () => vfInput.click());
+vfZone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') vfInput.click(); });
+vfZone.addEventListener('dragover', (e) => { e.preventDefault(); vfZone.classList.add('upload__zone--drag'); });
+vfZone.addEventListener('dragleave', () => vfZone.classList.remove('upload__zone--drag'));
+vfZone.addEventListener('drop', (e) => { e.preventDefault(); vfZone.classList.remove('upload__zone--drag'); if (e.dataTransfer.files.length) queueVideoFiles(Array.from(e.dataTransfer.files)); });
+vfInput.addEventListener('change', () => { if (vfInput.files.length) queueVideoFiles(Array.from(vfInput.files)); vfInput.value = ''; });
+
+function queueVideoFiles(files) {
+  if (pendingVideoFiles.length + files.length > 5) { showVfError('Maximum 5 video files.'); return; }
+  files.forEach(f => pendingVideoFiles.push({ file: f, name: f.name }));
+  renderVfPending();
 }
 
-function renderOriginalsPreviews() {
-  if (pendingOriginals.length === 0) { originalsPreviews.hidden = true; originalsList.innerHTML = ''; return; }
-  originalsPreviews.hidden = false; originalsList.innerHTML = '';
-  pendingOriginals.forEach((item, i) => {
+function renderVfPending() {
+  if (pendingVideoFiles.length === 0) { vfPendingWrap.hidden = true; vfPendingList.innerHTML = ''; return; }
+  vfPendingWrap.hidden = false; vfPendingList.innerHTML = '';
+  pendingVideoFiles.forEach((item, i) => {
     const li = document.createElement('li'); li.className = 'upload__item';
     const mb = (item.file.size / (1024 * 1024)).toFixed(1);
     li.innerHTML = `<span class="upload__file-icon" aria-hidden="true">[]</span><span class="upload__item-meta"><span class="upload__item-name">${escHtml(item.name)}</span><span class="upload__item-size">${mb} MB</span></span><button class="upload__remove" type="button" data-index="${i}">&#215;</button>`;
-    originalsList.appendChild(li);
+    li.querySelector('.upload__remove').addEventListener('click', () => { pendingVideoFiles.splice(i, 1); renderVfPending(); });
+    vfPendingList.appendChild(li);
   });
-  originalsList.addEventListener('click', (e) => { const btn = e.target.closest('.upload__remove'); if (!btn) return; pendingOriginals.splice(Number(btn.dataset.index), 1); renderOriginalsPreviews(); });
 }
 
-originalsSaveBtn.addEventListener('click', async () => {
-  if (pendingOriginals.length === 0) return; clearOriginalsMessages();
-  const originalLabel = originalsSaveBtn.textContent; originalsSaveBtn.disabled = true; originalsSaveBtn.textContent = 'Uploading...'; originalsProcessing.hidden = false;
-  let uploadedCount = 0;
+vfUploadBtn.addEventListener('click', async () => {
+  if (pendingVideoFiles.length === 0) return;
+  vfError.hidden = true; vfSuccess.hidden = true;
+  const orig = vfUploadBtn.textContent; vfUploadBtn.disabled = true; vfUploadBtn.textContent = 'Uploading...'; vfProcessing.hidden = false;
+  let count = 0;
   try {
-    for (const item of pendingOriginals) {
+    for (const item of pendingVideoFiles) {
       const formData = new FormData(); formData.append('file', item.file, item.name);
-      const res = await fetch(`/api/admin/client-projects/${currentId}/originals`, { method: 'POST', body: formData });
+      const res = await fetch(`/api/admin/client-projects/${currentId}/video-files`, { method: 'POST', body: formData });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) { showOriginalsError(body.error || `Could not upload ${item.name}.`); break; }
-      uploadedCount++;
+      if (!res.ok) { showVfError(body.error || `Could not upload ${item.name}.`); break; }
+      count++;
     }
-    pendingOriginals = []; renderOriginalsPreviews(); await loadOriginals();
-    if (uploadedCount > 0) showOriginalsSuccess(`${uploadedCount} file${uploadedCount > 1 ? 's' : ''} uploaded.`);
-  } catch { showOriginalsError('Could not connect.'); }
-  finally { originalsSaveBtn.disabled = false; originalsSaveBtn.textContent = originalLabel; originalsProcessing.hidden = true; }
+    pendingVideoFiles = []; renderVfPending(); await loadVideoFiles();
+    if (count > 0) { vfSuccess.textContent = `${count} file${count > 1 ? 's' : ''} uploaded.`; vfSuccess.hidden = false; setTimeout(() => vfSuccess.hidden = true, 5000); }
+  } catch { showVfError('Could not connect.'); }
+  finally { vfUploadBtn.disabled = false; vfUploadBtn.textContent = orig; vfProcessing.hidden = true; }
 });
 
-async function loadOriginals() {
+async function loadVideoFiles() {
   try {
-    const res  = await fetch(`/api/admin/client-projects/${currentId}/originals`, { headers: { Accept: 'application/json' } });
+    const res  = await fetch(`/api/admin/client-projects/${currentId}/video-files`, { headers: { Accept: 'application/json' } });
     if (!res.ok) return;
     const body = await res.json().catch(() => ({}));
-    const files = body.files || [];
-    if (files.length === 0) { existingOriginalsWrap.hidden = true; return; }
-    existingOriginalsWrap.hidden = false; existingOriginalsContent.innerHTML = '';
+    const files = body.video_files || [];
+    vfExistingWrap.hidden = files.length === 0;
+    if (!files.length) return;
+    vfExistingContent.innerHTML = '';
     const list = document.createElement('ul'); list.className = 'upload__list upload__list--files';
     files.forEach(f => {
       const li = document.createElement('li'); li.className = 'upload__item';
-      const mb = f.size ? (f.size / (1024 * 1024)).toFixed(1) + ' MB' : '';
-      li.innerHTML = `<span class="upload__file-icon" aria-hidden="true">[]</span><span class="upload__item-meta"><span class="upload__item-name">${escHtml(f.name)}</span>${mb ? `<span class="upload__item-size">${mb}</span>` : ''}</span><button class="upload__remove upload__remove--original" type="button" data-key="${escHtml(f.key)}">&#215;</button>`;
+      li.innerHTML = `<span class="upload__file-icon" aria-hidden="true">[]</span><span class="upload__item-meta"><span class="upload__item-name">${escHtml(f.name)}</span></span><button class="upload__remove upload__remove--vf" type="button" data-key="${escHtml(f.key)}">&#215;</button>`;
       list.appendChild(li);
     });
     list.addEventListener('click', async (e) => {
-      const btn = e.target.closest('.upload__remove--original'); if (!btn) return;
+      const btn = e.target.closest('.upload__remove--vf'); if (!btn) return;
       btn.disabled = true;
       try {
-        const res = await fetch(`/api/admin/client-projects/${currentId}/originals`, { method: 'DELETE', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ key: btn.dataset.key }) });
-        if (res.ok) await loadOriginals(); else btn.disabled = false;
+        const res = await fetch(`/api/admin/client-projects/${currentId}/video-files`, { method: 'DELETE', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify({ key: btn.dataset.key }) });
+        if (res.ok) await loadVideoFiles(); else btn.disabled = false;
       } catch { btn.disabled = false; }
     });
-    existingOriginalsContent.appendChild(list);
+    vfExistingContent.appendChild(list);
   } catch { /* non-blocking */ }
 }
+
+function showVfError(msg) { vfError.textContent = msg; vfError.hidden = false; }
 
 // -- Client access ---------------------------------------------
 
@@ -580,9 +583,6 @@ function clearPageMessages()   { pageSaveError.hidden = true; pageSaveSuccess.hi
 function showImagesError(msg)  { imagesError.textContent = msg; imagesError.hidden = false; imagesSuccess.hidden = true; }
 function showImagesSuccess(msg){ imagesSuccess.textContent = msg; imagesSuccess.hidden = false; imagesError.hidden = true; setTimeout(() => imagesSuccess.hidden = true, 5000); }
 function clearImagesMessages() { imagesError.hidden = true; imagesSuccess.hidden = true; }
-function showOriginalsError(msg)  { originalsError.textContent = msg; originalsError.hidden = false; originalsSuccess.hidden = true; }
-function showOriginalsSuccess(msg){ originalsSuccess.textContent = msg; originalsSuccess.hidden = false; originalsError.hidden = true; setTimeout(() => originalsSuccess.hidden = true, 5000); }
-function clearOriginalsMessages() { originalsError.hidden = true; originalsSuccess.hidden = true; }
 function showInviteError(msg)  { inviteError.textContent = msg; inviteError.hidden = false; inviteSuccess.hidden = true; }
 function showInviteSuccess(msg){ inviteSuccess.textContent = msg; inviteSuccess.hidden = false; inviteError.hidden = true; setTimeout(() => inviteSuccess.hidden = true, 5000); }
 function clearInviteMessages() { inviteError.hidden = true; inviteSuccess.hidden = true; }

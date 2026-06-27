@@ -332,6 +332,27 @@ export default {
       return cors(new Response('Method not allowed', { status: 405 }));
     }
 
+
+    // ── Admin: client project video files (mp4/mov/webm uploads) ──
+    const cpVideoFilesMatch = path.match(/^\/api\/admin\/client-projects\/(\d+)\/video-files$/);
+    if (cpVideoFilesMatch) {
+      const id = Number(cpVideoFilesMatch[1]);
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')    return cors(await handleListVideoFiles(request, env, id));
+      if (request.method === 'POST')   return cors(await handleUploadVideoFile(request, env, id));
+      if (request.method === 'DELETE') return cors(await handleDeleteVideoFile(request, env, id));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    // ── Portal: video file list (direct URLs for download) ──────
+    const portalVideoFilesMatch = path.match(/^\/api\/portal\/projects\/([^/]+)\/video-files$/);
+    if (portalVideoFilesMatch) {
+      const slug = portalVideoFilesMatch[1];
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')    return cors(await handlePortalVideoFiles(request, env, slug));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
     return cors(new Response('Not found', { status: 404 }));
   },
 };
@@ -1032,7 +1053,6 @@ async function handlePortalProject(request, env, slug) {
 async function handlePortalDownload(request, env, slug) {
   const { user, response } = await requireClient(request, env);
   if (response) return response;
-  if (!env.ORIGINALS) return json({ error: 'Originals storage not configured.' }, 500);
   if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
 
   const isId = /^\d+$/.test(slug);
@@ -1047,14 +1067,18 @@ async function handlePortalDownload(request, env, slug) {
 
     if (!access) return json({ error: 'Not authorized.' }, 403);
 
-    const listed = await env.ORIGINALS.list({ prefix: `originals/${access.slug}/` });
-    const keys   = (listed.objects || []).map(o => o.key).filter(k => !k.endsWith('/'));
+    // Zip only the WebP gallery images from IMAGES bucket
+    if (!env.IMAGES) return json({ error: 'Image storage not configured.' }, 500);
+    const listed = await env.IMAGES.list({ prefix: `client-projects/${access.slug}/` });
+    const keys   = (listed.objects || []).map(o => o.key).filter(k =>
+      !k.endsWith('/') && !k.includes('/videos/') && k.endsWith('.webp')
+    );
 
-    if (keys.length === 0) return json({ error: 'No originals available yet.' }, 404);
+    if (keys.length === 0) return json({ error: 'No images available yet.' }, 404);
 
     const files = [];
     for (const key of keys) {
-      const obj = await env.ORIGINALS.get(key);
+      const obj = await env.IMAGES.get(key);
       if (!obj) continue;
       files.push({ filename: key.split('/').pop(), bytes: await obj.arrayBuffer() });
     }
@@ -1064,7 +1088,7 @@ async function handlePortalDownload(request, env, slug) {
       status: 200,
       headers: {
         'Content-Type':        'application/zip',
-        'Content-Disposition': `attachment; filename="${access.slug}-originals.zip"`,
+        'Content-Disposition': `attachment; filename="${access.slug}-images.zip"`,
         'Content-Length':      String(zipBytes.byteLength),
       },
     });
@@ -1241,8 +1265,9 @@ function parseClientProject(row) {
     created_at:  row.created_at,
     updated_at:  row.updated_at,
     status:      row.status || 'Booked',
-    last_edited_by: row.last_edited_by || null,
-    last_edited_at: row.last_edited_at || null,
+    last_edited_by:  row.last_edited_by || null,
+    last_edited_at:  row.last_edited_at || null,
+    video_files:     row.video_files ? JSON.parse(row.video_files) : [],
   };
 }
 
@@ -2616,5 +2641,120 @@ async function handleDeleteClientProjectVideo(request, env, projectId, videoId) 
   } catch (err) {
     console.error('Delete video error:', err);
     return json({ error: 'Could not delete video.' }, 500);
+  }
+}
+
+
+/* ----------------------------------------------------------
+   Video file upload/download handlers (Chunk 9b)
+   ---------------------------------------------------------- */
+
+async function handleListVideoFiles(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+  try {
+    const project = await env.DB.prepare('SELECT slug, video_files FROM client_projects WHERE id = ?').bind(id).first();
+    if (!project) return json({ error: 'Project not found.' }, 404);
+    const videos = project.video_files ? JSON.parse(project.video_files) : [];
+    return json({ ok: true, video_files: videos });
+  } catch (err) {
+    console.error('List video files error:', err);
+    return json({ error: 'Could not load video files.' }, 500);
+  }
+}
+
+async function handleUploadVideoFile(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.IMAGES || !env.DB) return json({ error: 'Storage not configured.' }, 500);
+
+  const project = await env.DB.prepare('SELECT slug, video_files FROM client_projects WHERE id = ?').bind(id).first();
+  if (!project) return json({ error: 'Project not found.' }, 404);
+
+  try {
+    const formData = await request.formData();
+    const file     = formData.get('file');
+    if (!file) return json({ error: 'No file provided.' }, 400);
+
+    const ALLOWED_VIDEO = ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-m4v'];
+    if (!ALLOWED_VIDEO.includes(file.type) && !file.name.match(/\.(mp4|mov|webm|m4v)$/i)) {
+      return json({ error: 'File must be mp4, mov, webm, or m4v.' }, 400);
+    }
+
+    const safeName  = (file.name || 'video').split(/[/\]/).pop().replace(/[^a-zA-Z0-9._-]/g, '_');
+    const key       = `client-projects/${project.slug}/videos/${safeName}`;
+    const imagesBaseUrl = env.IMAGES_BASE_URL || 'https://images.vestafolioco.com';
+    const url       = `${imagesBaseUrl}/${key}`;
+
+    await env.IMAGES.put(key, await file.arrayBuffer(), {
+      httpMetadata: { contentType: file.type || 'video/mp4' },
+    });
+
+    const existing = project.video_files ? JSON.parse(project.video_files) : [];
+    existing.push({ name: safeName, url, key });
+    await env.DB.prepare("UPDATE client_projects SET video_files = ?, updated_at = datetime('now') WHERE id = ?")
+      .bind(JSON.stringify(existing), id).run();
+
+    return json({ ok: true, name: safeName, url }, 201);
+  } catch (err) {
+    console.error('Upload video file error:', err);
+    return json({ error: 'Could not upload video file.' }, 500);
+  }
+}
+
+async function handleDeleteVideoFile(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.IMAGES || !env.DB) return json({ error: 'Storage not configured.' }, 500);
+
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+  const { key } = data;
+  if (!key) return json({ error: 'key is required.' }, 400);
+
+  try {
+    const project = await env.DB.prepare('SELECT slug, video_files FROM client_projects WHERE id = ?').bind(id).first();
+    if (!project) return json({ error: 'Project not found.' }, 404);
+
+    if (!key.startsWith(`client-projects/${project.slug}/videos/`)) {
+      return json({ error: 'Invalid key.' }, 400);
+    }
+
+    await env.IMAGES.delete(key);
+
+    const existing = project.video_files ? JSON.parse(project.video_files) : [];
+    const updated  = existing.filter(v => v.key !== key);
+    await env.DB.prepare("UPDATE client_projects SET video_files = ?, updated_at = datetime('now') WHERE id = ?")
+      .bind(JSON.stringify(updated), id).run();
+
+    return json({ ok: true });
+  } catch (err) {
+    console.error('Delete video file error:', err);
+    return json({ error: 'Could not delete video file.' }, 500);
+  }
+}
+
+async function handlePortalVideoFiles(request, env, slug) {
+  const { user, response } = await requireClient(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+
+  const isId = /^\d+$/.test(slug);
+  try {
+    const col    = isId ? 'cp.id' : 'cp.slug';
+    const val    = isId ? Number(slug) : slug;
+    const access = await env.DB
+      .prepare(`SELECT cp.video_files FROM client_projects cp
+                JOIN client_project_access_v2 cpa ON cpa.client_project_id = cp.id
+                WHERE ${col} = ? AND cpa.user_id = ?`)
+      .bind(val, user.id).first();
+
+    if (!access) return json({ error: 'Not authorized.' }, 403);
+    const videos = access.video_files ? JSON.parse(access.video_files) : [];
+    return json({ ok: true, video_files: videos });
+  } catch (err) {
+    console.error('Portal video files error:', err);
+    return json({ error: 'Could not load video files.' }, 500);
   }
 }

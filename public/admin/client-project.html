@@ -42,7 +42,7 @@
     <div id="page-content" hidden>
 
       <div class="project-edit__created" id="created-banner" hidden>
-        <p class="project-edit__created-text">Project created. Add images, upload originals, and invite the client below.</p>
+        <p class="project-edit__created-text">Project created. Add images, upload video files, and invite the client below.</p>
       </div>
 
       <!-- Page header + tab bar -->
@@ -60,9 +60,7 @@
             <button class="project-edit__tab"
                     id="tab-images" role="tab" aria-selected="false"
                     aria-controls="panel-images" type="button">Images</button>
-            <button class="project-edit__tab"
-                    id="tab-originals" role="tab" aria-selected="false"
-                    aria-controls="panel-originals" type="button">Originals</button>
+
           </div>
         </div>
       </div>
@@ -162,7 +160,7 @@
           <div id="panel-images" role="tabpanel" aria-labelledby="tab-images" hidden>
             <section class="project-edit__section project-edit__section--notop">
               <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-4);">
-                These appear in the client portal gallery. Resized to 1800px wide, exported as WebP. First image is the hero.
+                Images appear in the portal gallery. Resized to 1800px wide, exported as WebP. First image is the hero.
               </p>
               <p class="admin__error"   id="images-error"   hidden></p>
               <p class="admin__success" id="images-success" hidden></p>
@@ -184,34 +182,35 @@
                 <div id="existing-images-content"></div>
               </div>
             </section>
-          </div>
 
-          <!-- Panel: Originals -->
-          <div id="panel-originals" role="tabpanel" aria-labelledby="tab-originals" hidden>
-            <section class="project-edit__section project-edit__section--notop">
+            <!-- Video files -->
+            <section class="project-edit__section">
+              <h2 class="project-edit__section-heading">Video files</h2>
               <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-4);">
-                Full-resolution files for client download. Stored privately.
+                MP4, MOV, or WebM. Uploaded as-is. Clients get a direct download link per file.
               </p>
-              <p class="admin__error"   id="originals-error"   hidden></p>
-              <p class="admin__success" id="originals-success" hidden></p>
-              <div class="upload__zone" id="originals-zone" tabindex="0" role="button" aria-label="Drop files here or click to select">
-                <p class="upload__zone-text">Drop files here, or <span class="upload__zone-link">click to select</span></p>
-                <p class="upload__zone-hint">Any file type - Uploaded as-is</p>
-                <input type="file" id="originals-input" multiple hidden>
+              <p class="admin__error"   id="vf-error"   hidden></p>
+              <p class="admin__success" id="vf-success" hidden></p>
+              <div class="upload__zone" id="vf-zone" tabindex="0" role="button" aria-label="Drop video files here or click to select">
+                <p class="upload__zone-text">Drop video files here, or <span class="upload__zone-link">click to select</span></p>
+                <p class="upload__zone-hint">MP4 - MOV - WebM - M4V - Uploaded directly, no resizing</p>
+                <input type="file" id="vf-input" accept="video/mp4,video/quicktime,video/webm,video/x-m4v,.mp4,.mov,.webm,.m4v" multiple hidden>
               </div>
-              <p class="upload__processing" id="originals-processing" hidden>Uploading...</p>
-              <div class="upload__previews" id="originals-previews" hidden>
-                <ul class="upload__list upload__list--files" id="originals-list"></ul>
+              <p class="upload__processing" id="vf-processing" hidden>Uploading...</p>
+              <div id="vf-pending-wrap" hidden>
+                <ul class="upload__list upload__list--files" id="vf-pending-list"></ul>
                 <div class="project-edit__actions" style="margin-top:var(--space-4);">
-                  <button class="admin__btn-primary" type="button" id="originals-save-btn">Upload originals</button>
+                  <button class="admin__btn-primary" type="button" id="vf-upload-btn">Upload video files</button>
                 </div>
               </div>
-              <div id="existing-originals-wrap" hidden>
-                <p class="admin__label" style="margin-top:var(--space-5);margin-bottom:var(--space-2);">Uploaded originals</p>
-                <div id="existing-originals-content"></div>
+              <div id="vf-existing-wrap" hidden>
+                <p class="admin__label" style="margin-top:var(--space-5);margin-bottom:var(--space-2);">Uploaded video files</p>
+                <div id="vf-existing-content"></div>
               </div>
             </section>
           </div>
+
+
 
         </div><!-- /cp9-main -->
 

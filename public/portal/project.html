@@ -95,7 +95,7 @@
     const projectLocation = document.getElementById('project-location');
     const projectDesc     = document.getElementById('project-description');
     const downloadBtn     = document.getElementById('download-btn');
-    const downloadHint    = document.getElementById('download-hint');
+
 
     const viewerImage = document.getElementById('viewer-image');
     const thumbsWrap  = document.getElementById('portal-thumbs');
@@ -110,8 +110,6 @@
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.href = '/portal/login';
     });
-
-    function esc(str) { return String(str ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
     (async () => {
       const params = new URLSearchParams(window.location.search);
@@ -144,11 +142,25 @@
         renderThumbs();
       }
 
-      // Download button
+      // Download images button (zip of WebP gallery)
       downloadBtn.href = `/api/portal/projects/${encodeURIComponent(slug)}/download`;
-      // We don't know if originals exist yet — show button optimistically
-      // Worker returns 404 with JSON if no originals; browser will get that as a failed download
-      // For now just show the button; 6d will add originals upload which makes it meaningful
+
+      // Video file download links - direct R2 URLs, no Worker proxy
+      const vfRes = await fetch(`/api/portal/projects/${encodeURIComponent(slug)}/video-files`, { headers: { Accept: 'application/json' } });
+      if (vfRes.ok) {
+        const vfBody = await vfRes.json().catch(() => ({}));
+        const vfiles = vfBody.video_files || [];
+        if (vfiles.length) {
+          const vwrap = document.getElementById('video-download-wrap');
+          const vlist = document.getElementById('video-download-list');
+          if (vwrap && vlist) {
+            vwrap.hidden = false;
+            vlist.innerHTML = vfiles.map(f =>
+              `<a href="${esc(f.url)}" download="${esc(f.name)}" class="admin__btn-ghost portal__download-btn" style="display:block;margin-bottom:var(--space-2);">${esc(f.name)}</a>`
+            ).join('');
+          }
+        }
+      }
 
       // YouTube reel
       if (p.youtube_id) {
