@@ -1,9 +1,9 @@
 /* ============================================================
-   /admin/project.js — Chunk 6d
+   /admin/project.js - Chunk 6d
    Project edit page: details + images + originals + client access.
    ============================================================ */
 
-// ── DOM refs ──────────────────────────────────────────────────
+// -- DOM refs --------------------------------------------------
 
 const logoutBtn          = document.getElementById('logout-btn');
 const pageLoading        = document.getElementById('page-loading');
@@ -64,7 +64,7 @@ const clientsList        = document.getElementById('clients-list');
 const clientsEmpty       = document.getElementById('clients-empty');
 
 
-// ── State ─────────────────────────────────────────────────────
+// -- State -----------------------------------------------------
 
 let currentSlug      = '';
 let currentProject   = null;
@@ -84,7 +84,7 @@ const SERVICE_LABELS = {
 };
 
 
-// ── Three-tab page switching ─────────────────────────────────
+// -- Three-tab page switching ---------------------------------
 
 const tabDetails   = document.getElementById('tab-details');
 const tabImages    = document.getElementById('tab-images');
@@ -112,7 +112,7 @@ tabImages.addEventListener('click',    () => switchTab(tabImages));
 tabOriginals.addEventListener('click', () => switchTab(tabOriginals));
 
 
-// ── Init ──────────────────────────────────────────────────────
+// -- Init ------------------------------------------------------
 
 (async function init() {
   const params = new URLSearchParams(window.location.search);
@@ -123,6 +123,11 @@ tabOriginals.addEventListener('click', () => switchTab(tabOriginals));
   try {
     const me = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
     if (!me.ok) { window.location.href = '/admin/login'; return; }
+    const meData = await me.json();
+    if (meData.user.role === 'super_admin') {
+      const nt = document.getElementById('nav-team');
+      if (nt) nt.hidden = false;
+    }
   } catch { window.location.href = '/admin/login'; return; }
 
   try {
@@ -155,7 +160,7 @@ tabOriginals.addEventListener('click', () => switchTab(tabOriginals));
 })();
 
 
-// ── Log out ───────────────────────────────────────────────────
+// -- Log out ---------------------------------------------------
 
 logoutBtn.addEventListener('click', async () => {
   logoutBtn.disabled = true;
@@ -164,7 +169,7 @@ logoutBtn.addEventListener('click', async () => {
 });
 
 
-// ── Populate form ─────────────────────────────────────────────
+// -- Populate form ---------------------------------------------
 
 function populateForm(project) {
   pageTitle.textContent   = project.title;
@@ -183,7 +188,7 @@ function populateForm(project) {
 }
 
 
-// ── Metadata save ─────────────────────────────────────────────
+// -- Metadata save ---------------------------------------------
 
 projectForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -212,7 +217,7 @@ projectForm.addEventListener('submit', async (e) => {
 
   const originalLabel      = saveDetailsBtn.textContent;
   saveDetailsBtn.disabled  = true;
-  saveDetailsBtn.textContent = 'Saving…';
+  saveDetailsBtn.textContent = 'Saving...';
 
   try {
     const res  = await fetch(`/api/admin/projects/${currentSlug}`, {
@@ -241,7 +246,7 @@ projectForm.addEventListener('submit', async (e) => {
 });
 
 
-// ── WebP image upload ─────────────────────────────────────────
+// -- WebP image upload -----------------------------------------
 
 uploadZone.addEventListener('click', () => uploadInput.click());
 uploadZone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') uploadInput.click(); });
@@ -312,7 +317,7 @@ function renderPendingPreviews() {
     const label = i === 0 ? 'Hero' : `Gallery ${i}`;
     const kb    = Math.round(img.blob.size / 1024);
     li.innerHTML = `
-      <span class="upload__drag-handle" aria-hidden="true">⠿</span>
+      <span class="upload__drag-handle" aria-hidden="true">::</span>
       <img class="upload__thumb" src="${img.dataUrl}" alt="${escHtml(img.originalName)}">
       <span class="upload__item-meta">
         <span class="upload__item-label">${label}</span>
@@ -340,7 +345,7 @@ uploadSaveBtn.addEventListener('click', async () => {
   clearImagesMessages();
   const originalLabel      = uploadSaveBtn.textContent;
   uploadSaveBtn.disabled   = true;
-  uploadSaveBtn.textContent = 'Uploading…';
+  uploadSaveBtn.textContent = 'Uploading...';
   try {
     const res  = await fetch(`/api/admin/projects/${currentSlug}/images`, {
       method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
@@ -369,7 +374,7 @@ function renderExistingImages(project) {
     const li = document.createElement('li');
     li.className = 'upload__item'; li.draggable = true; li.dataset.index = i;
     li.innerHTML = `
-      <span class="upload__drag-handle" aria-hidden="true">⠿</span>
+      <span class="upload__drag-handle" aria-hidden="true">::</span>
       <img class="upload__thumb" src="${escHtml(img.url)}" alt="${label}">
       <span class="upload__item-meta">
         <span class="upload__item-label">${label}</span>
@@ -409,7 +414,7 @@ async function saveExistingImageOrder() {
 }
 
 
-// ── Originals upload ──────────────────────────────────────────
+// -- Originals upload ------------------------------------------
 
 originalsZone.addEventListener('click', () => originalsInput.click());
 originalsZone.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') originalsInput.click(); });
@@ -440,7 +445,7 @@ function renderOriginalsPreviews() {
     li.className = 'upload__item';
     const mb = (item.file.size / (1024 * 1024)).toFixed(1);
     li.innerHTML = `
-      <span class="upload__file-icon" aria-hidden="true">⬜</span>
+      <span class="upload__file-icon" aria-hidden="true">[]</span>
       <span class="upload__item-meta">
         <span class="upload__item-name">${escHtml(item.name)}</span>
         <span class="upload__item-size">${mb} MB</span>
@@ -463,11 +468,11 @@ originalsSaveBtn.addEventListener('click', async () => {
 
   const originalLabel         = originalsSaveBtn.textContent;
   originalsSaveBtn.disabled   = true;
-  originalsSaveBtn.textContent = 'Uploading…';
+  originalsSaveBtn.textContent = 'Uploading...';
   originalsProcessing.hidden  = false;
 
   try {
-    // Upload files one at a time via multipart — Workers support up to 128MB
+    // Upload files one at a time via multipart - Workers support up to 128MB
     let uploadedCount = 0;
     for (const item of pendingOriginals) {
       const formData = new FormData();
@@ -522,7 +527,7 @@ async function loadOriginals() {
       li.className = 'upload__item';
       const mb = f.size ? (f.size / (1024 * 1024)).toFixed(1) + ' MB' : '';
       li.innerHTML = `
-        <span class="upload__file-icon" aria-hidden="true">⬜</span>
+        <span class="upload__file-icon" aria-hidden="true">[]</span>
         <span class="upload__item-meta">
           <span class="upload__item-name">${escHtml(f.name)}</span>
           ${mb ? `<span class="upload__item-size">${mb}</span>` : ''}
@@ -556,7 +561,7 @@ async function loadOriginals() {
 }
 
 
-// ── Client access ─────────────────────────────────────────────
+// -- Client access ---------------------------------------------
 
 async function loadClients() {
   try {
@@ -587,7 +592,7 @@ async function loadClients() {
 
       li.innerHTML = `
         <span class="upload__item-meta">
-          <span class="upload__item-label">${escHtml(client.name || '—')}</span>
+          <span class="upload__item-label">${escHtml(client.name || '-')}</span>
           <span class="upload__item-name">${escHtml(client.email)}</span>
           <span class="upload__item-size">${lastLogin}</span>
         </span>
@@ -655,7 +660,7 @@ inviteForm.addEventListener('submit', async (e) => {
 
   const originalLabel      = inviteSubmit.textContent;
   inviteSubmit.disabled    = true;
-  inviteSubmit.textContent = 'Sending…';
+  inviteSubmit.textContent = 'Sending...';
 
   try {
     const res  = await fetch('/api/admin/invite', {
@@ -681,7 +686,7 @@ inviteForm.addEventListener('submit', async (e) => {
 });
 
 
-// ── Message helpers ───────────────────────────────────────────
+// -- Message helpers -------------------------------------------
 
 function showPageError(message) {
   pageLoading.hidden       = true;

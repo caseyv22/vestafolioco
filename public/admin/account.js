@@ -35,6 +35,10 @@ const passwordSubmit  = passwordForm.querySelector('[type="submit"]');
     }
 
     userEmailEl.textContent = body.user.email;
+    if (body.user.role === 'super_admin') {
+      const nt = document.getElementById('nav-team');
+      if (nt) nt.hidden = false;
+    }
     loadingEl.hidden = true;
     authenticatedEl.hidden = false;
 
@@ -85,7 +89,7 @@ passwordForm.addEventListener('submit', async (e) => {
 
   const originalLabel = passwordSubmit.textContent;
   passwordSubmit.disabled = true;
-  passwordSubmit.textContent = 'Updating…';
+  passwordSubmit.textContent = 'Updating...';
 
   try {
     const res = await fetch('/api/auth/change-password', {
