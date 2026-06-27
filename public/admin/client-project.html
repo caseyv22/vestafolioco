@@ -3,13 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Edit client project — Vesta Folio</title>
+  <title>Edit client project - Vesta Folio</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" href="/brand/favicon.ico">
   <link rel="stylesheet" href="/css/tokens.css">
   <link rel="stylesheet" href="/css/base.css">
   <link rel="stylesheet" href="/admin/admin.css">
   <link rel="stylesheet" href="/admin/project.css">
+  <link rel="stylesheet" href="/admin/project-chunk9.css">
 </head>
 <body class="admin-page">
 
@@ -21,6 +22,8 @@
       <a class="admin__nav-link" href="/admin">Dashboard</a>
       <a class="admin__nav-link" href="/admin/projects">Projects</a>
       <a class="admin__nav-link" href="/admin/leads">Leads</a>
+      <a class="admin__nav-link" href="/admin/clients">Clients</a>
+      <a class="admin__nav-link" href="/admin/team" id="nav-team" hidden>Team</a>
       <a class="admin__nav-link" href="/admin/account">Account</a>
       <button class="admin__nav-logout" id="logout-btn" type="button">Log out</button>
     </div>
@@ -33,7 +36,7 @@
     <div id="page-error" hidden>
       <p class="admin__label">ERROR</p>
       <p class="admin__body" id="page-error-msg"></p>
-      <a class="projects__action" href="/admin/projects?tab=clients">← Back to client projects</a>
+      <a class="projects__action" href="/admin/projects?tab=clients">Back to client projects</a>
     </div>
 
     <div id="page-content" hidden>
@@ -44,11 +47,11 @@
 
       <!-- Page header + tab bar -->
       <div class="project-edit__header">
-        <a class="project-edit__back" href="/admin/projects?tab=clients">← Client projects</a>
+        <a class="project-edit__back" href="/admin/projects?tab=clients">Client projects</a>
         <div class="project-edit__header-row">
           <div class="project-edit__header-meta">
             <p class="admin__label">CLIENT PROJECT</p>
-            <h1 class="admin__heading" id="page-title">…</h1>
+            <h1 class="admin__heading" id="page-title">...</h1>
           </div>
           <div class="project-edit__tabs" role="tablist" aria-label="Project sections">
             <button class="project-edit__tab project-edit__tab--active"
@@ -67,179 +70,211 @@
       <p class="admin__error"   id="page-save-error"   hidden></p>
       <p class="admin__success" id="page-save-success" hidden></p>
 
-      <!-- ── Panel: Details ──────────────────────────────────── -->
-      <div id="panel-details" role="tabpanel" aria-labelledby="tab-details">
-        <form id="project-form" novalidate>
-          <section class="project-edit__section">
-            <div class="project-edit__grid">
+      <!-- Layout: main content + sidebar -->
+      <div class="cp9-layout">
 
-              <div class="admin__field project-edit__field--full">
-                <label class="admin__label-input" for="field-title">Title</label>
-                <input class="admin__input" type="text" id="field-title" name="title"
-                       maxlength="200" autocomplete="off" required>
-              </div>
+        <!-- Left: tab panels -->
+        <div class="cp9-main">
 
-              <div class="admin__field">
-                <label class="admin__label-input" for="field-slug">Slug</label>
-                <input class="admin__input" type="text" id="field-slug" name="slug"
-                       maxlength="80" autocomplete="off" required>
-                <p class="admin__hint">Lowercase, numbers, hyphens only.</p>
-              </div>
-
-              <div class="admin__field">
-                <label class="admin__label-input" for="field-location">Location</label>
-                <input class="admin__input" type="text" id="field-location" name="location"
-                       maxlength="200" autocomplete="off" required>
-              </div>
-
-              <div class="admin__field">
-                <label class="admin__label-input" for="field-year">Year</label>
-                <input class="admin__input" type="number" id="field-year" name="year"
-                       min="2000" max="2100" required>
-              </div>
-
-              <div class="admin__field project-edit__field--full">
-                <label class="admin__label-input" for="field-description">Description</label>
-                <textarea class="admin__input admin__textarea"
-                          id="field-description" name="description"
-                          maxlength="2000" rows="3" required></textarea>
-              </div>
-
-              <div class="admin__field">
-                <label class="admin__label-input" for="field-youtube">YouTube ID</label>
-                <input class="admin__input" type="text" id="field-youtube" name="youtube_id"
-                       maxlength="20" autocomplete="off" placeholder="e.g. dQw4w9WgXcQ">
-                <p class="admin__hint">Optional.</p>
-              </div>
-
-              <div class="admin__field">
-                <fieldset class="admin__fieldset">
-                  <legend class="admin__label-input">Services</legend>
-                  <div class="admin__checkboxes">
-                    <label class="admin__checkbox-label">
-                      <input type="checkbox" name="services" value="hdr"> HDR Photography
-                    </label>
-                    <label class="admin__checkbox-label">
-                      <input type="checkbox" name="services" value="cinematic"> Cinematic Tour
-                    </label>
-                    <label class="admin__checkbox-label">
-                      <input type="checkbox" name="services" value="staging"> AI Staging
-                    </label>
+          <!-- Panel: Details -->
+          <div id="panel-details" role="tabpanel" aria-labelledby="tab-details">
+            <form id="project-form" novalidate>
+              <section class="project-edit__section">
+                <div class="project-edit__grid">
+                  <div class="admin__field project-edit__field--full">
+                    <label class="admin__label-input" for="field-title">Title</label>
+                    <input class="admin__input" type="text" id="field-title" name="title" maxlength="200" autocomplete="off" required>
                   </div>
-                </fieldset>
-              </div>
-
-            </div>
-            <div class="project-edit__actions">
-              <button class="admin__btn-primary" type="submit" id="save-details-btn">Save details</button>
-            </div>
-          </section>
-        </form>
-
-          <!-- Client access in Details panel -->
-          <section class="project-edit__section">
-            <h2 class="project-edit__section-heading">Client access</h2>
-            <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-5);">
-              Invite a client to view this project in the portal.
-            </p>
-
-            <p class="admin__error"   id="invite-error"   hidden></p>
-            <p class="admin__success" id="invite-success" hidden></p>
-
-            <form class="project-edit__invite-form" id="invite-form" novalidate>
-              <div class="project-edit__invite-fields">
-                <div class="admin__field">
-                  <label class="admin__label-input" for="invite-name">Name</label>
-                  <input class="admin__input" type="text" id="invite-name" name="name"
-                         maxlength="200" autocomplete="off" placeholder="Full name">
+                  <div class="admin__field">
+                    <label class="admin__label-input" for="field-slug">Slug</label>
+                    <input class="admin__input" type="text" id="field-slug" name="slug" maxlength="80" autocomplete="off" required>
+                    <p class="admin__hint">Lowercase, numbers, hyphens only.</p>
+                  </div>
+                  <div class="admin__field">
+                    <label class="admin__label-input" for="field-location">Location</label>
+                    <input class="admin__input" type="text" id="field-location" name="location" maxlength="200" autocomplete="off" required>
+                  </div>
+                  <div class="admin__field">
+                    <label class="admin__label-input" for="field-year">Year</label>
+                    <input class="admin__input" type="number" id="field-year" name="year" min="2000" max="2100" required>
+                  </div>
+                  <div class="admin__field project-edit__field--full">
+                    <label class="admin__label-input" for="field-description">Description</label>
+                    <textarea class="admin__input admin__textarea" id="field-description" name="description" maxlength="2000" rows="3" required></textarea>
+                  </div>
+                  <div class="admin__field">
+                    <label class="admin__label-input" for="field-youtube">YouTube ID</label>
+                    <input class="admin__input" type="text" id="field-youtube" name="youtube_id" maxlength="20" autocomplete="off" placeholder="e.g. dQw4w9WgXcQ">
+                    <p class="admin__hint">Optional.</p>
+                  </div>
+                  <div class="admin__field">
+                    <fieldset class="admin__fieldset">
+                      <legend class="admin__label-input">Services</legend>
+                      <div class="admin__checkboxes">
+                        <label class="admin__checkbox-label"><input type="checkbox" name="services" value="hdr"> HDR Photography</label>
+                        <label class="admin__checkbox-label"><input type="checkbox" name="services" value="cinematic"> Cinematic Tour</label>
+                        <label class="admin__checkbox-label"><input type="checkbox" name="services" value="staging"> AI Staging</label>
+                      </div>
+                    </fieldset>
+                  </div>
                 </div>
-                <div class="admin__field">
-                  <label class="admin__label-input" for="invite-email">Email</label>
-                  <input class="admin__input" type="email" id="invite-email" name="email"
-                         maxlength="320" autocomplete="off" required>
+                <p class="cp9-audit-trail" id="audit-trail" hidden></p>
+                <div class="project-edit__actions">
+                  <button class="admin__btn-primary" type="submit" id="save-details-btn">Save details</button>
                 </div>
-                <div class="project-edit__actions" style="align-self:flex-end;padding-bottom:var(--space-2);">
-                  <button class="admin__btn-primary" type="submit" id="invite-submit">Send invite</button>
-                </div>
-              </div>
+              </section>
             </form>
 
-            <div id="clients-wrap" hidden>
-              <p class="admin__label" style="margin-top:var(--space-6);margin-bottom:var(--space-3);">Access granted</p>
-              <div id="clients-list"></div>
+            <!-- Client access - invite-form is a SIBLING of project-form, never nested -->
+            <section class="project-edit__section">
+              <h2 class="project-edit__section-heading">Client access</h2>
+              <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-5);">
+                Invite a client to view this project in the portal.
+              </p>
+              <p class="admin__error"   id="invite-error"   hidden></p>
+              <p class="admin__success" id="invite-success" hidden></p>
+              <form class="project-edit__invite-form" id="invite-form" novalidate>
+                <div class="project-edit__invite-fields">
+                  <div class="admin__field">
+                    <label class="admin__label-input" for="invite-name">Name</label>
+                    <input class="admin__input" type="text" id="invite-name" name="name" maxlength="200" autocomplete="off">
+                  </div>
+                  <div class="admin__field">
+                    <label class="admin__label-input" for="invite-email">Email</label>
+                    <input class="admin__input" type="email" id="invite-email" name="email" maxlength="320" autocomplete="off" required>
+                  </div>
+                  <div class="project-edit__actions" style="align-self:flex-end;padding-bottom:var(--space-2);">
+                    <button class="admin__btn-primary" type="submit" id="invite-submit">Send invite</button>
+                  </div>
+                </div>
+              </form>
+              <div id="clients-wrap" hidden>
+                <p class="admin__label" style="margin-top:var(--space-6);margin-bottom:var(--space-3);">Access granted</p>
+                <div id="clients-list"></div>
+              </div>
+              <div id="clients-empty" hidden>
+                <p class="admin__body admin__body--muted">No clients have access yet.</p>
+              </div>
+            </section>
+          </div>
+
+          <!-- Panel: Images -->
+          <div id="panel-images" role="tabpanel" aria-labelledby="tab-images" hidden>
+            <section class="project-edit__section project-edit__section--notop">
+              <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-4);">
+                These appear in the client portal gallery. Resized to 1800px wide, exported as WebP. First image is the hero.
+              </p>
+              <p class="admin__error"   id="images-error"   hidden></p>
+              <p class="admin__success" id="images-success" hidden></p>
+              <div class="upload__zone" id="upload-zone" tabindex="0" role="button" aria-label="Drop images here or click to select">
+                <p class="upload__zone-text">Drop images here, or <span class="upload__zone-link">click to select</span></p>
+                <p class="upload__zone-hint">JPEG or PNG - Max 1800px wide - WebP at 85% - First image becomes hero</p>
+                <input type="file" id="upload-input" accept="image/jpeg,image/png,image/webp" multiple hidden>
+              </div>
+              <p class="upload__processing" id="upload-processing" hidden>Processing...</p>
+              <div class="upload__previews" id="upload-previews" hidden>
+                <p class="admin__hint upload__reorder-hint">Drag to reorder. First image is the hero.</p>
+                <ul class="upload__list" id="upload-list"></ul>
+                <div class="project-edit__actions" style="margin-top:var(--space-4);">
+                  <button class="admin__btn-primary" type="button" id="upload-save-btn">Upload images</button>
+                </div>
+              </div>
+              <div id="existing-images-wrap" hidden>
+                <p class="admin__label" style="margin-top:var(--space-5);margin-bottom:var(--space-2);">Current images</p>
+                <div id="existing-images-content"></div>
+              </div>
+            </section>
+          </div>
+
+          <!-- Panel: Originals -->
+          <div id="panel-originals" role="tabpanel" aria-labelledby="tab-originals" hidden>
+            <section class="project-edit__section project-edit__section--notop">
+              <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-4);">
+                Full-resolution files for client download. Stored privately.
+              </p>
+              <p class="admin__error"   id="originals-error"   hidden></p>
+              <p class="admin__success" id="originals-success" hidden></p>
+              <div class="upload__zone" id="originals-zone" tabindex="0" role="button" aria-label="Drop files here or click to select">
+                <p class="upload__zone-text">Drop files here, or <span class="upload__zone-link">click to select</span></p>
+                <p class="upload__zone-hint">Any file type - Uploaded as-is</p>
+                <input type="file" id="originals-input" multiple hidden>
+              </div>
+              <p class="upload__processing" id="originals-processing" hidden>Uploading...</p>
+              <div class="upload__previews" id="originals-previews" hidden>
+                <ul class="upload__list upload__list--files" id="originals-list"></ul>
+                <div class="project-edit__actions" style="margin-top:var(--space-4);">
+                  <button class="admin__btn-primary" type="button" id="originals-save-btn">Upload originals</button>
+                </div>
+              </div>
+              <div id="existing-originals-wrap" hidden>
+                <p class="admin__label" style="margin-top:var(--space-5);margin-bottom:var(--space-2);">Uploaded originals</p>
+                <div id="existing-originals-content"></div>
+              </div>
+            </section>
+          </div>
+
+        </div><!-- /cp9-main -->
+
+        <!-- Right: status sidebar -->
+        <aside class="cp9-sidebar">
+
+          <!-- Status tracker -->
+          <section class="project-edit__section">
+            <h2 class="project-edit__section-heading">Status</h2>
+            <p class="admin__error"   id="status-error"   hidden></p>
+            <p class="admin__success" id="status-success" hidden></p>
+            <div class="cp9-status-steps" id="status-steps"></div>
+            <div class="admin__field" style="margin-top:var(--space-4);">
+              <label class="admin__label-input" for="status-select">Change status</label>
+              <select class="portal__select" id="status-select">
+                <option value="Booked">Booked</option>
+                <option value="Filming">Filming</option>
+                <option value="Editing">Editing</option>
+                <option value="Delivered">Delivered</option>
+                <option value="Archived">Archived</option>
+              </select>
             </div>
-            <div id="clients-empty" hidden>
-              <p class="admin__body admin__body--muted">No clients have access yet.</p>
+            <div class="project-edit__actions" style="margin-top:var(--space-3);">
+              <button class="admin__btn-primary" id="save-status-btn" type="button">Save status</button>
             </div>
           </section>
-      </div>
 
-      <!-- ── Panel: Images ───────────────────────────────────── -->
-      <div id="panel-images" role="tabpanel" aria-labelledby="tab-images" hidden>
-        <section class="project-edit__section project-edit__section--notop">
-          <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-4);">
-            These appear in the client portal gallery. Resized to 1800px wide, exported as WebP. First image is the hero.
-          </p>
-
-          <p class="admin__error"   id="images-error"   hidden></p>
-          <p class="admin__success" id="images-success" hidden></p>
-
-          <div class="upload__zone" id="upload-zone" tabindex="0" role="button"
-               aria-label="Drop images here or click to select">
-            <p class="upload__zone-text">Drop images here, or <span class="upload__zone-link">click to select</span></p>
-            <p class="upload__zone-hint">JPEG or PNG · Max 1800px wide · WebP at 85% · First image becomes hero</p>
-            <input type="file" id="upload-input" accept="image/jpeg,image/png,image/webp" multiple hidden>
-          </div>
-
-          <p class="upload__processing" id="upload-processing" hidden>Processing…</p>
-
-          <div class="upload__previews" id="upload-previews" hidden>
-            <p class="admin__hint upload__reorder-hint">Drag to reorder. First image is the hero.</p>
-            <ul class="upload__list" id="upload-list"></ul>
-            <div class="project-edit__actions" style="margin-top:var(--space-4);">
-              <button class="admin__btn-primary" type="button" id="upload-save-btn">Upload images</button>
+          <!-- Videos -->
+          <section class="project-edit__section">
+            <h2 class="project-edit__section-heading">Videos</h2>
+            <p class="admin__error"   id="videos-error"   hidden></p>
+            <p class="admin__success" id="videos-success" hidden></p>
+            <div id="videos-list"></div>
+            <div style="margin-top:var(--space-5);">
+              <p class="admin__label" style="margin-bottom:var(--space-3);">ADD VIDEO</p>
+              <form id="video-add-form" novalidate>
+                <div class="admin__field">
+                  <label class="admin__label-input" for="video-platform">Platform</label>
+                  <select class="portal__select" id="video-platform">
+                    <option value="">Select...</option>
+                    <option value="youtube">YouTube</option>
+                    <option value="reels">Instagram Reels</option>
+                    <option value="tiktok">TikTok</option>
+                  </select>
+                </div>
+                <div class="admin__field">
+                  <label class="admin__label-input" for="video-id-input">Video ID</label>
+                  <input class="admin__input" type="text" id="video-id-input" placeholder="e.g. dQw4w9WgXcQ" required>
+                </div>
+                <div class="admin__field">
+                  <label class="admin__label-input" for="video-title-input">Label (optional)</label>
+                  <input class="admin__input" type="text" id="video-title-input">
+                </div>
+                <div class="project-edit__actions" style="margin-top:var(--space-3);">
+                  <button class="admin__btn-primary" type="submit" id="video-add-btn">Add video</button>
+                </div>
+              </form>
             </div>
-          </div>
+          </section>
 
-          <div id="existing-images-wrap" hidden>
-            <p class="admin__label" style="margin-top:var(--space-5);margin-bottom:var(--space-2);">Current images</p>
-            <div id="existing-images-content"></div>
-          </div>
-        </section>
-      </div>
+        </aside>
 
-      <!-- ── Panel: Originals ────────────────────────────────── -->
-      <div id="panel-originals" role="tabpanel" aria-labelledby="tab-originals" hidden>
-        <section class="project-edit__section project-edit__section--notop">
-          <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-4);">
-            Full-resolution files for client download. Stored privately.
-          </p>
-
-          <p class="admin__error"   id="originals-error"   hidden></p>
-          <p class="admin__success" id="originals-success" hidden></p>
-
-          <div class="upload__zone" id="originals-zone" tabindex="0" role="button"
-               aria-label="Drop files here or click to select">
-            <p class="upload__zone-text">Drop files here, or <span class="upload__zone-link">click to select</span></p>
-            <p class="upload__zone-hint">Any file type · Uploaded as-is</p>
-            <input type="file" id="originals-input" multiple hidden>
-          </div>
-
-          <p class="upload__processing" id="originals-processing" hidden>Uploading…</p>
-
-          <div class="upload__previews" id="originals-previews" hidden>
-            <ul class="upload__list upload__list--files" id="originals-list"></ul>
-            <div class="project-edit__actions" style="margin-top:var(--space-4);">
-              <button class="admin__btn-primary" type="button" id="originals-save-btn">Upload originals</button>
-            </div>
-          </div>
-
-          <div id="existing-originals-wrap" hidden>
-            <p class="admin__label" style="margin-top:var(--space-5);margin-bottom:var(--space-2);">Uploaded originals</p>
-            <div id="existing-originals-content"></div>
-          </div>
-        </section>
-      </div>
+      </div><!-- /cp9-layout -->
 
     </div><!-- /page-content -->
   </main>

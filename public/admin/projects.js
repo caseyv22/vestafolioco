@@ -1,4 +1,4 @@
-/* /admin/projects.js — two-tab portfolio + client projects */
+/* /admin/projects.js -- Chunk 9 update: status badges on client tab, Clients + Team nav links */
 const loadingEl = document.getElementById('admin-loading');
 const authEl    = document.getElementById('admin-authenticated');
 const logoutBtn = document.getElementById('logout-btn');
@@ -54,15 +54,25 @@ const confirmBody    = document.getElementById('confirm-body');
 const confirmError   = document.getElementById('confirm-error');
 
 const SERVICE_LABELS = { hdr:'HDR Photography', cinematic:'Cinematic Tour', staging:'AI Staging' };
+const CP_STATUS_CLASS = { Booked:'gold', Filming:'gold', Editing:'gold', Delivered:'green', Archived:'neutral' };
+
 let portfolioProjects = [];
 let clientProjects    = [];
 let clientsLoaded     = false;
 let pendingDelete     = null;
 
+function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function slugify(s) { return s.toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().replace(/\s+/g,'-').replace(/-+/g,'-'); }
+
 (async () => {
   try {
     const me = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
     if (!me.ok) { window.location.href = '/admin/login'; return; }
+    const meData = await me.json();
+    if (meData.role === 'super_admin') {
+      const navTeam = document.getElementById('nav-team');
+      if (navTeam) navTeam.hidden = false;
+    }
     loadingEl.hidden = true; authEl.hidden = false;
     const params = new URLSearchParams(window.location.search);
     if (params.get('tab') === 'clients') { switchTab('clients'); window.history.replaceState({}, '', '/admin/projects'); }
@@ -78,172 +88,155 @@ function switchTab(tab) {
   const isPf = tab === 'portfolio';
   tabPortfolio.classList.toggle('admin__tab--active', isPf);
   tabClients.classList.toggle('admin__tab--active', !isPf);
-  panelPortfolio.hidden = !isPf; panelClients.hidden = isPf;
-  if (!isPf && !clientsLoaded) { clientsLoaded = true; loadClientProjects(); }
+  panelPortfolio.hidden = !isPf;
+  panelClients.hidden   = isPf;
+  if (!isPf && !clientsLoaded) loadClientProjects();
 }
 
+// -- Portfolio --
+
 async function loadPortfolioProjects() {
-  showPfState('loading');
+  projectsLoading.hidden = false; projectsError.hidden = true; projectsTableWrap.hidden = true; projectsEmpty.hidden = true;
   try {
     const res  = await fetch('/api/admin/projects', { headers: { Accept: 'application/json' } });
     const body = res.ok ? await res.json() : null;
-    if (!body) { showPfState('error', 'Could not load projects.'); return; }
-    portfolioProjects = (body.projects || []).sort((a, b) => a.order - b.order);
-    renderPortfolioTable();
-  } catch { showPfState('error', 'Could not connect.'); }
+    portfolioProjects = body?.projects || [];
+    projectsLoading.hidden = true;
+    if (!portfolioProjects.length) { projectsEmpty.hidden = false; return; }
+    projectsTbody.innerHTML = portfolioProjects.map(p => `
+      <tr class="projects__row">
+        <td class="projects__td projects__td--title">
+          <a class="projects__title" href="/admin/project?slug=${esc(p.slug)}">${esc(p.title)}</a>
+          <span class="projects__slug">${esc(p.slug)}</span>
+        </td>
+        <td class="projects__td">${esc(p.slug)}</td>
+        <td class="projects__td projects__td--meta">${esc(p.location)}</td>
+        <td class="projects__td projects__td--order">${p.order ?? '-'}</td>
+        <td class="projects__td projects__td--actions">
+          <a class="projects__action" href="/admin/project?slug=${esc(p.slug)}">Edit</a>
+          <button class="projects__action projects__action--danger"
+                  data-slug="${esc(p.slug)}" data-title="${esc(p.title)}" type="button">Delete</button>
+        </td>
+      </tr>`).join('');
+    projectsTbody.querySelectorAll('.projects__action--danger').forEach(btn => {
+      btn.addEventListener('click', () => openConfirm(btn.dataset.slug, btn.dataset.title, 'portfolio'));
+    });
+    projectsTableWrap.hidden = false;
+  } catch { projectsLoading.hidden = true; projectsError.textContent = 'Could not load projects.'; projectsError.hidden = false; }
 }
 
-function renderPortfolioTable() {
-  if (portfolioProjects.length === 0) { showPfState('empty'); return; }
-  projectsTbody.innerHTML = '';
-  portfolioProjects.forEach(p => {
-    const tr = document.createElement('tr'); tr.className = 'projects__row';
-    tr.innerHTML = `
-      <td class="projects__td projects__td--order">${p.order}</td>
-      <td class="projects__td projects__td--title">
-        <span class="projects__title">${esc(p.title)}</span>
-        <span class="projects__slug">${esc(p.slug)}</span>
-      </td>
-      <td class="projects__td projects__td--meta">${esc(p.location)}</td>
-      <td class="projects__td projects__td--meta">${p.year}</td>
-      <td class="projects__td projects__td--actions">
-        <a class="projects__action" href="/admin/project?slug=${esc(p.slug)}">Edit</a>
-        <button class="projects__action projects__action--danger" type="button"
-                data-action="delete-portfolio" data-slug="${esc(p.slug)}" data-title="${esc(p.title)}">Delete</button>
-      </td>`;
-    projectsTbody.appendChild(tr);
-  });
-  showPfState('table');
-}
-
-function showPfState(s, msg) {
-  projectsLoading.hidden   = s !== 'loading';
-  projectsError.hidden     = s !== 'error';
-  projectsTableWrap.hidden = s !== 'table';
-  projectsEmpty.hidden     = s !== 'empty';
-  if (s === 'error' && msg) projectsError.textContent = msg;
-}
-
-projectsTbody.addEventListener('click', e => {
-  const btn = e.target.closest('[data-action="delete-portfolio"]');
-  if (btn) openConfirm('portfolio', btn.dataset.slug, btn.dataset.title);
-});
+// -- Client projects --
 
 async function loadClientProjects() {
-  showCpState('loading');
+  clientsLoaded = true;
+  cpLoading.hidden = false; cpError.hidden = true; cpTableWrap.hidden = true; cpEmpty.hidden = true;
   try {
     const res  = await fetch('/api/admin/client-projects', { headers: { Accept: 'application/json' } });
     const body = res.ok ? await res.json() : null;
-    if (!body) { showCpState('error', 'Could not load.'); return; }
-    clientProjects = body.projects || [];
-    renderCpTable();
-  } catch { showCpState('error', 'Could not connect.'); }
+    clientProjects = body?.projects || [];
+    cpLoading.hidden = true;
+    if (!clientProjects.length) { cpEmpty.hidden = false; return; }
+    cpTbody.innerHTML = clientProjects.map(p => {
+      const status = p.status || 'Booked';
+      const cls = CP_STATUS_CLASS[status] || 'gold';
+      return `<tr class="projects__row">
+        <td class="projects__td projects__td--title">
+          <a class="projects__title" href="/admin/client-project?id=${p.id}">${esc(p.title)}</a>
+        </td>
+        <td class="projects__td projects__td--meta">${esc(p.location)}</td>
+        <td class="projects__td projects__td--meta">${p.year}</td>
+        <td class="projects__td projects__td--meta">
+          <span class="dash__badge dash__badge--${cls}">${esc(status)}</span>
+        </td>
+        <td class="projects__td projects__td--actions">
+          <a class="projects__action" href="/admin/client-project?id=${p.id}">Edit</a>
+          <button class="projects__action projects__action--danger"
+                  data-id="${p.id}" data-title="${esc(p.title)}" type="button">Delete</button>
+        </td>
+      </tr>`;
+    }).join('');
+    cpTbody.querySelectorAll('.projects__action--danger').forEach(btn => {
+      btn.addEventListener('click', () => openConfirm(btn.dataset.id, btn.dataset.title, 'client'));
+    });
+    cpTableWrap.hidden = false;
+  } catch { cpLoading.hidden = true; cpError.textContent = 'Could not load projects.'; cpError.hidden = false; }
 }
 
-function renderCpTable() {
-  if (clientProjects.length === 0) { showCpState('empty'); return; }
-  cpTbody.innerHTML = '';
-  clientProjects.forEach(p => {
-    const tr = document.createElement('tr'); tr.className = 'projects__row';
-    tr.innerHTML = `
-      <td class="projects__td projects__td--title">
-        <span class="projects__title">${esc(p.title)}</span>
-        <span class="projects__slug">${esc(p.slug)}</span>
-      </td>
-      <td class="projects__td projects__td--meta">${esc(p.location)}</td>
-      <td class="projects__td projects__td--meta">${p.year}</td>
-      <td class="projects__td projects__td--actions">
-        <a class="projects__action" href="/admin/client-project?id=${p.id}">Edit</a>
-        <button class="projects__action projects__action--danger" type="button"
-                data-action="delete-cp" data-id="${p.id}" data-title="${esc(p.title)}">Delete</button>
-      </td>`;
-    cpTbody.appendChild(tr);
-  });
-  showCpState('table');
-}
+// -- Portfolio modal --
 
-function showCpState(s, msg) {
-  cpLoading.hidden   = s !== 'loading';
-  cpError.hidden     = s !== 'error';
-  cpTableWrap.hidden = s !== 'table';
-  cpEmpty.hidden     = s !== 'empty';
-  if (s === 'error' && msg) cpError.textContent = msg;
-}
+newProjectBtn.addEventListener('click', () => { createForm.reset(); fieldSlug.value = ''; modalError.hidden = true; modalOverlay.hidden = false; fieldTitle.focus(); });
+modalClose.addEventListener('click',  () => { modalOverlay.hidden = true; });
+modalCancel.addEventListener('click', () => { modalOverlay.hidden = true; });
+modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) modalOverlay.hidden = true; });
 
-cpTbody.addEventListener('click', e => {
-  const btn = e.target.closest('[data-action="delete-cp"]');
-  if (btn) openConfirm('client', btn.dataset.id, btn.dataset.title);
-});
-
-// Portfolio modal
-newProjectBtn.addEventListener('click', () => { createForm.reset(); modalError.hidden = true; fieldYear.value = new Date().getFullYear(); modalOverlay.hidden = false; document.body.style.overflow = 'hidden'; fieldTitle.focus(); });
-modalClose.addEventListener('click', closePfModal);
-modalCancel.addEventListener('click', closePfModal);
-modalOverlay.addEventListener('click', e => { if (e.target === modalOverlay) closePfModal(); });
 fieldTitle.addEventListener('input', () => { fieldSlug.value = slugify(fieldTitle.value); });
-function closePfModal() { modalOverlay.hidden = true; document.body.style.overflow = ''; modalError.hidden = true; createForm.reset(); }
+
 createForm.addEventListener('submit', async e => {
   e.preventDefault(); modalError.hidden = true;
-  const p = { title: fieldTitle.value.trim(), slug: fieldSlug.value.trim(), location: fieldLocation.value.trim(), year: Number(fieldYear.value), description: fieldDescription.value.trim(), services: [], featured: true, order: portfolioProjects.length + 1 };
-  if (!p.title || !p.slug || !p.location || !p.year || !p.description) { modalError.textContent = 'All fields are required.'; modalError.hidden = false; return; }
-  const orig = modalSubmit.textContent; modalSubmit.disabled = true; modalSubmit.textContent = 'Creating…';
+  const payload = { title: fieldTitle.value.trim(), slug: fieldSlug.value.trim(), location: fieldLocation.value.trim(), year: Number(fieldYear.value), description: fieldDescription.value.trim() };
+  if (!payload.title || !payload.slug || !payload.location || !payload.year) { modalError.textContent = 'All fields except description are required.'; modalError.hidden = false; return; }
+  const orig = modalSubmit.textContent; modalSubmit.disabled = true; modalSubmit.textContent = 'Creating...';
   try {
-    const res = await fetch('/api/admin/projects', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(p) });
-    const b   = await res.json().catch(() => ({}));
-    if (!res.ok) { modalError.textContent = b.error || 'Could not create.'; modalError.hidden = false; return; }
-    window.location.href = `/admin/project?slug=${p.slug}&created=1`;
+    const res  = await fetch('/api/admin/projects', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(payload) });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) { modalError.textContent = body.error || 'Could not create project.'; modalError.hidden = false; return; }
+    modalOverlay.hidden = true;
+    window.location.href = `/admin/project?slug=${payload.slug}`;
   } catch { modalError.textContent = 'Could not connect.'; modalError.hidden = false; }
   finally { modalSubmit.disabled = false; modalSubmit.textContent = orig; }
 });
 
-// Client project modal
-newCpBtn.addEventListener('click', () => { cpCreateForm.reset(); cpModalError.hidden = true; cpFieldYear.value = new Date().getFullYear(); cpModalOverlay.hidden = false; document.body.style.overflow = 'hidden'; cpFieldTitle.focus(); });
-cpModalClose.addEventListener('click', closeCpModal);
-cpModalCancel.addEventListener('click', closeCpModal);
-cpModalOverlay.addEventListener('click', e => { if (e.target === cpModalOverlay) closeCpModal(); });
+// -- Client project modal --
+
+newCpBtn.addEventListener('click', () => { cpCreateForm.reset(); cpFieldSlug.value = ''; cpModalError.hidden = true; cpModalOverlay.hidden = false; cpFieldTitle.focus(); });
+cpModalClose.addEventListener('click',  () => { cpModalOverlay.hidden = true; });
+cpModalCancel.addEventListener('click', () => { cpModalOverlay.hidden = true; });
+cpModalOverlay.addEventListener('click', e => { if (e.target === cpModalOverlay) cpModalOverlay.hidden = true; });
+
 cpFieldTitle.addEventListener('input', () => { cpFieldSlug.value = slugify(cpFieldTitle.value); });
-function closeCpModal() { cpModalOverlay.hidden = true; document.body.style.overflow = ''; cpModalError.hidden = true; cpCreateForm.reset(); }
+
 cpCreateForm.addEventListener('submit', async e => {
   e.preventDefault(); cpModalError.hidden = true;
-  const p = { title: cpFieldTitle.value.trim(), slug: cpFieldSlug.value.trim(), location: cpFieldLocation.value.trim(), year: Number(cpFieldYear.value), description: cpFieldDesc.value.trim(), services: [] };
-  if (!p.title || !p.slug || !p.location || !p.year || !p.description) { cpModalError.textContent = 'All fields are required.'; cpModalError.hidden = false; return; }
-  const orig = cpModalSubmit.textContent; cpModalSubmit.disabled = true; cpModalSubmit.textContent = 'Creating…';
+  const payload = { title: cpFieldTitle.value.trim(), slug: cpFieldSlug.value.trim(), location: cpFieldLocation.value.trim(), year: Number(cpFieldYear.value), description: cpFieldDesc.value.trim() };
+  if (!payload.title || !payload.slug || !payload.location || !payload.year || !payload.description) { cpModalError.textContent = 'All fields are required.'; cpModalError.hidden = false; return; }
+  const orig = cpModalSubmit.textContent; cpModalSubmit.disabled = true; cpModalSubmit.textContent = 'Creating...';
   try {
-    const res = await fetch('/api/admin/client-projects', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(p) });
-    const b   = await res.json().catch(() => ({}));
-    if (!res.ok) { cpModalError.textContent = b.error || 'Could not create.'; cpModalError.hidden = false; return; }
-    window.location.href = `/admin/client-project?id=${b.project.id}&created=1`;
+    const res  = await fetch('/api/admin/client-projects', { method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' }, body: JSON.stringify(payload) });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) { cpModalError.textContent = body.error || 'Could not create project.'; cpModalError.hidden = false; return; }
+    cpModalOverlay.hidden = true;
+    window.location.href = `/admin/client-project?id=${body.project?.id || body.id}`;
   } catch { cpModalError.textContent = 'Could not connect.'; cpModalError.hidden = false; }
   finally { cpModalSubmit.disabled = false; cpModalSubmit.textContent = orig; }
 });
 
-// Confirm delete
-function openConfirm(type, idOrSlug, title) { pendingDelete = { type, idOrSlug }; confirmBody.textContent = `Remove "${title}"?`; confirmError.hidden = true; confirmOverlay.hidden = false; document.body.style.overflow = 'hidden'; confirmDelete.focus(); }
-function closeConfirm() { confirmOverlay.hidden = true; document.body.style.overflow = ''; pendingDelete = null; }
-confirmClose.addEventListener('click', closeConfirm);
-confirmCancel.addEventListener('click', closeConfirm);
-confirmOverlay.addEventListener('click', e => { if (e.target === confirmOverlay) closeConfirm(); });
+// -- Delete confirm --
+
+let deleteType = null;
+
+function openConfirm(key, title, type) {
+  pendingDelete = key; deleteType = type;
+  confirmBody.textContent = `Delete "${title}"? This cannot be undone.`;
+  confirmError.hidden = true;
+  confirmOverlay.hidden = false;
+}
+
+confirmClose.addEventListener('click',  () => { confirmOverlay.hidden = true; });
+confirmCancel.addEventListener('click', () => { confirmOverlay.hidden = true; });
+confirmOverlay.addEventListener('click', e => { if (e.target === confirmOverlay) confirmOverlay.hidden = true; });
+
 confirmDelete.addEventListener('click', async () => {
   if (!pendingDelete) return;
-  const { type, idOrSlug } = pendingDelete;
-  const orig = confirmDelete.textContent; confirmDelete.disabled = true; confirmDelete.textContent = 'Deleting…'; confirmError.hidden = true;
+  confirmError.hidden = true;
+  const orig = confirmDelete.textContent; confirmDelete.disabled = true; confirmDelete.textContent = 'Deleting...';
   try {
-    const url = type === 'portfolio' ? `/api/admin/projects/${idOrSlug}` : `/api/admin/client-projects/${idOrSlug}`;
-    const res = await fetch(url, { method: 'DELETE', headers: { Accept: 'application/json' } });
-    const b   = await res.json().catch(() => ({}));
-    if (!res.ok) { confirmError.textContent = b.error || 'Could not delete.'; confirmError.hidden = false; return; }
-    closeConfirm();
-    if (type === 'portfolio') await loadPortfolioProjects(); else await loadClientProjects();
+    const url = deleteType === 'portfolio' ? `/api/admin/projects/${pendingDelete}` : `/api/admin/client-projects/${pendingDelete}`;
+    const res  = await fetch(url, { method: 'DELETE', headers: { Accept: 'application/json' } });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) { confirmError.textContent = body.error || 'Could not delete.'; confirmError.hidden = false; return; }
+    confirmOverlay.hidden = true;
+    if (deleteType === 'portfolio') { portfolioProjects = portfolioProjects.filter(p => p.slug !== pendingDelete); await loadPortfolioProjects(); }
+    else { clientProjects = clientProjects.filter(p => String(p.id) !== String(pendingDelete)); await loadClientProjects(); }
   } catch { confirmError.textContent = 'Could not connect.'; confirmError.hidden = false; }
   finally { confirmDelete.disabled = false; confirmDelete.textContent = orig; }
 });
-
-document.addEventListener('keydown', e => {
-  if (e.key !== 'Escape') return;
-  if (!modalOverlay.hidden) closePfModal();
-  if (!cpModalOverlay.hidden) closeCpModal();
-  if (!confirmOverlay.hidden) closeConfirm();
-});
-
-function slugify(t) { return t.toString().toLowerCase().trim().replace(/[^a-z0-9\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,''); }
-function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }

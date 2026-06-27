@@ -1,0 +1,149 @@
+/* project-chunk9.css
+   New layout and component classes for Chunk 9 additions to client-project.html.
+   References only verified tokens from tokens.css.
+*/
+
+/* ---------------------------------------------------------------------------
+   Two-column layout: main content + sidebar
+   --------------------------------------------------------------------------- */
+
+.cp9-layout {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .cp9-layout {
+    grid-template-columns: 1fr;
+  }
+  .cp9-sidebar {
+    order: -1;
+  }
+}
+
+.cp9-main {
+  min-width: 0;
+}
+
+.cp9-sidebar {
+  position: sticky;
+  top: calc(var(--nav-height) + var(--space-6));
+}
+
+/* ---------------------------------------------------------------------------
+   Status step tracker
+   --------------------------------------------------------------------------- */
+
+.cp9-status-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: var(--space-3);
+}
+
+.cp9-status-step {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  color: var(--color-sage);
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid transparent;
+  border-radius: 0 var(--border-radius) var(--border-radius) 0;
+  transition: background var(--transition-hover);
+}
+
+.cp9-status-step--done {
+  color: var(--color-sage);
+  border-left-color: var(--color-sage);
+  opacity: 0.55;
+}
+
+.cp9-status-step--active {
+  color: var(--color-forest);
+  font-weight: var(--font-weight-medium);
+  border-left-color: var(--color-gold);
+  background: rgba(168, 136, 78, 0.07);
+}
+
+/* ---------------------------------------------------------------------------
+   Audit trail line
+   --------------------------------------------------------------------------- */
+
+.cp9-audit-trail {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro);
+  color: var(--color-sage);
+  font-style: italic;
+  margin: var(--space-3) 0 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Video list items in sidebar
+   --------------------------------------------------------------------------- */
+
+.cp9-video-item {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border-gold-dim);
+}
+
+.cp9-video-item:last-child {
+  border-bottom: none;
+}
+
+.cp9-video-item__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.cp9-video-platform {
+  font-family: var(--font-sans);
+  font-size: var(--text-micro);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--tracking-micro);
+  text-transform: uppercase;
+  color: var(--color-sage);
+}
+
+.cp9-video-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  color: var(--color-forest);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cp9-video-embed {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+  border-radius: var(--border-radius);
+  margin-bottom: var(--space-2);
+}
+
+.cp9-video-embed iframe {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  border: none;
+}
+
+.cp9-video-link {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  color: var(--color-gold);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.cp9-video-empty {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  color: var(--color-sage);
+  font-style: italic;
+}

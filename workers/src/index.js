@@ -281,6 +281,57 @@ export default {
       return cors(new Response('Method not allowed', { status: 405 }));
     }
 
+
+    // ── Admin: team management (super_admin only) ────────────
+    if (path === '/api/admin/team') {
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')     return cors(await handleListTeam(request, env));
+      if (request.method === 'POST')    return cors(await handleCreateTeamMember(request, env));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    const teamMemberMatch = path.match(/^\/api\/admin\/team\/(\d+)$/);
+    if (teamMemberMatch) {
+      const id = Number(teamMemberMatch[1]);
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'DELETE')  return cors(await handleDeleteTeamMember(request, env, id));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    // ── Admin: all clients page ───────────────────────────────
+    if (path === '/api/admin/all-clients') {
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')     return cors(await handleListAllClients(request, env));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    const clientDetailMatch = path.match(/^\/api\/admin\/all-clients\/(\d+)$/);
+    if (clientDetailMatch) {
+      const id = Number(clientDetailMatch[1]);
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')     return cors(await handleGetAllClientDetail(request, env, id));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    // ── Admin: client project videos ─────────────────────────
+    const cpVideosMatch = path.match(/^\/api\/admin\/client-projects\/(\d+)\/videos$/);
+    if (cpVideosMatch) {
+      const id = Number(cpVideosMatch[1]);
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'GET')     return cors(await handleListClientProjectVideos(request, env, id));
+      if (request.method === 'POST')    return cors(await handleAddClientProjectVideo(request, env, id));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    const cpVideoDelMatch = path.match(/^\/api\/admin\/client-projects\/(\d+)\/videos\/(\d+)$/);
+    if (cpVideoDelMatch) {
+      const id = Number(cpVideoDelMatch[1]);
+      const vid = Number(cpVideoDelMatch[2]);
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'DELETE')  return cors(await handleDeleteClientProjectVideo(request, env, id, vid));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
     return cors(new Response('Not found', { status: 404 }));
   },
 };
@@ -292,7 +343,13 @@ export default {
 
 async function requireAdmin(request, env) {
   const user = await getCurrentUser(request, env);
-  if (!user || user.role !== 'admin') return { user: null, response: json({ error: 'Not authorized.' }, 401) };
+  if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) return { user: null, response: json({ error: 'Not authorized.' }, 401) };
+  return { user, response: null };
+}
+
+async function requireSuperAdmin(request, env) {
+  const user = await getCurrentUser(request, env);
+  if (!user || user.role !== 'super_admin') return { user: null, response: json({ error: 'Not authorized.' }, 401) };
   return { user, response: null };
 }
 
@@ -958,7 +1015,13 @@ async function handlePortalProject(request, env, slug) {
       .bind(val, user.id).first();
 
     if (!access) return json({ error: 'Project not found.' }, 404);
-    return json({ ok: true, project: parseClientProject(access) });
+    const p = parseClientProject(access);
+    // Attach videos
+    const vRows = await env.DB.prepare(
+      'SELECT id, platform, video_id, title FROM client_project_videos WHERE client_project_id = ? ORDER BY created_at ASC'
+    ).bind(access.id).all();
+    p.videos = vRows.results || [];
+    return json({ ok: true, project: p });
   } catch (err) {
     console.error('Portal project error:', err);
     return json({ error: 'Could not load project.' }, 500);
@@ -1031,7 +1094,7 @@ async function handleDashboard(request, env) {
       env.DB.prepare(`SELECT COUNT(*) as count FROM client_projects cp JOIN client_project_access_v2 cpa ON cpa.client_project_id = cp.id WHERE cp.id IN (SELECT DISTINCT client_project_id FROM client_project_access_v2)`).first(),
       env.DB.prepare(`SELECT COUNT(*) as count FROM inquiries WHERE status = 'Delivered' AND received_at >= ?`).bind(monthStart).first(),
       env.DB.prepare(`SELECT id, name, email, property_address, status, received_at FROM inquiries ORDER BY received_at DESC LIMIT 5`).all(),
-      env.DB.prepare(`SELECT id, title, location, year FROM client_projects ORDER BY created_at DESC LIMIT 5`).all(),
+      env.DB.prepare(`SELECT id, title, slug, status, updated_at FROM client_projects WHERE status NOT IN ('Delivered','Archived') ORDER BY updated_at DESC LIMIT 5`).all(),
     ]);
 
     return json({
@@ -1043,7 +1106,7 @@ async function handleDashboard(request, env) {
         delivered_this_month: deliveredMonth?.count || 0,
       },
       recent_leads:    recentLeads.results || [],
-      active_projects: activeProjectsList.results || [],
+      active_client_projects: (activeProjectsList.results || []).map(p => ({ id: p.id, title: p.title, slug: p.slug, status: p.status || 'Booked', updated_at: p.updated_at })),
     });
   } catch (err) {
     console.error('Dashboard error:', err);
@@ -1120,7 +1183,7 @@ async function handleGetLead(request, env, id) {
 // PATCH /api/admin/leads/:id
 // Body: { status?, notes_internal?, client_project_id? }
 async function handleUpdateLead(request, env, id) {
-  const { response } = await requireAdmin(request, env);
+  const { response, user } = await requireAdmin(request, env);
   if (response) return response;
   if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
 
@@ -1140,6 +1203,10 @@ async function handleUpdateLead(request, env, id) {
   if (data.client_project_id !== undefined) {
     updates.push('client_project_id = ?'); binds.push(data.client_project_id || null);
   }
+
+  // Stamp audit fields
+  updates.push('last_edited_by = ?'); binds.push(user ? user.id : null);
+  updates.push("last_edited_at = datetime('now')");
 
   if (updates.length === 0) return json({ error: 'Nothing to update.' }, 400);
 
@@ -1173,6 +1240,9 @@ function parseClientProject(row) {
     gallery:     row.gallery ? JSON.parse(row.gallery) : [],
     created_at:  row.created_at,
     updated_at:  row.updated_at,
+    status:      row.status || 'Booked',
+    last_edited_by: row.last_edited_by || null,
+    last_edited_at: row.last_edited_at || null,
   };
 }
 
@@ -1232,8 +1302,8 @@ async function handleCreateClientProject(request, env) {
 
     const services = Array.isArray(data.services) ? data.services.join(',') : '';
     const result   = await env.DB
-      .prepare('INSERT INTO client_projects (slug, title, location, year, description, youtube_id, services) VALUES (?, ?, ?, ?, ?, ?, ?)')
-      .bind(data.slug, data.title.trim(), data.location.trim(), Number(data.year), data.description.trim(), data.youtube_id || '', services)
+      .prepare('INSERT INTO client_projects (slug, title, location, year, description, youtube_id, services, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+      .bind(data.slug, data.title.trim(), data.location.trim(), Number(data.year), data.description.trim(), data.youtube_id || '', services, 'Booked')
       .run();
 
     const project = await env.DB.prepare('SELECT * FROM client_projects WHERE id = ?').bind(result.meta.last_row_id).first();
@@ -1280,6 +1350,11 @@ async function handleUpdateClientProject(request, env, id) {
       if (collision) return json({ error: 'A project with that slug already exists.' }, 409);
     }
 
+    const CP_STATUSES = ['Booked', 'Filming', 'Editing', 'Delivered', 'Archived'];
+    if (data.status !== undefined && !CP_STATUSES.includes(data.status)) {
+      return json({ error: 'Invalid status.' }, 400);
+    }
+
     const slug        = data.slug        !== undefined ? data.slug                : existing.slug;
     const title       = data.title       !== undefined ? data.title.trim()        : existing.title;
     const location    = data.location    !== undefined ? data.location.trim()     : existing.location;
@@ -1287,10 +1362,12 @@ async function handleUpdateClientProject(request, env, id) {
     const description = data.description !== undefined ? data.description.trim()  : existing.description;
     const youtube_id  = data.youtube_id  !== undefined ? (data.youtube_id || '')  : (existing.youtube_id || '');
     const services    = data.services    !== undefined ? data.services.join(',')  : (existing.services || '');
+    const status      = data.status      !== undefined ? data.status              : (existing.status || 'Booked');
+    const last_edited_by = data.last_edited_by !== undefined ? data.last_edited_by : existing.last_edited_by;
 
     await env.DB
-      .prepare(`UPDATE client_projects SET slug=?, title=?, location=?, year=?, description=?, youtube_id=?, services=?, updated_at=datetime('now') WHERE id=?`)
-      .bind(slug, title, location, year, description, youtube_id, services, id).run();
+      .prepare(`UPDATE client_projects SET slug=?, title=?, location=?, year=?, description=?, youtube_id=?, services=?, status=?, last_edited_by=?, last_edited_at=datetime('now'), updated_at=datetime('now') WHERE id=?`)
+      .bind(slug, title, location, year, description, youtube_id, services, status, last_edited_by || null, id).run();
 
     const updated = await env.DB.prepare('SELECT * FROM client_projects WHERE id = ?').bind(id).first();
     return json({ ok: true, project: parseClientProject(updated) });
@@ -2362,4 +2439,182 @@ function cors(response) {
   headers.set('Access-Control-Allow-Credentials', 'true');
   headers.set('Vary', 'Origin');
   return new Response(response.body, { status: response.status, headers });
+}
+
+
+/* ----------------------------------------------------------
+   CHUNK 9 ADDITIONS: Team, All Clients, Videos
+   ---------------------------------------------------------- */
+
+async function handleListTeam(request, env) {
+  const { response } = await requireSuperAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+  try {
+    const rows = await env.DB.prepare(
+      "SELECT id, name, email, role, created_at, last_login_at FROM users WHERE role IN ('admin','super_admin') ORDER BY created_at ASC"
+    ).all();
+    return json({ ok: true, team: rows.results || [] });
+  } catch (err) {
+    console.error('List team error:', err);
+    return json({ error: 'Could not load team.' }, 500);
+  }
+}
+
+async function handleCreateTeamMember(request, env) {
+  const { response, user } = await requireSuperAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+  const { name, email } = data;
+  if (!name || !email) return json({ error: 'Name and email are required.' }, 400);
+  try {
+    const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email.toLowerCase()).first();
+    if (existing) return json({ error: 'An account with this email already exists.' }, 409);
+    const tempHash = await bcrypt.hash(crypto.randomUUID(), 12);
+    const result = await env.DB.prepare(
+      "INSERT INTO users (name, email, password_hash, role) VALUES (?, ?, ?, 'admin')"
+    ).bind(name, email.toLowerCase(), tempHash).run();
+    const userId = result.meta.last_row_id;
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(32))).map(b => b.toString(16).padStart(2,'0')).join('');
+    const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    await env.DB.prepare('INSERT INTO password_resets (token, user_id, expires_at) VALUES (?, ?, ?)').bind(token, userId, expires).run();
+    const link = `https://vestafolioco.com/admin/reset-password?token=${token}`;
+    const html = `<table width="100%" cellpadding="0" cellspacing="0" style="background:#F2EDE3;font-family:Georgia,serif;"><tr><td style="padding:40px 32px;"><p style="font-size:11px;letter-spacing:0.2em;color:#4A5C57;text-transform:uppercase;margin:0 0 24px;">Vesta Folio</p><h1 style="font-size:28px;font-weight:400;color:#1F2E2A;margin:0 0 16px;">Admin access</h1><p style="font-size:15px;color:#4A5C57;line-height:1.6;margin:0 0 24px;">Hello ${esc(name)}, you have been added as an admin. Set your password to get started.</p><a href="${link}" style="display:inline-block;background:#1F2E2A;color:#F2EDE3;font-size:13px;padding:14px 28px;text-decoration:none;">Set your password</a><p style="font-size:12px;color:#A8884E;margin:24px 0 0;">This link expires in 7 days.</p></td></tr></table>`;
+    await sendEmail(env, { from: `Vesta Folio <${env.INQUIRY_FROM}>`, to: [email], subject: 'You have been added to Vesta Folio admin', html, text: `Set your admin password: ${link}` });
+    return json({ ok: true, id: userId }, 201);
+  } catch (err) {
+    console.error('Create team member error:', err);
+    return json({ error: 'Could not create team member.' }, 500);
+  }
+}
+
+async function handleDeleteTeamMember(request, env, id) {
+  const { response, user } = await requireSuperAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+  if (user.id === id) return json({ error: 'Cannot delete your own account.' }, 400);
+  try {
+    const target = await env.DB.prepare('SELECT role FROM users WHERE id = ?').bind(id).first();
+    if (!target) return json({ error: 'User not found.' }, 404);
+    if (target.role === 'super_admin') return json({ error: 'Cannot delete super admin account.' }, 403);
+    await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run();
+    return json({ ok: true });
+  } catch (err) {
+    console.error('Delete team member error:', err);
+    return json({ error: 'Could not delete team member.' }, 500);
+  }
+}
+
+async function handleListAllClients(request, env) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+  const url = new URL(request.url);
+  const search = url.searchParams.get('search') || '';
+  try {
+    let where = "u.role = 'client'";
+    const params = [];
+    if (search) {
+      where += ' AND (u.name LIKE ? OR u.email LIKE ?)';
+      params.push('%' + search + '%', '%' + search + '%');
+    }
+    const rows = await env.DB.prepare(
+      'SELECT u.id, u.name, u.email, u.created_at, u.last_login_at, ' +
+      "GROUP_CONCAT(cp.title, '||') as project_titles, GROUP_CONCAT(cp.id, '||') as project_ids, GROUP_CONCAT(cp.status, '||') as project_statuses " +
+      'FROM users u ' +
+      'LEFT JOIN client_project_access_v2 cpa ON cpa.user_id = u.id ' +
+      'LEFT JOIN client_projects cp ON cp.id = cpa.client_project_id ' +
+      'WHERE ' + where + ' GROUP BY u.id ORDER BY u.created_at DESC'
+    ).bind(...params).all();
+    const clients = (rows.results || []).map(r => {
+      const titles = r.project_titles ? r.project_titles.split('||') : [];
+      const ids = r.project_ids ? r.project_ids.split('||') : [];
+      const statuses = r.project_statuses ? r.project_statuses.split('||') : [];
+      return {
+        id: r.id, name: r.name, email: r.email,
+        created_at: r.created_at, last_login_at: r.last_login_at,
+        projects: titles.map((t, i) => ({ id: ids[i], title: t, status: statuses[i] })).filter(p => p.title)
+      };
+    });
+    return json({ ok: true, clients });
+  } catch (err) {
+    console.error('List all clients error:', err);
+    return json({ error: 'Could not load clients.' }, 500);
+  }
+}
+
+async function handleGetAllClientDetail(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+  try {
+    const user = await env.DB.prepare(
+      "SELECT id, name, email, created_at, last_login_at FROM users WHERE id = ? AND role = 'client'"
+    ).bind(id).first();
+    if (!user) return json({ error: 'Client not found.' }, 404);
+    const projects = await env.DB.prepare(
+      'SELECT cp.id, cp.title, cp.slug, cp.status, cpa.granted_at ' +
+      'FROM client_project_access_v2 cpa JOIN client_projects cp ON cp.id = cpa.client_project_id ' +
+      'WHERE cpa.user_id = ? ORDER BY cpa.granted_at DESC'
+    ).bind(id).all();
+    return json({ ok: true, client: { ...user, projects: projects.results || [] } });
+  } catch (err) {
+    console.error('Get all client detail error:', err);
+    return json({ error: 'Could not load client.' }, 500);
+  }
+}
+
+async function handleListClientProjectVideos(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+  try {
+    const rows = await env.DB.prepare(
+      'SELECT v.*, u.name as added_by_name FROM client_project_videos v ' +
+      'LEFT JOIN users u ON u.id = v.added_by ' +
+      'WHERE v.client_project_id = ? ORDER BY v.created_at ASC'
+    ).bind(id).all();
+    return json({ ok: true, videos: rows.results || [] });
+  } catch (err) {
+    console.error('List videos error:', err);
+    return json({ error: 'Could not load videos.' }, 500);
+  }
+}
+
+async function handleAddClientProjectVideo(request, env, id) {
+  const { response, user } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+  const { platform, video_id, title } = data;
+  if (!platform || !video_id) return json({ error: 'platform and video_id are required.' }, 400);
+  const PLATFORMS = ['youtube', 'reels', 'tiktok'];
+  if (!PLATFORMS.includes(platform)) return json({ error: 'Invalid platform. Must be youtube, reels, or tiktok.' }, 400);
+  try {
+    const proj = await env.DB.prepare('SELECT id FROM client_projects WHERE id = ?').bind(id).first();
+    if (!proj) return json({ error: 'Project not found.' }, 404);
+    const result = await env.DB.prepare(
+      'INSERT INTO client_project_videos (client_project_id, platform, video_id, title, added_by) VALUES (?, ?, ?, ?, ?)'
+    ).bind(id, platform, video_id, title || null, user.id).run();
+    return json({ ok: true, id: result.meta.last_row_id }, 201);
+  } catch (err) {
+    console.error('Add video error:', err);
+    return json({ error: 'Could not add video.' }, 500);
+  }
+}
+
+async function handleDeleteClientProjectVideo(request, env, projectId, videoId) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+  try {
+    await env.DB.prepare('DELETE FROM client_project_videos WHERE id = ? AND client_project_id = ?').bind(videoId, projectId).run();
+    return json({ ok: true });
+  } catch (err) {
+    console.error('Delete video error:', err);
+    return json({ error: 'Could not delete video.' }, 500);
+  }
 }

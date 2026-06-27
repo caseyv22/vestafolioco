@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="/admin/admin.css">
   <link rel="stylesheet" href="/admin/dashboard.css">
   <link rel="stylesheet" href="/admin/leads.css">
+  <link rel="stylesheet" href="/admin/project-chunk9.css">
 </head>
 <body class="admin-page">
   <nav class="admin__nav" aria-label="Studio admin">
@@ -21,6 +22,8 @@
       <a class="admin__nav-link" href="/admin">Dashboard</a>
       <a class="admin__nav-link" href="/admin/projects">Projects</a>
       <a class="admin__nav-link admin__nav-link--active" href="/admin/leads" aria-current="page">Leads</a>
+      <a class="admin__nav-link" href="/admin/clients">Clients</a>
+      <a class="admin__nav-link" href="/admin/team" id="nav-team" hidden>Team</a>
       <a class="admin__nav-link" href="/admin/account">Account</a>
       <button class="admin__nav-logout" id="logout-btn" type="button">Log out</button>
     </div>
@@ -159,6 +162,7 @@
               <div class="project-edit__actions" style="margin-top:var(--space-4);">
                 <button class="admin__btn-primary" id="save-status-btn" type="button">Save</button>
               </div>
+              <p class="cp9-audit-trail" id="audit-trail" hidden></p>
               <div id="linked-project-wrap" hidden style="margin-top:var(--space-6);">
                 <p class="admin__label" style="margin-bottom:var(--space-2);">LINKED PROJECT</p>
                 <a class="projects__action" id="linked-project-link" href="#">View project</a>

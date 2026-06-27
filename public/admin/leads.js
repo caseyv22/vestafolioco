@@ -48,6 +48,8 @@ function initList() {
     try {
       const me = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
       if (!me.ok) { window.location.href = '/admin/login'; return; }
+      const meData = await me.json();
+      if (meData.role === 'super_admin') { const nt = document.getElementById('nav-team'); if (nt) nt.hidden = false; }
       loading.hidden = true;
       await loadLeads();
     } catch { window.location.href = '/admin/login'; }
@@ -177,6 +179,15 @@ function initDetail(leadId) {
     notesEl.value      = l.notes_internal || '';
     updateBadge(l.status);
     if (l.client_project_id) { linkedWrap.hidden = false; linkedLink.href = `/admin/client-project?id=${l.client_project_id}`; }
+    // Audit trail
+    const auditEl = document.getElementById('audit-trail');
+    if (auditEl) {
+      if (l.last_edited_at && l.editor_name) {
+        const when = new Date(l.last_edited_at).toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' });
+        auditEl.textContent = `Last edited by ${l.editor_name} on ${when}`;
+        auditEl.hidden = false;
+      } else { auditEl.hidden = true; }
+    }
   }
 
   function updateBadge(status) {
@@ -193,6 +204,12 @@ function initDetail(leadId) {
       const body = await res.json().catch(() => ({}));
       if (!res.ok) { statusError.textContent = body.error || 'Could not save.'; statusError.hidden = false; return; }
       currentLead = body.lead; updateBadge(body.lead.status);
+      const auditEl2 = document.getElementById('audit-trail');
+      if (auditEl2 && body.lead.last_edited_at) {
+        const when2 = new Date(body.lead.last_edited_at).toLocaleString('en-US', { month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit' });
+        auditEl2.textContent = `Last edited by ${body.lead.editor_name || 'Admin'} on ${when2}`;
+        auditEl2.hidden = false;
+      }
       statusSuccess.textContent = 'Saved.'; statusSuccess.hidden = false;
       setTimeout(() => statusSuccess.hidden = true, 4000);
     } catch { statusError.textContent = 'Could not connect.'; statusError.hidden = false; }

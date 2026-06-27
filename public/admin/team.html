@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team - Vesta Folio</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/brand/favicon.ico">
+  <link rel="stylesheet" href="/css/tokens.css">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body class="admin-page">
+  <nav class="admin__nav" aria-label="Studio admin">
+    <a class="admin__nav-logo" href="/admin" aria-label="Vesta Folio admin home">
+      <img src="/brand/vesta-folio-horizontal.svg" alt="Vesta Folio" width="160">
+    </a>
+    <div class="admin__nav-links">
+      <a class="admin__nav-link" href="/admin">Dashboard</a>
+      <a class="admin__nav-link" href="/admin/projects">Projects</a>
+      <a class="admin__nav-link" href="/admin/leads">Leads</a>
+      <a class="admin__nav-link" href="/admin/clients">Clients</a>
+      <a class="admin__nav-link admin__nav-link--active" href="/admin/team" aria-current="page">Team</a>
+      <a class="admin__nav-link" href="/admin/account">Account</a>
+      <button class="admin__nav-logout" id="logout-btn" type="button">Log out</button>
+    </div>
+  </nav>
+
+  <main class="admin__main admin__main--wide">
+    <div class="admin__loading" id="page-loading"><p>One moment.</p></div>
+
+    <div id="page-content" hidden>
+      <div class="projects__header">
+        <div>
+          <p class="admin__label">ADMIN</p>
+          <h1 class="admin__heading">Team.</h1>
+        </div>
+        <button class="admin__btn-primary" id="invite-btn" type="button">Add team member</button>
+      </div>
+
+      <p class="admin__error"   id="page-error"   hidden></p>
+      <p class="admin__success" id="page-success" hidden></p>
+
+      <div class="projects__table-wrap" id="team-table-wrap" hidden>
+        <table class="projects__table">
+          <thead>
+            <tr>
+              <th class="projects__th">Name</th>
+              <th class="projects__th">Email</th>
+              <th class="projects__th projects__th--meta">Role</th>
+              <th class="projects__th projects__th--meta">Last login</th>
+              <th class="projects__th projects__th--actions">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="team-tbody"></tbody>
+        </table>
+      </div>
+      <div class="projects__empty" id="team-empty" hidden>
+        <p class="admin__body admin__body--muted">No team members yet.</p>
+      </div>
+    </div>
+  </main>
+
+  <!-- Invite modal -->
+  <div class="modal-overlay" id="invite-modal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="invite-modal-title">
+      <div class="modal__header">
+        <h2 class="modal__title" id="invite-modal-title">Add team member</h2>
+        <button class="modal__close" id="invite-modal-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <p class="admin__body admin__body--muted" style="margin-bottom:var(--space-5);">They will receive an email to set their password.</p>
+      <form id="invite-form" novalidate>
+        <div class="modal__grid">
+          <div class="admin__field">
+            <label class="admin__label-input" for="invite-name">Name</label>
+            <input class="admin__input" type="text" id="invite-name" autocomplete="off" required>
+          </div>
+          <div class="admin__field">
+            <label class="admin__label-input" for="invite-email">Email</label>
+            <input class="admin__input" type="email" id="invite-email" autocomplete="off" required>
+          </div>
+        </div>
+        <p class="admin__error" id="invite-error" hidden></p>
+        <div class="modal__footer">
+          <button class="admin__btn-ghost" id="invite-cancel" type="button">Cancel</button>
+          <button class="admin__btn-primary" id="invite-submit" type="submit">Send invite</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Remove confirm modal -->
+  <div class="modal-overlay" id="remove-modal" hidden>
+    <div class="modal modal--narrow" role="dialog" aria-modal="true">
+      <div class="modal__header">
+        <h2 class="modal__title">Remove team member?</h2>
+        <button class="modal__close" id="remove-modal-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <p class="admin__body" id="remove-modal-body"></p>
+      <p class="admin__error" id="remove-error" hidden></p>
+      <div class="modal__footer">
+        <button class="admin__btn-ghost" id="remove-cancel" type="button">Cancel</button>
+        <button class="admin__btn-danger" id="remove-confirm" type="button">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/admin/team.js" type="module"></script>
+</body>
+</html>

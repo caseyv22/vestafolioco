@@ -44,8 +44,9 @@
           <p class="admin__body admin__body--muted" id="project-description"></p>
         </div>
         <div class="portal__project-actions">
+          <span id="status-badge" style="margin-right:var(--space-3);"></span>
           <a class="admin__btn-primary portal__download-btn" id="download-btn" href="#" target="_self">
-            Download originals
+            Download files
           </a>
           <span class="portal__download-hint" id="download-hint" hidden>
             No originals available yet.
@@ -70,6 +71,13 @@
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen loading="lazy"></iframe>
         </div>
+      </div>
+
+    </div>
+
+      <div id="portal-videos" hidden>
+        <p class="admin__label" style="margin-bottom:var(--space-4);">VIDEOS</p>
+        <div id="portal-videos-list"></div>
       </div>
 
     </div>
@@ -143,8 +151,36 @@
       // YouTube reel
       if (p.youtube_id) {
         reelIframe.src  = `https://www.youtube.com/embed/${p.youtube_id}?rel=0&modestbranding=1`;
-        reelIframe.title = `${p.title} — cinematic tour`;
+        reelIframe.title = `${p.title} - cinematic tour`;
         reelSection.hidden = false;
+      }
+
+      // Status badge
+      const statusBadgeEl = document.getElementById('status-badge');
+      if (statusBadgeEl && p.status) {
+        const SC = { Booked:'gold', Filming:'gold', Editing:'gold', Delivered:'green', Archived:'neutral' };
+        const cls = SC[p.status] || 'neutral';
+        statusBadgeEl.innerHTML = `<span class="dash__badge dash__badge--${cls}">${esc(p.status)}</span>`;
+      }
+
+      // Additional videos
+      const portalVideos = document.getElementById('portal-videos');
+      const portalVideosList = document.getElementById('portal-videos-list');
+      const videos = p.videos || [];
+      if (portalVideos && portalVideosList && videos.length) {
+        portalVideos.hidden = false;
+        portalVideosList.innerHTML = videos.map(v => {
+          if (v.platform === 'youtube') {
+            const titleHtml = v.title ? `<p class="admin__label" style="margin-bottom:var(--space-2);">${esc(v.title)}</p>` : '';
+            return `<div style="margin-bottom:var(--space-6);">${titleHtml}<div class="portal__reel-wrap"><iframe src="https://www.youtube.com/embed/${esc(v.video_id)}" class="portal__reel-iframe" frameborder="0" allowfullscreen loading="lazy"></iframe></div></div>`;
+          }
+          if (v.platform === 'reels') {
+            const titleHtml = v.title ? `<p class="admin__body admin__body--muted" style="margin-bottom:var(--space-1);">${esc(v.title)}</p>` : '';
+            return `<div style="margin-bottom:var(--space-4);">${titleHtml}<a href="https://www.instagram.com/reel/${esc(v.video_id)}/" target="_blank" rel="noopener" class="admin__btn-ghost" style="display:inline-block;">Watch on Instagram Reels</a></div>`;
+          }
+          const titleHtml = v.title ? `<p class="admin__body admin__body--muted" style="margin-bottom:var(--space-1);">${esc(v.title)}</p>` : '';
+          return `<div style="margin-bottom:var(--space-4);">${titleHtml}<p class="admin__body admin__body--muted">TikTok: ${esc(v.video_id)}</p></div>`;
+        }).join('');
       }
 
       loading.hidden  = true;

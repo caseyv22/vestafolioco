@@ -1,8 +1,7 @@
-/* ============================================================
-   /admin/client-project.js - Chunk 7a
-   Client project edit page: details + images + originals + invite.
-   Reads project ID from ?id= query param.
-   ============================================================ */
+/* /admin/client-project.js - Chunk 9 update
+   Preserves all existing DOM IDs, CSS classes, and fetch patterns.
+   Adds: status tracker sidebar, audit trail, video management.
+*/
 
 const logoutBtn          = document.getElementById('logout-btn');
 const pageLoading        = document.getElementById('page-loading');
@@ -23,6 +22,8 @@ const fieldYear          = document.getElementById('field-year');
 const fieldDescription   = document.getElementById('field-description');
 const fieldYoutube       = document.getElementById('field-youtube');
 const serviceCheckboxes  = projectForm.querySelectorAll('input[name="services"]');
+
+const auditTrailEl       = document.getElementById('audit-trail');
 
 const uploadZone            = document.getElementById('upload-zone');
 const uploadInput           = document.getElementById('upload-input');
@@ -56,6 +57,23 @@ const clientsWrap   = document.getElementById('clients-wrap');
 const clientsList   = document.getElementById('clients-list');
 const clientsEmpty  = document.getElementById('clients-empty');
 
+// Status sidebar
+const statusSelect    = document.getElementById('status-select');
+const saveStatusBtn   = document.getElementById('save-status-btn');
+const statusError     = document.getElementById('status-error');
+const statusSuccess   = document.getElementById('status-success');
+const statusStepsEl   = document.getElementById('status-steps');
+
+// Videos
+const videosList      = document.getElementById('videos-list');
+const videoAddForm    = document.getElementById('video-add-form');
+const videoPlatform   = document.getElementById('video-platform');
+const videoIdInput    = document.getElementById('video-id-input');
+const videoTitleInput = document.getElementById('video-title-input');
+const videoAddBtn     = document.getElementById('video-add-btn');
+const videosError     = document.getElementById('videos-error');
+const videosSuccess   = document.getElementById('videos-success');
+
 let currentId      = null;
 let currentProject = null;
 let pendingImages  = [];
@@ -66,10 +84,11 @@ let existingDragIdx= null;
 
 const MAX_WIDTH    = 1800;
 const WEBP_QUALITY = 0.85;
+const CP_STATUSES  = ['Booked', 'Filming', 'Editing', 'Delivered', 'Archived'];
+const CP_STATUS_CLASS = { Booked:'gold', Filming:'gold', Editing:'gold', Delivered:'green', Archived:'neutral' };
+const PLATFORM_LABELS = { youtube: 'YouTube', reels: 'Reels', tiktok: 'TikTok' };
 
-const SERVICE_LABELS = { hdr: 'HDR Photography', cinematic: 'Cinematic Tour', staging: 'AI Staging' };
-
-// -- Three-tab page switching ---------------------------------
+// -- Three-tab page switching ----------------------------------
 
 const tabDetails     = document.getElementById('tab-details');
 const tabImages      = document.getElementById('tab-images');
@@ -94,7 +113,6 @@ tabDetails.addEventListener('click',   () => switchTab(tabDetails));
 tabImages.addEventListener('click',    () => switchTab(tabImages));
 tabOriginals.addEventListener('click', () => switchTab(tabOriginals));
 
-
 // -- Init ------------------------------------------------------
 
 (async function init() {
@@ -105,6 +123,11 @@ tabOriginals.addEventListener('click', () => switchTab(tabOriginals));
   try {
     const me = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
     if (!me.ok) { window.location.href = '/admin/login'; return; }
+    const meData = await me.json();
+    if (meData.role === 'super_admin') {
+      const navTeam = document.getElementById('nav-team');
+      if (navTeam) navTeam.hidden = false;
+    }
   } catch { window.location.href = '/admin/login'; return; }
 
   try {
@@ -114,6 +137,9 @@ tabOriginals.addEventListener('click', () => switchTab(tabOriginals));
 
     currentProject = body.project;
     populateForm(currentProject);
+    renderStatusSidebar(currentProject.status || 'Booked');
+    renderAuditTrail(currentProject);
+    renderVideos(currentProject.videos || []);
 
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('created')) {
@@ -149,6 +175,59 @@ function populateForm(p) {
   renderExistingImages(p);
 }
 
+// -- Status sidebar --------------------------------------------
+
+function renderStatusSidebar(currentStatus) {
+  if (!statusStepsEl) return;
+  statusStepsEl.innerHTML = CP_STATUSES.map(s => {
+    const curIdx  = CP_STATUSES.indexOf(currentStatus);
+    const thisIdx = CP_STATUSES.indexOf(s);
+    let cls = 'cp9-status-step';
+    if (thisIdx < curIdx)  cls += ' cp9-status-step--done';
+    if (thisIdx === curIdx) cls += ' cp9-status-step--active';
+    return `<div class="${cls}">${s}</div>`;
+  }).join('');
+  if (statusSelect) statusSelect.value = currentStatus;
+}
+
+if (saveStatusBtn) {
+  saveStatusBtn.addEventListener('click', async () => {
+    statusError.hidden = true; statusSuccess.hidden = true;
+    const newStatus = statusSelect.value;
+    const orig = saveStatusBtn.textContent; saveStatusBtn.disabled = true; saveStatusBtn.textContent = 'Saving...';
+    try {
+      const res  = await fetch(`/api/admin/client-projects/${currentId}`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) { statusError.textContent = body.error || 'Could not save.'; statusError.hidden = false; return; }
+      if (currentProject) currentProject.status = newStatus;
+      renderStatusSidebar(newStatus);
+      renderAuditTrail(body.project || currentProject);
+      statusSuccess.textContent = 'Status updated.'; statusSuccess.hidden = false;
+      setTimeout(() => statusSuccess.hidden = true, 4000);
+    } catch { statusError.textContent = 'Could not connect.'; statusError.hidden = false; }
+    finally { saveStatusBtn.disabled = false; saveStatusBtn.textContent = orig; }
+  });
+}
+
+// -- Audit trail -----------------------------------------------
+
+function renderAuditTrail(project) {
+  if (!auditTrailEl) return;
+  if (project && project.last_edited_at) {
+    const name = project.last_edited_by_name || 'Admin';
+    const when = new Date(project.last_edited_at).toLocaleString('en-US', {
+      month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit'
+    });
+    auditTrailEl.textContent = `Last edited by ${name} on ${when}`;
+    auditTrailEl.hidden = false;
+  } else {
+    auditTrailEl.hidden = true;
+  }
+}
+
 // -- Details save ----------------------------------------------
 
 projectForm.addEventListener('submit', async (e) => {
@@ -174,10 +253,84 @@ projectForm.addEventListener('submit', async (e) => {
     if (!res.ok) { showPageError(body.error || 'Could not save.'); return; }
     currentProject = body.project;
     pageTitle.textContent = currentProject.title;
+    renderAuditTrail(currentProject);
     showPageSuccess('Details saved.');
   } catch { showPageError('Could not connect.'); }
   finally { saveDetailsBtn.disabled = false; saveDetailsBtn.textContent = originalLabel; }
 });
+
+// -- Videos ----------------------------------------------------
+
+function renderVideos(videos) {
+  if (!videosList) return;
+  if (!videos.length) {
+    videosList.innerHTML = '<p class="cp9-video-empty">No videos added yet.</p>';
+    return;
+  }
+  videosList.innerHTML = videos.map(v => {
+    const platform = PLATFORM_LABELS[v.platform] || v.platform;
+    let mediaHtml = '';
+    if (v.platform === 'youtube') {
+      mediaHtml = `<div class="cp9-video-embed"><iframe src="https://www.youtube.com/embed/${escHtml(v.video_id)}" frameborder="0" allowfullscreen loading="lazy"></iframe></div>`;
+    } else if (v.platform === 'reels') {
+      mediaHtml = `<a href="https://www.instagram.com/reel/${escHtml(v.video_id)}/" target="_blank" rel="noopener" class="cp9-video-link">Watch on Instagram</a>`;
+    } else {
+      mediaHtml = `<span class="cp9-video-link">TikTok ID: ${escHtml(v.video_id)}</span>`;
+    }
+    return `<div class="cp9-video-item" data-vid="${v.id}">
+      <div class="cp9-video-item__header">
+        <span class="cp9-video-platform">${platform}</span>
+        ${v.title ? `<span class="cp9-video-title">${escHtml(v.title)}</span>` : ''}
+        <button class="projects__action projects__action--danger cp9-video-remove" data-vid="${v.id}" type="button">Remove</button>
+      </div>
+      ${mediaHtml}
+    </div>`;
+  }).join('');
+
+  videosList.querySelectorAll('.cp9-video-remove').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Remove this video?')) return;
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/api/admin/client-projects/${currentId}/videos/${btn.dataset.vid}`, {
+          method: 'DELETE', headers: { Accept: 'application/json' },
+        });
+        if (res.ok) {
+          const vRes  = await fetch(`/api/admin/client-projects/${currentId}/videos`, { headers: { Accept: 'application/json' } });
+          const vBody = vRes.ok ? await vRes.json() : {};
+          renderVideos(vBody.videos || []);
+        } else { btn.disabled = false; }
+      } catch { btn.disabled = false; }
+    });
+  });
+}
+
+if (videoAddForm) {
+  videoAddForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    videosError.hidden = true; videosSuccess.hidden = true;
+    const platform = videoPlatform.value;
+    const videoId  = videoIdInput.value.trim();
+    const title    = videoTitleInput.value.trim();
+    if (!platform || !videoId) { videosError.textContent = 'Platform and video ID are required.'; videosError.hidden = false; return; }
+    const orig = videoAddBtn.textContent; videoAddBtn.disabled = true; videoAddBtn.textContent = 'Adding...';
+    try {
+      const res  = await fetch(`/api/admin/client-projects/${currentId}/videos`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ platform, video_id: videoId, title: title || null }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) { videosError.textContent = body.error || 'Could not add video.'; videosError.hidden = false; return; }
+      videoAddForm.reset();
+      videosSuccess.textContent = 'Video added.'; videosSuccess.hidden = false;
+      setTimeout(() => videosSuccess.hidden = true, 4000);
+      const vRes  = await fetch(`/api/admin/client-projects/${currentId}/videos`, { headers: { Accept: 'application/json' } });
+      const vBody = vRes.ok ? await vRes.json() : {};
+      renderVideos(vBody.videos || []);
+    } catch { videosError.textContent = 'Could not connect.'; videosError.hidden = false; }
+    finally { videoAddBtn.disabled = false; videoAddBtn.textContent = orig; }
+  });
+}
 
 // -- Image upload ----------------------------------------------
 

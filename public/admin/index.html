@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Studio admin — Vesta Folio</title>
+  <title>Studio admin - Vesta Folio</title>
   <meta name="robots" content="noindex, nofollow">
   <link rel="icon" href="/brand/favicon.ico">
   <link rel="stylesheet" href="/css/tokens.css">
@@ -20,6 +20,8 @@
       <a class="admin__nav-link admin__nav-link--active" href="/admin" aria-current="page">Dashboard</a>
       <a class="admin__nav-link" href="/admin/projects">Projects</a>
       <a class="admin__nav-link" href="/admin/leads">Leads</a>
+      <a class="admin__nav-link" href="/admin/clients">Clients</a>
+      <a class="admin__nav-link" href="/admin/team" id="nav-team" hidden>Team</a>
       <a class="admin__nav-link" href="/admin/account">Account</a>
       <button class="admin__nav-logout" id="logout-btn" type="button">Log out</button>
     </div>
@@ -34,29 +36,26 @@
         <h1 class="admin__heading">Dashboard.</h1>
       </div>
 
-      <!-- Stat cards -->
       <div class="dash__stats">
         <div class="dash__stat">
-          <p class="dash__stat-value" id="stat-inquiries">—</p>
+          <p class="dash__stat-value" id="stat-inquiries">-</p>
           <p class="dash__stat-label">Inquiries this month</p>
         </div>
         <div class="dash__stat">
-          <p class="dash__stat-value dash__stat-value--alert" id="stat-unassigned">—</p>
+          <p class="dash__stat-value dash__stat-value--alert" id="stat-unassigned">-</p>
           <p class="dash__stat-label">Awaiting response</p>
         </div>
         <div class="dash__stat">
-          <p class="dash__stat-value" id="stat-active">—</p>
+          <p class="dash__stat-value" id="stat-active">-</p>
           <p class="dash__stat-label">Active projects</p>
         </div>
         <div class="dash__stat">
-          <p class="dash__stat-value" id="stat-delivered">—</p>
+          <p class="dash__stat-value" id="stat-delivered">-</p>
           <p class="dash__stat-label">Delivered this month</p>
         </div>
       </div>
 
       <div class="dash__panels">
-
-        <!-- Recent leads -->
         <div class="dash__panel">
           <div class="dash__panel-header">
             <p class="admin__label">RECENT LEADS</p>
@@ -64,8 +63,6 @@
           </div>
           <div id="recent-leads"></div>
         </div>
-
-        <!-- Active projects -->
         <div class="dash__panel">
           <div class="dash__panel-header">
             <p class="admin__label">CLIENT PROJECTS</p>
@@ -73,7 +70,6 @@
           </div>
           <div id="active-projects"></div>
         </div>
-
       </div>
 
     </div>
@@ -86,9 +82,22 @@
       window.location.href = '/admin/login';
     });
 
+    const STATUS_CLASS = {
+      Unassigned: 'neutral', Contacted: 'blue', Booked: 'gold',
+      Filming: 'gold', Editing: 'gold', Delivered: 'green', Archived: 'neutral'
+    };
+
+    function statusClass(s) { return STATUS_CLASS[s] || 'neutral'; }
+    function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
     (async () => {
       const me = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
       if (!me.ok) { window.location.href = '/admin/login'; return; }
+      const meData = await me.json();
+
+      if (meData.role === 'super_admin') {
+        document.getElementById('nav-team').hidden = false;
+      }
 
       const res  = await fetch('/api/admin/dashboard', { headers: { Accept: 'application/json' } });
       const body = res.ok ? await res.json() : null;
@@ -99,46 +108,34 @@
       if (!body) return;
 
       const s = body.stats || {};
-      document.getElementById('stat-inquiries').textContent  = s.inquiries_this_month ?? '—';
-      document.getElementById('stat-unassigned').textContent = s.unassigned_leads ?? '—';
-      document.getElementById('stat-active').textContent     = s.active_projects ?? '—';
-      document.getElementById('stat-delivered').textContent  = s.delivered_this_month ?? '—';
+      document.getElementById('stat-inquiries').textContent  = s.inquiries_this_month ?? '-';
+      document.getElementById('stat-unassigned').textContent = s.unassigned_leads ?? '-';
+      document.getElementById('stat-active').textContent     = s.active_projects ?? '-';
+      document.getElementById('stat-delivered').textContent  = s.delivered_this_month ?? '-';
 
-      // Recent leads
       const leadsEl = document.getElementById('recent-leads');
       const leads   = body.recent_leads || [];
-      if (leads.length === 0) {
-        leadsEl.innerHTML = '<p class="dash__empty">No leads yet.</p>';
-      } else {
-        leadsEl.innerHTML = leads.map(l => `
+      leadsEl.innerHTML = leads.length === 0
+        ? '<p class="dash__empty">No leads yet.</p>'
+        : leads.map(l => `
           <a class="dash__row" href="/admin/leads?id=${l.id}">
             <span class="dash__row-primary">${esc(l.name)}</span>
             <span class="dash__row-secondary">${esc(l.property_address)}</span>
             <span class="dash__badge dash__badge--${statusClass(l.status)}">${esc(l.status)}</span>
-          </a>
-        `).join('');
-      }
+          </a>`).join('');
 
-      // Active projects
       const projEl   = document.getElementById('active-projects');
-      const projects = body.active_projects || [];
-      if (projects.length === 0) {
-        projEl.innerHTML = '<p class="dash__empty">No client projects yet.</p>';
-      } else {
-        projEl.innerHTML = projects.map(p => `
+      const projects = body.active_client_projects || body.active_projects || [];
+      const CP_STATUS_CLASS = { Booked: 'gold', Filming: 'gold', Editing: 'gold', Delivered: 'green', Archived: 'neutral' };
+      projEl.innerHTML = projects.length === 0
+        ? '<p class="dash__empty">No active projects.</p>'
+        : projects.map(p => `
           <a class="dash__row" href="/admin/client-project?id=${p.id}">
             <span class="dash__row-primary">${esc(p.title)}</span>
-            <span class="dash__row-secondary">${esc(p.location)} · ${p.year}</span>
-          </a>
-        `).join('');
-      }
+            <span class="dash__row-secondary">${esc(p.status || 'Booked')}</span>
+            <span class="dash__badge dash__badge--${CP_STATUS_CLASS[p.status] || 'gold'}">${esc(p.status || 'Booked')}</span>
+          </a>`).join('');
     })();
-
-    function statusClass(s) {
-      const map = { Unassigned: 'neutral', Contacted: 'blue', Booked: 'gold', Filming: 'gold', Editing: 'gold', Delivered: 'green', Archived: 'neutral' };
-      return map[s] || 'neutral';
-    }
-    function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   </script>
 </body>
 </html>
