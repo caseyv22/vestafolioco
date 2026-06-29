@@ -22,7 +22,6 @@ const editEmail       = document.getElementById('edit-email');
 const editError       = document.getElementById('edit-error');
 const editSubmit      = document.getElementById('edit-submit');
 const editCancel      = document.getElementById('edit-cancel');
-const editDeleteBtn   = document.getElementById('edit-delete-btn');
 
 const deleteModal     = document.getElementById('delete-modal');
 const deleteModalClose= document.getElementById('delete-modal-close');
@@ -84,6 +83,7 @@ async function loadClients(search) {
         '<td class="projects__td projects__td--actions">' +
           '<button class="projects__action" data-action="edit" data-id="' + c.id + '" data-name="' + esc(c.name || '') + '" data-email="' + esc(c.email) + '" type="button">Edit</button>' +
           '<button class="projects__action" data-action="view" data-id="' + c.id + '" type="button">View</button>' +
+          '<button class="projects__action projects__action--danger" data-action="delete" data-id="' + c.id + '" data-name="' + esc(c.name || c.email) + '" type="button">Delete</button>' +
         '</td>' +
       '</tr>';
     }).join('');
@@ -92,6 +92,9 @@ async function loadClients(search) {
     });
     clientsTbody.querySelectorAll('.projects__action[data-action="edit"]').forEach(btn => {
       btn.addEventListener('click', () => openEdit(btn.dataset.id, btn.dataset.name, btn.dataset.email));
+    });
+    clientsTbody.querySelectorAll('.projects__action[data-action="delete"]').forEach(btn => {
+      btn.addEventListener('click', () => openDeleteConfirm(btn.dataset.id, btn.dataset.name));
     });
     tableWrap.hidden = false;
   } catch (err) {
@@ -198,12 +201,6 @@ editForm.addEventListener('submit', async e => {
     await loadClients(searchInput.value.trim());
   } catch { editError.textContent = 'Could not connect.'; editError.hidden = false; }
   finally { editSubmit.disabled = false; editSubmit.textContent = orig; }
-});
-
-editDeleteBtn.addEventListener('click', () => {
-  const name = editName.value.trim() || editEmail.value.trim();
-  editModal.hidden = true;
-  openDeleteConfirm(pendingEditId, name);
 });
 
 // -- Delete confirm modal --
