@@ -13,6 +13,7 @@ const detailModal      = document.getElementById('detail-modal');
 const detailModalClose = document.getElementById('detail-modal-close');
 const detailModalTitle = document.getElementById('detail-modal-title');
 const detailBody       = document.getElementById('detail-body');
+const detailFooter     = document.getElementById('detail-footer');
 const detailEditBtn    = document.getElementById('detail-edit-btn');
 const detailDeleteBtn  = document.getElementById('detail-delete-btn');
 
@@ -102,8 +103,7 @@ async function loadClients(search) {
 
 async function openDetail(clientId, clientName, clientEmail) {
   currentDetailClient = { id: clientId, name: clientName, email: clientEmail };
-  detailEditBtn.hidden = true;
-  detailDeleteBtn.hidden = true;
+  detailFooter.hidden = true;
   detailBody.innerHTML = '<div class="admin__loading"><p>Loading...</p></div>';
   detailModal.hidden = false;
   try {
@@ -113,8 +113,7 @@ async function openDetail(clientId, clientName, clientEmail) {
     const c = body.client;
     currentDetailClient = { id: c.id, name: c.name || '', email: c.email };
     detailModalTitle.textContent = c.name || c.email;
-    detailEditBtn.hidden = false;
-    detailDeleteBtn.hidden = false;
+    detailFooter.hidden = false;
     const projectRows = (c.projects && c.projects.length)
       ? c.projects.map(p => {
           const cls = CP_STATUS_CLASS[p.status] || 'gold';

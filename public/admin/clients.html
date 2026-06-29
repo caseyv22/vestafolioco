@@ -69,13 +69,13 @@
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title" style="max-width:600px;">
       <div class="modal__header">
         <h2 class="modal__title" id="detail-modal-title">Client</h2>
-        <div style="display:flex;align-items:center;gap:var(--space-3);">
-          <button class="admin__btn-ghost" id="detail-edit-btn" type="button" hidden>Edit</button>
-          <button class="admin__btn-danger" id="detail-delete-btn" type="button" hidden>Delete</button>
-          <button class="modal__close" id="detail-modal-close" type="button" aria-label="Close">&times;</button>
-        </div>
+        <button class="modal__close" id="detail-modal-close" type="button" aria-label="Close">&times;</button>
       </div>
       <div id="detail-body"></div>
+      <div class="modal__footer" id="detail-footer" hidden>
+        <button class="admin__btn-ghost" id="detail-edit-btn" type="button">Edit</button>
+        <button class="admin__btn-danger" id="detail-delete-btn" type="button">Delete</button>
+      </div>
     </div>
   </div>
 
