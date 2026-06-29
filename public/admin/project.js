@@ -123,11 +123,7 @@ tabOriginals.addEventListener('click', () => switchTab(tabOriginals));
   try {
     const me = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
     if (!me.ok) { window.location.href = '/admin/login'; return; }
-    const meData = await me.json();
-    if (meData.user.role === 'super_admin') {
-      const nt = document.getElementById('nav-team');
-      if (nt) nt.hidden = false;
-    }
+    await me.json();
   } catch { window.location.href = '/admin/login'; return; }
 
   try {

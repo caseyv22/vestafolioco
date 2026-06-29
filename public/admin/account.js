@@ -35,10 +35,6 @@ const passwordSubmit  = passwordForm.querySelector('[type="submit"]');
     }
 
     userEmailEl.textContent = body.user.email;
-    if (body.user.role === 'super_admin') {
-      const nt = document.getElementById('nav-team');
-      if (nt) nt.hidden = false;
-    }
     loadingEl.hidden = true;
     authenticatedEl.hidden = false;
 

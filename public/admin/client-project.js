@@ -112,11 +112,7 @@ tabImages.addEventListener('click',    () => switchTab(tabImages));
   try {
     const me = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
     if (!me.ok) { window.location.href = '/admin/login'; return; }
-    const meData = await me.json();
-    if (meData.user.role === 'super_admin') {
-      const navTeam = document.getElementById('nav-team');
-      if (navTeam) navTeam.hidden = false;
-    }
+    await me.json();
   } catch { window.location.href = '/admin/login'; return; }
 
   try {

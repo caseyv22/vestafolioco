@@ -21,7 +21,7 @@
       <a class="admin__nav-link" href="/admin/projects">Projects</a>
       <a class="admin__nav-link" href="/admin/leads">Leads</a>
       <a class="admin__nav-link" href="/admin/clients">Clients</a>
-      <a class="admin__nav-link" href="/admin/team" id="nav-team" hidden>Team</a>
+      <a class="admin__nav-link" href="/admin/team">Team</a>
       <a class="admin__nav-link" href="/admin/account">Account</a>
       <button class="admin__nav-logout" id="logout-btn" type="button">Log out</button>
     </div>
@@ -93,11 +93,7 @@
     (async () => {
       const me = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
       if (!me.ok) { window.location.href = '/admin/login'; return; }
-      const meData = await me.json();
-
-      if (meData.user.role === 'super_admin') {
-        document.getElementById('nav-team').hidden = false;
-      }
+      await me.json();
 
       const res  = await fetch('/api/admin/dashboard', { headers: { Accept: 'application/json' } });
       const body = res.ok ? await res.json() : null;

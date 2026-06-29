@@ -68,11 +68,7 @@ function slugify(s) { return s.toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().
   try {
     const me = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
     if (!me.ok) { window.location.href = '/admin/login'; return; }
-    const meData = await me.json();
-    if (meData.user.role === 'super_admin') {
-      const navTeam = document.getElementById('nav-team');
-      if (navTeam) navTeam.hidden = false;
-    }
+    await me.json();
     loadingEl.hidden = true; authEl.hidden = false;
     const params = new URLSearchParams(window.location.search);
     if (params.get('tab') === 'clients') { switchTab('clients'); window.history.replaceState({}, '', '/admin/projects'); }

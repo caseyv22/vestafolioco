@@ -48,8 +48,7 @@ function initList() {
     try {
       const me = await fetch('/api/auth/me', { headers: { Accept: 'application/json' } });
       if (!me.ok) { window.location.href = '/admin/login'; return; }
-      const meData = await me.json();
-      if (meData.user.role === 'super_admin') { const nt = document.getElementById('nav-team'); if (nt) nt.hidden = false; }
+      await me.json();
       loading.hidden = true;
       await loadLeads();
     } catch { window.location.href = '/admin/login'; }
