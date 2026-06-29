@@ -115,7 +115,7 @@ tabImages.addEventListener('click',    () => switchTab(tabImages));
     const meData = await me.json();
     if (meData.user.role === 'super_admin') {
       const navTeam = document.getElementById('nav-team');
-      if (navTeam) navTeam.classList.remove('admin__nav-link--ghost');
+      if (navTeam) navTeam.hidden = false;
     }
   } catch { window.location.href = '/admin/login'; return; }
 

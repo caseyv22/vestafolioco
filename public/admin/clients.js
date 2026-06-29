@@ -52,7 +52,7 @@ function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('en-US', {
     if (meData.user.role !== 'admin' && meData.user.role !== 'super_admin') { window.location.href = '/admin/login'; return; }
     if (meData.user.role === 'super_admin') {
       const navTeam = document.getElementById('nav-team');
-      if (navTeam) navTeam.classList.remove('admin__nav-link--ghost');
+      if (navTeam) navTeam.hidden = false;
     }
     pageLoading.hidden = true; pageContent.hidden = false;
     await loadClients('');
