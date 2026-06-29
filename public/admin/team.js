@@ -19,6 +19,13 @@ const inviteEmail      = document.getElementById('invite-email');
 const inviteError      = document.getElementById('invite-error');
 const inviteSubmit     = document.getElementById('invite-submit');
 
+const viewModal      = document.getElementById('view-modal');
+const viewModalClose = document.getElementById('view-modal-close');
+const viewModalTitle = document.getElementById('view-modal-title');
+const viewModalBody  = document.getElementById('view-modal-body');
+const viewEditBtn    = document.getElementById('view-edit-btn');
+const viewRemoveBtn  = document.getElementById('view-remove-btn');
+
 const editModal      = document.getElementById('edit-modal');
 const editModalClose = document.getElementById('edit-modal-close');
 const editForm       = document.getElementById('edit-form');
@@ -35,9 +42,10 @@ const removeConfirm    = document.getElementById('remove-confirm');
 const removeModalBody  = document.getElementById('remove-modal-body');
 const removeError      = document.getElementById('remove-error');
 
-let currentUserId  = null;
-let pendingEditId  = null;
+let currentUserId   = null;
+let pendingEditId   = null;
 let pendingRemoveId = null;
+let currentViewMember = null;
 
 function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : 'Never'; }
@@ -67,25 +75,19 @@ async function loadTeam() {
       const isSelf  = m.id === currentUserId;
       const isSuper = m.role === 'super_admin';
       const roleLabel = isSuper ? '<span style="color:var(--color-gold);font-weight:500;">Super admin</span>' : 'Admin';
-      const editBtn   = (!isSelf && !isSuper)
-        ? '<button class="projects__action" data-action="edit" data-id="' + m.id + '" data-name="' + esc(m.name || '') + '" data-email="' + esc(m.email) + '" type="button">Edit</button>'
-        : '';
-      const removeBtn = (!isSelf && !isSuper)
-        ? '<button class="projects__action projects__action--danger" data-action="remove" data-id="' + m.id + '" data-name="' + esc(m.name || m.email) + '" type="button">Remove</button>'
+      const viewBtn = (!isSelf && !isSuper)
+        ? '<button class="projects__action" data-action="view" data-id="' + m.id + '" data-name="' + esc(m.name || '') + '" data-email="' + esc(m.email) + '" data-last-login="' + esc(m.last_login_at || '') + '" type="button">View</button>'
         : '';
       return '<tr class="projects__row">' +
         '<td class="projects__td projects__td--title"><span class="projects__title">' + esc(m.name || '-') + (isSelf ? ' <span style="color:var(--color-sage);font-size:var(--text-micro);">(you)</span>' : '') + '</span></td>' +
         '<td class="projects__td">' + esc(m.email) + '</td>' +
         '<td class="projects__td projects__td--meta">' + roleLabel + '</td>' +
         '<td class="projects__td projects__td--meta">' + fmtDate(m.last_login_at) + '</td>' +
-        '<td class="projects__td projects__td--actions">' + editBtn + removeBtn + '</td>' +
+        '<td class="projects__td projects__td--actions">' + viewBtn + '</td>' +
       '</tr>';
     }).join('');
-    teamTbody.querySelectorAll('.projects__action[data-action="edit"]').forEach(btn => {
-      btn.addEventListener('click', () => openEdit(btn.dataset.id, btn.dataset.name, btn.dataset.email));
-    });
-    teamTbody.querySelectorAll('.projects__action[data-action="remove"]').forEach(btn => {
-      btn.addEventListener('click', () => openRemoveModal(btn.dataset.id, btn.dataset.name));
+    teamTbody.querySelectorAll('.projects__action[data-action="view"]').forEach(btn => {
+      btn.addEventListener('click', () => openViewModal(btn.dataset.id, btn.dataset.name, btn.dataset.email, btn.dataset.lastLogin));
     });
     tableWrap.hidden = false;
   } catch (err) {
@@ -93,6 +95,35 @@ async function loadTeam() {
     pageError.textContent = 'Could not load team.'; pageError.hidden = false;
   }
 }
+
+// -- View modal --
+
+function openViewModal(id, name, email, lastLogin) {
+  currentViewMember = { id, name, email };
+  viewModalTitle.textContent = name || email;
+  viewModalBody.innerHTML =
+    '<dl style="display:grid;grid-template-columns:auto 1fr;gap:var(--space-2) var(--space-5);">' +
+      '<dt class="admin__label" style="margin:0;">EMAIL</dt><dd class="admin__body" style="margin:0;">' + esc(email) + '</dd>' +
+      '<dt class="admin__label" style="margin:0;">ROLE</dt><dd class="admin__body" style="margin:0;">Admin</dd>' +
+      '<dt class="admin__label" style="margin:0;">LAST LOGIN</dt><dd class="admin__body" style="margin:0;">' + fmtDate(lastLogin) + '</dd>' +
+    '</dl>';
+  viewModal.hidden = false;
+}
+
+viewModalClose.addEventListener('click', () => { viewModal.hidden = true; });
+viewModal.addEventListener('click', e => { if (e.target === viewModal) viewModal.hidden = true; });
+
+viewEditBtn.addEventListener('click', () => {
+  if (!currentViewMember) return;
+  viewModal.hidden = true;
+  openEdit(currentViewMember.id, currentViewMember.name, currentViewMember.email);
+});
+
+viewRemoveBtn.addEventListener('click', () => {
+  if (!currentViewMember) return;
+  viewModal.hidden = true;
+  openRemoveModal(currentViewMember.id, currentViewMember.name || currentViewMember.email);
+});
 
 // -- Invite modal --
 

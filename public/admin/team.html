@@ -61,6 +61,21 @@
     </div>
   </main>
 
+  <!-- View team member modal -->
+  <div class="modal-overlay" id="view-modal" hidden>
+    <div class="modal modal--narrow" role="dialog" aria-modal="true" aria-labelledby="view-modal-title">
+      <div class="modal__header">
+        <h2 class="modal__title" id="view-modal-title">Team member</h2>
+        <button class="modal__close" id="view-modal-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <div id="view-modal-body" style="margin-bottom:var(--space-5);"></div>
+      <div class="modal__footer">
+        <button class="admin__btn-ghost" id="view-edit-btn" type="button">Edit</button>
+        <button class="admin__btn-danger" id="view-remove-btn" type="button">Remove</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Invite modal -->
   <div class="modal-overlay" id="invite-modal" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="invite-modal-title">

@@ -1,4 +1,4 @@
-/* /admin/clients.js - All clients list with edit, delete, and project access detail */
+/* /admin/clients.js - All clients list with project access detail, edit, and delete */
 
 const logoutBtn       = document.getElementById('logout-btn');
 const pageLoading     = document.getElementById('page-loading');
@@ -13,6 +13,8 @@ const detailModal      = document.getElementById('detail-modal');
 const detailModalClose = document.getElementById('detail-modal-close');
 const detailModalTitle = document.getElementById('detail-modal-title');
 const detailBody       = document.getElementById('detail-body');
+const detailEditBtn    = document.getElementById('detail-edit-btn');
+const detailDeleteBtn  = document.getElementById('detail-delete-btn');
 
 const editModal       = document.getElementById('edit-modal');
 const editModalClose  = document.getElementById('edit-modal-close');
@@ -32,10 +34,11 @@ const deleteConfirm   = document.getElementById('delete-confirm');
 
 const CP_STATUS_CLASS = { Booked:'gold', Filming:'gold', Editing:'gold', Delivered:'green', Archived:'neutral' };
 
-let searchTimer     = null;
-let pendingEditId   = null;
-let pendingDeleteId = null;
+let searchTimer       = null;
+let pendingEditId     = null;
+let pendingDeleteId   = null;
 let pendingDeleteName = '';
+let currentDetailClient = null;
 
 function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmtDate(iso) { return iso ? new Date(iso).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) : '-'; }
@@ -81,20 +84,12 @@ async function loadClients(search) {
         '<td class="projects__td projects__td--meta">' + projLabel + '</td>' +
         '<td class="projects__td projects__td--meta">' + fmtDate(c.last_login_at) + '</td>' +
         '<td class="projects__td projects__td--actions">' +
-          '<button class="projects__action" data-action="edit" data-id="' + c.id + '" data-name="' + esc(c.name || '') + '" data-email="' + esc(c.email) + '" type="button">Edit</button>' +
-          '<button class="projects__action" data-action="view" data-id="' + c.id + '" type="button">View</button>' +
-          '<button class="projects__action projects__action--danger" data-action="delete" data-id="' + c.id + '" data-name="' + esc(c.name || c.email) + '" type="button">Delete</button>' +
+          '<button class="projects__action" data-action="view" data-id="' + c.id + '" data-name="' + esc(c.name || '') + '" data-email="' + esc(c.email) + '" type="button">View</button>' +
         '</td>' +
       '</tr>';
     }).join('');
     clientsTbody.querySelectorAll('.projects__action[data-action="view"]').forEach(btn => {
-      btn.addEventListener('click', () => openDetail(btn.dataset.id));
-    });
-    clientsTbody.querySelectorAll('.projects__action[data-action="edit"]').forEach(btn => {
-      btn.addEventListener('click', () => openEdit(btn.dataset.id, btn.dataset.name, btn.dataset.email));
-    });
-    clientsTbody.querySelectorAll('.projects__action[data-action="delete"]').forEach(btn => {
-      btn.addEventListener('click', () => openDeleteConfirm(btn.dataset.id, btn.dataset.name));
+      btn.addEventListener('click', () => openDetail(btn.dataset.id, btn.dataset.name, btn.dataset.email));
     });
     tableWrap.hidden = false;
   } catch (err) {
@@ -105,7 +100,10 @@ async function loadClients(search) {
 
 // -- Detail modal --
 
-async function openDetail(clientId) {
+async function openDetail(clientId, clientName, clientEmail) {
+  currentDetailClient = { id: clientId, name: clientName, email: clientEmail };
+  detailEditBtn.hidden = true;
+  detailDeleteBtn.hidden = true;
   detailBody.innerHTML = '<div class="admin__loading"><p>Loading...</p></div>';
   detailModal.hidden = false;
   try {
@@ -113,7 +111,10 @@ async function openDetail(clientId) {
     const body = res.ok ? await res.json() : null;
     if (!body?.client) { detailBody.innerHTML = '<p class="admin__body admin__body--muted">Could not load client.</p>'; return; }
     const c = body.client;
+    currentDetailClient = { id: c.id, name: c.name || '', email: c.email };
     detailModalTitle.textContent = c.name || c.email;
+    detailEditBtn.hidden = false;
+    detailDeleteBtn.hidden = false;
     const projectRows = (c.projects && c.projects.length)
       ? c.projects.map(p => {
           const cls = CP_STATUS_CLASS[p.status] || 'gold';
@@ -166,6 +167,18 @@ async function openDetail(clientId) {
 
 detailModalClose.addEventListener('click', () => { detailModal.hidden = true; });
 detailModal.addEventListener('click', e => { if (e.target === detailModal) detailModal.hidden = true; });
+
+detailEditBtn.addEventListener('click', () => {
+  if (!currentDetailClient) return;
+  detailModal.hidden = true;
+  openEdit(currentDetailClient.id, currentDetailClient.name, currentDetailClient.email);
+});
+
+detailDeleteBtn.addEventListener('click', () => {
+  if (!currentDetailClient) return;
+  detailModal.hidden = true;
+  openDeleteConfirm(currentDetailClient.id, currentDetailClient.name || currentDetailClient.email);
+});
 
 // -- Edit modal --
 
@@ -226,7 +239,6 @@ deleteConfirm.addEventListener('click', async () => {
     const body = await res.json().catch(() => ({}));
     if (!res.ok) { deleteError.textContent = body.error || 'Could not delete client.'; deleteError.hidden = false; return; }
     deleteModal.hidden = true;
-    detailModal.hidden = true;
     await loadClients(searchInput.value.trim());
   } catch { deleteError.textContent = 'Could not connect.'; deleteError.hidden = false; }
   finally { deleteConfirm.disabled = false; deleteConfirm.textContent = orig; }
