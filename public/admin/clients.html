@@ -52,7 +52,7 @@
               <th class="projects__th">Email</th>
               <th class="projects__th projects__th--meta">Projects</th>
               <th class="projects__th projects__th--meta">Last login</th>
-              <th class="projects__th projects__th--actions">Actions</th>
+              <th class="projects__th projects__th--actions" style="min-width:120px;">Actions</th>
             </tr>
           </thead>
           <tbody id="clients-tbody"></tbody>
@@ -72,6 +72,51 @@
         <button class="modal__close" id="detail-modal-close" type="button" aria-label="Close">&times;</button>
       </div>
       <div id="detail-body"></div>
+    </div>
+  </div>
+
+  <!-- Edit client modal -->
+  <div class="modal-overlay" id="edit-modal" hidden>
+    <div class="modal modal--narrow" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+      <div class="modal__header">
+        <h2 class="modal__title" id="edit-modal-title">Edit client</h2>
+        <button class="modal__close" id="edit-modal-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <form id="edit-form" novalidate>
+        <div class="admin__field" style="margin-bottom:var(--space-4);">
+          <label class="admin__label-input" for="edit-name">Name</label>
+          <input class="admin__input" type="text" id="edit-name" autocomplete="off" required>
+        </div>
+        <div class="admin__field" style="margin-bottom:var(--space-5);">
+          <label class="admin__label-input" for="edit-email">Email</label>
+          <input class="admin__input" type="email" id="edit-email" autocomplete="off" required>
+        </div>
+        <p class="admin__error" id="edit-error" hidden></p>
+        <div class="modal__footer">
+          <button class="admin__btn-danger" id="edit-delete-btn" type="button">Delete client</button>
+          <div style="display:flex;gap:var(--space-3);">
+            <button class="admin__btn-ghost" id="edit-cancel" type="button">Cancel</button>
+            <button class="admin__btn-primary" id="edit-submit" type="submit">Save changes</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete client confirm modal -->
+  <div class="modal-overlay" id="delete-modal" hidden>
+    <div class="modal modal--narrow" role="dialog" aria-modal="true">
+      <div class="modal__header">
+        <h2 class="modal__title">Delete client?</h2>
+        <button class="modal__close" id="delete-modal-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <p class="admin__body" id="delete-modal-body"></p>
+      <p class="admin__body admin__body--muted" style="font-size:var(--text-body-sm);">All portal access will be revoked. This cannot be undone.</p>
+      <p class="admin__error" id="delete-error" hidden></p>
+      <div class="modal__footer">
+        <button class="admin__btn-ghost" id="delete-cancel" type="button">Cancel</button>
+        <button class="admin__btn-danger" id="delete-confirm" type="button">Delete</button>
+      </div>
     </div>
   </div>
 

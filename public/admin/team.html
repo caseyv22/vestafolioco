@@ -89,6 +89,31 @@
     </div>
   </div>
 
+  <!-- Edit team member modal -->
+  <div class="modal-overlay" id="edit-modal" hidden>
+    <div class="modal modal--narrow" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+      <div class="modal__header">
+        <h2 class="modal__title" id="edit-modal-title">Edit team member</h2>
+        <button class="modal__close" id="edit-modal-close" type="button" aria-label="Close">&times;</button>
+      </div>
+      <form id="edit-form" novalidate>
+        <div class="admin__field" style="margin-bottom:var(--space-4);">
+          <label class="admin__label-input" for="edit-name">Name</label>
+          <input class="admin__input" type="text" id="edit-name" autocomplete="off" required>
+        </div>
+        <div class="admin__field" style="margin-bottom:var(--space-5);">
+          <label class="admin__label-input" for="edit-email">Email</label>
+          <input class="admin__input" type="email" id="edit-email" autocomplete="off" required>
+        </div>
+        <p class="admin__error" id="edit-error" hidden></p>
+        <div class="modal__footer">
+          <button class="admin__btn-ghost" id="edit-cancel" type="button">Cancel</button>
+          <button class="admin__btn-primary" id="edit-submit" type="submit">Save changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Remove confirm modal -->
   <div class="modal-overlay" id="remove-modal" hidden>
     <div class="modal modal--narrow" role="dialog" aria-modal="true">

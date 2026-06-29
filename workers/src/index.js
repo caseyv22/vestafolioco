@@ -294,6 +294,7 @@ export default {
     if (teamMemberMatch) {
       const id = Number(teamMemberMatch[1]);
       if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'PATCH')   return cors(await handleEditTeamMember(request, env, id));
       if (request.method === 'DELETE')  return cors(await handleDeleteTeamMember(request, env, id));
       return cors(new Response('Method not allowed', { status: 405 }));
     }
@@ -310,6 +311,8 @@ export default {
       const id = Number(clientDetailMatch[1]);
       if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
       if (request.method === 'GET')     return cors(await handleGetAllClientDetail(request, env, id));
+      if (request.method === 'PATCH')   return cors(await handleEditClient(request, env, id));
+      if (request.method === 'DELETE')  return cors(await handleDeleteClient(request, env, id));
       return cors(new Response('Method not allowed', { status: 405 }));
     }
 
@@ -2588,6 +2591,70 @@ async function handleGetAllClientDetail(request, env, id) {
   } catch (err) {
     console.error('Get all client detail error:', err);
     return json({ error: 'Could not load client.' }, 500);
+  }
+}
+
+async function handleEditClient(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+  const { name, email } = data;
+  if (!name || !email) return json({ error: 'Name and email are required.' }, 400);
+  try {
+    const target = await env.DB.prepare('SELECT id, role FROM users WHERE id = ?').bind(id).first();
+    if (!target) return json({ error: 'Client not found.' }, 404);
+    if (target.role !== 'client') return json({ error: 'User is not a client.' }, 400);
+    const conflict = await env.DB.prepare('SELECT id FROM users WHERE email = ? AND id != ?').bind(email.toLowerCase(), id).first();
+    if (conflict) return json({ error: 'An account with this email already exists.' }, 409);
+    await env.DB.prepare('UPDATE users SET name = ?, email = ? WHERE id = ?').bind(name, email.toLowerCase(), id).run();
+    return json({ ok: true });
+  } catch (err) {
+    console.error('Edit client error:', err);
+    return json({ error: 'Could not update client.' }, 500);
+  }
+}
+
+async function handleDeleteClient(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+  try {
+    const target = await env.DB.prepare('SELECT id, role FROM users WHERE id = ?').bind(id).first();
+    if (!target) return json({ error: 'Client not found.' }, 404);
+    if (target.role !== 'client') return json({ error: 'User is not a client.' }, 400);
+    await env.DB.prepare('DELETE FROM client_project_access_v2 WHERE user_id = ?').bind(id).run();
+    await env.DB.prepare('DELETE FROM client_project_access WHERE user_id = ?').bind(id).run();
+    await env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(id).run();
+    await env.DB.prepare('DELETE FROM password_resets WHERE user_id = ?').bind(id).run();
+    await env.DB.prepare("DELETE FROM users WHERE id = ? AND role = 'client'").bind(id).run();
+    return json({ ok: true });
+  } catch (err) {
+    console.error('Delete client error:', err);
+    return json({ error: 'Could not delete client.' }, 500);
+  }
+}
+
+async function handleEditTeamMember(request, env, id) {
+  const { response } = await requireSuperAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+  const { name, email } = data;
+  if (!name || !email) return json({ error: 'Name and email are required.' }, 400);
+  try {
+    const target = await env.DB.prepare('SELECT id, role FROM users WHERE id = ?').bind(id).first();
+    if (!target) return json({ error: 'Team member not found.' }, 404);
+    if (target.role === 'super_admin') return json({ error: 'Cannot edit the super admin account.' }, 403);
+    const conflict = await env.DB.prepare('SELECT id FROM users WHERE email = ? AND id != ?').bind(email.toLowerCase(), id).first();
+    if (conflict) return json({ error: 'An account with this email already exists.' }, 409);
+    await env.DB.prepare('UPDATE users SET name = ?, email = ? WHERE id = ?').bind(name, email.toLowerCase(), id).run();
+    return json({ ok: true });
+  } catch (err) {
+    console.error('Edit team member error:', err);
+    return json({ error: 'Could not update team member.' }, 500);
   }
 }
 

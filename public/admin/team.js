@@ -9,24 +9,34 @@ const tableWrap   = document.getElementById('team-table-wrap');
 const teamTbody   = document.getElementById('team-tbody');
 const teamEmpty   = document.getElementById('team-empty');
 
-const inviteBtn       = document.getElementById('invite-btn');
-const inviteModal     = document.getElementById('invite-modal');
-const inviteModalClose= document.getElementById('invite-modal-close');
-const inviteCancel    = document.getElementById('invite-cancel');
-const inviteForm      = document.getElementById('invite-form');
-const inviteName      = document.getElementById('invite-name');
-const inviteEmail     = document.getElementById('invite-email');
-const inviteError     = document.getElementById('invite-error');
-const inviteSubmit    = document.getElementById('invite-submit');
+const inviteBtn        = document.getElementById('invite-btn');
+const inviteModal      = document.getElementById('invite-modal');
+const inviteModalClose = document.getElementById('invite-modal-close');
+const inviteCancel     = document.getElementById('invite-cancel');
+const inviteForm       = document.getElementById('invite-form');
+const inviteName       = document.getElementById('invite-name');
+const inviteEmail      = document.getElementById('invite-email');
+const inviteError      = document.getElementById('invite-error');
+const inviteSubmit     = document.getElementById('invite-submit');
 
-const removeModal     = document.getElementById('remove-modal');
-const removeModalClose= document.getElementById('remove-modal-close');
-const removeCancel    = document.getElementById('remove-cancel');
-const removeConfirm   = document.getElementById('remove-confirm');
-const removeModalBody = document.getElementById('remove-modal-body');
-const removeError     = document.getElementById('remove-error');
+const editModal      = document.getElementById('edit-modal');
+const editModalClose = document.getElementById('edit-modal-close');
+const editForm       = document.getElementById('edit-form');
+const editName       = document.getElementById('edit-name');
+const editEmail      = document.getElementById('edit-email');
+const editError      = document.getElementById('edit-error');
+const editSubmit     = document.getElementById('edit-submit');
+const editCancel     = document.getElementById('edit-cancel');
 
-let currentUserId = null;
+const removeModal      = document.getElementById('remove-modal');
+const removeModalClose = document.getElementById('remove-modal-close');
+const removeCancel     = document.getElementById('remove-cancel');
+const removeConfirm    = document.getElementById('remove-confirm');
+const removeModalBody  = document.getElementById('remove-modal-body');
+const removeError      = document.getElementById('remove-error');
+
+let currentUserId  = null;
+let pendingEditId  = null;
 let pendingRemoveId = null;
 
 function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -54,23 +64,27 @@ async function loadTeam() {
     const team = body?.team || [];
     if (!team.length) { teamEmpty.hidden = false; return; }
     teamTbody.innerHTML = team.map(m => {
-      const isSelf = m.id === currentUserId;
+      const isSelf  = m.id === currentUserId;
       const isSuper = m.role === 'super_admin';
       const roleLabel = isSuper ? '<span style="color:var(--color-gold);font-weight:500;">Super admin</span>' : 'Admin';
-      const actions = (!isSelf && !isSuper)
-        ? `<button class="projects__action projects__action--danger" data-id="${m.id}" data-name="${esc(m.name || m.email)}" type="button">Remove</button>`
+      const editBtn   = (!isSelf && !isSuper)
+        ? '<button class="projects__action" data-action="edit" data-id="' + m.id + '" data-name="' + esc(m.name || '') + '" data-email="' + esc(m.email) + '" type="button">Edit</button>'
         : '';
-      return `<tr class="projects__row">
-        <td class="projects__td projects__td--title">
-          <span class="projects__title">${esc(m.name || '-')}${isSelf ? ' <span style="color:var(--color-sage);font-size:var(--text-micro);">(you)</span>' : ''}</span>
-        </td>
-        <td class="projects__td">${esc(m.email)}</td>
-        <td class="projects__td projects__td--meta">${roleLabel}</td>
-        <td class="projects__td projects__td--meta">${fmtDate(m.last_login_at)}</td>
-        <td class="projects__td projects__td--actions">${actions}</td>
-      </tr>`;
+      const removeBtn = (!isSelf && !isSuper)
+        ? '<button class="projects__action projects__action--danger" data-action="remove" data-id="' + m.id + '" data-name="' + esc(m.name || m.email) + '" type="button">Remove</button>'
+        : '';
+      return '<tr class="projects__row">' +
+        '<td class="projects__td projects__td--title"><span class="projects__title">' + esc(m.name || '-') + (isSelf ? ' <span style="color:var(--color-sage);font-size:var(--text-micro);">(you)</span>' : '') + '</span></td>' +
+        '<td class="projects__td">' + esc(m.email) + '</td>' +
+        '<td class="projects__td projects__td--meta">' + roleLabel + '</td>' +
+        '<td class="projects__td projects__td--meta">' + fmtDate(m.last_login_at) + '</td>' +
+        '<td class="projects__td projects__td--actions">' + editBtn + removeBtn + '</td>' +
+      '</tr>';
     }).join('');
-    teamTbody.querySelectorAll('.projects__action--danger').forEach(btn => {
+    teamTbody.querySelectorAll('.projects__action[data-action="edit"]').forEach(btn => {
+      btn.addEventListener('click', () => openEdit(btn.dataset.id, btn.dataset.name, btn.dataset.email));
+    });
+    teamTbody.querySelectorAll('.projects__action[data-action="remove"]').forEach(btn => {
       btn.addEventListener('click', () => openRemoveModal(btn.dataset.id, btn.dataset.name));
     });
     tableWrap.hidden = false;
@@ -99,17 +113,55 @@ inviteForm.addEventListener('submit', async e => {
     if (!res.ok) { inviteError.textContent = body.error || 'Could not add team member.'; inviteError.hidden = false; return; }
     inviteModal.hidden = true;
     pageSuccess.textContent = 'Invite sent. They will receive an email to set their password.';
-    pageSuccess.hidden = false; setTimeout(() => pageSuccess.hidden = true, 6000);
+    pageSuccess.hidden = false; setTimeout(() => { pageSuccess.hidden = true; }, 6000);
     await loadTeam();
   } catch { inviteError.textContent = 'Could not connect.'; inviteError.hidden = false; }
   finally { inviteSubmit.disabled = false; inviteSubmit.textContent = orig; }
+});
+
+// -- Edit modal --
+
+function openEdit(id, name, email) {
+  pendingEditId   = id;
+  editName.value  = name;
+  editEmail.value = email;
+  editError.hidden = true;
+  editModal.hidden = false;
+  editName.focus();
+}
+
+editModalClose.addEventListener('click', () => { editModal.hidden = true; });
+editCancel.addEventListener('click',     () => { editModal.hidden = true; });
+editModal.addEventListener('click', e => { if (e.target === editModal) editModal.hidden = true; });
+
+editForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  editError.hidden = true;
+  const name  = editName.value.trim();
+  const email = editEmail.value.trim();
+  if (!name || !email) { editError.textContent = 'Name and email are required.'; editError.hidden = false; return; }
+  const orig = editSubmit.textContent; editSubmit.disabled = true; editSubmit.textContent = 'Saving...';
+  try {
+    const res  = await fetch('/api/admin/team/' + pendingEditId, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ name, email })
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) { editError.textContent = body.error || 'Could not update team member.'; editError.hidden = false; return; }
+    editModal.hidden = true;
+    pageSuccess.textContent = 'Team member updated.';
+    pageSuccess.hidden = false; setTimeout(() => { pageSuccess.hidden = true; }, 4000);
+    await loadTeam();
+  } catch { editError.textContent = 'Could not connect.'; editError.hidden = false; }
+  finally { editSubmit.disabled = false; editSubmit.textContent = orig; }
 });
 
 // -- Remove modal --
 
 function openRemoveModal(id, name) {
   pendingRemoveId = id;
-  removeModalBody.textContent = `Remove ${name} from the team? This cannot be undone.`;
+  removeModalBody.textContent = 'Remove ' + name + ' from the team? This cannot be undone.';
   removeError.hidden = true;
   removeModal.hidden = false;
 }
@@ -123,12 +175,12 @@ removeConfirm.addEventListener('click', async () => {
   removeError.hidden = true;
   const orig = removeConfirm.textContent; removeConfirm.disabled = true; removeConfirm.textContent = 'Removing...';
   try {
-    const res  = await fetch(`/api/admin/team/${pendingRemoveId}`, { method: 'DELETE', headers: { Accept: 'application/json' } });
+    const res  = await fetch('/api/admin/team/' + pendingRemoveId, { method: 'DELETE', headers: { Accept: 'application/json' } });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) { removeError.textContent = body.error || 'Could not remove.'; removeError.hidden = false; return; }
     removeModal.hidden = true;
     pageSuccess.textContent = 'Team member removed.'; pageSuccess.hidden = false;
-    setTimeout(() => pageSuccess.hidden = true, 4000);
+    setTimeout(() => { pageSuccess.hidden = true; }, 4000);
     await loadTeam();
   } catch { removeError.textContent = 'Could not connect.'; removeError.hidden = false; }
   finally { removeConfirm.disabled = false; removeConfirm.textContent = orig; }
