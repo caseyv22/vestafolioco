@@ -126,7 +126,7 @@ tabOriginals.addEventListener('click', () => switchTab(tabOriginals));
     const meData = await me.json();
     if (meData.user.role === 'super_admin') {
       const nt = document.getElementById('nav-team');
-      if (nt) nt.hidden = false;
+      if (nt) nt.classList.remove('admin__nav-link--ghost');
     }
   } catch { window.location.href = '/admin/login'; return; }
 

@@ -920,6 +920,11 @@
 /* Nav active state */
 .admin__nav-link--active {
   color: var(--color-forest);
-  border-bottom: 1px solid var(--color-gold);
-  padding-bottom: 1px;
+  box-shadow: inset 0 -1px 0 var(--color-gold);
+}
+
+/* Team link hidden until role confirmed - reserves space, no reflow */
+.admin__nav-link--ghost {
+  visibility: hidden;
+  pointer-events: none;
 }

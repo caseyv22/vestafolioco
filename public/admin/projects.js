@@ -71,7 +71,7 @@ function slugify(s) { return s.toLowerCase().replace(/[^a-z0-9\s-]/g,'').trim().
     const meData = await me.json();
     if (meData.user.role === 'super_admin') {
       const navTeam = document.getElementById('nav-team');
-      if (navTeam) navTeam.hidden = false;
+      if (navTeam) navTeam.classList.remove('admin__nav-link--ghost');
     }
     loadingEl.hidden = true; authEl.hidden = false;
     const params = new URLSearchParams(window.location.search);

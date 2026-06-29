@@ -37,7 +37,7 @@ const passwordSubmit  = passwordForm.querySelector('[type="submit"]');
     userEmailEl.textContent = body.user.email;
     if (body.user.role === 'super_admin') {
       const nt = document.getElementById('nav-team');
-      if (nt) nt.hidden = false;
+      if (nt) nt.classList.remove('admin__nav-link--ghost');
     }
     loadingEl.hidden = true;
     authenticatedEl.hidden = false;
