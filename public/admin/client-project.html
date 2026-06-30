@@ -153,11 +153,13 @@
               <p class="admin__success" id="assign-success" hidden></p>
               <form class="project-edit__invite-form" id="assign-form" novalidate>
                 <div class="project-edit__invite-fields">
-                  <div class="admin__field" style="flex:1;">
-                    <label class="admin__label-input" for="assign-select">Client</label>
-                    <select class="portal__select" id="assign-select" required>
-                      <option value="">Loading clients...</option>
-                    </select>
+                  <div class="admin__field assign-combobox" style="flex:1;">
+                    <label class="admin__label-input" for="assign-search">Client</label>
+                    <input class="admin__input" type="text" id="assign-search"
+                           autocomplete="off" placeholder="Search by name or email..."
+                           aria-autocomplete="list" aria-controls="assign-dropdown" aria-expanded="false">
+                    <ul class="assign-combobox__list" id="assign-dropdown" role="listbox" hidden></ul>
+                    <input type="hidden" id="assign-user-id">
                   </div>
                   <div class="project-edit__actions" style="align-self:flex-end;padding-bottom:var(--space-2);">
                     <button class="admin__btn-primary" type="submit" id="assign-submit">Add access</button>

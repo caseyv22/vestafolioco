@@ -923,3 +923,56 @@
   box-shadow: inset 0 -1px 0 var(--color-gold);
 }
 
+/* ----------------------------------------------------------
+   Assign-client type-ahead combobox
+   ---------------------------------------------------------- */
+
+.assign-combobox {
+  position: relative;
+}
+
+.assign-combobox__list {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  background-color: var(--color-cream);
+  border: 1px solid color-mix(in srgb, var(--color-gold) 50%, transparent);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  z-index: var(--z-content);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.assign-combobox__list[hidden] {
+  display: none !important;
+}
+
+.assign-combobox__option {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  color: var(--color-forest);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-sage) 10%, transparent);
+  transition: background-color var(--transition-hover);
+}
+
+.assign-combobox__option:last-child {
+  border-bottom: none;
+}
+
+.assign-combobox__option:hover,
+.assign-combobox__option--active {
+  background-color: color-mix(in srgb, var(--color-gold) 10%, transparent);
+}
+
+.assign-combobox__empty {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-sm);
+  color: var(--color-sage);
+  padding: var(--space-2) var(--space-3);
+}
+

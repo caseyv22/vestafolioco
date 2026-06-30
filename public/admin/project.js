@@ -63,10 +63,15 @@ const clientsWrap        = document.getElementById('clients-wrap');
 const clientsList        = document.getElementById('clients-list');
 const clientsEmpty       = document.getElementById('clients-empty');
 const assignForm         = document.getElementById('assign-form');
-const assignSelect       = document.getElementById('assign-select');
+const assignSearch       = document.getElementById('assign-search');
+const assignDropdown     = document.getElementById('assign-dropdown');
+const assignUserId       = document.getElementById('assign-user-id');
 const assignSubmit       = document.getElementById('assign-submit');
 const assignError        = document.getElementById('assign-error');
 const assignSuccess      = document.getElementById('assign-success');
+
+let eligibleClients  = [];
+let assignActiveIdx  = -1;
 
 
 // -- State -----------------------------------------------------
@@ -648,35 +653,107 @@ async function loadClients() {
   } catch (err) {
     console.error('Load clients error:', err);
   }
-  await loadAssignSelect();
+  await loadAssignClients();
 }
 
-async function loadAssignSelect() {
+async function loadAssignClients() {
   try {
     const res  = await fetch('/api/admin/clients', { headers: { Accept: 'application/json' } });
     const body = res.ok ? await res.json() : null;
     if (!body) return;
-
-    // Clients already with access to this slug
     const alreadyIds = new Set(
       (body.clients || [])
         .filter(c => c.projects.some(p => p.slug === currentSlug))
         .map(c => c.id)
     );
-    const eligible = (body.clients || []).filter(c => !alreadyIds.has(c.id));
-
-    assignSelect.innerHTML = eligible.length
-      ? '<option value="">Select a client...</option>' +
-        eligible.map(c => `<option value="${c.id}">${escHtml(c.name || c.email)} (${escHtml(c.email)})</option>`).join('')
-      : '<option value="">No other clients available</option>';
-  } catch { assignSelect.innerHTML = '<option value="">Could not load clients</option>'; }
+    eligibleClients = (body.clients || []).filter(c => !alreadyIds.has(c.id));
+    assignSearch.value = ''; assignUserId.value = '';
+    assignDropdown.hidden = true;
+    assignSearch.setAttribute('aria-expanded', 'false');
+    assignActiveIdx = -1;
+  } catch { /* non-blocking */ }
 }
+
+function assignFilteredClients(q) {
+  if (!q) return eligibleClients;
+  const lq = q.toLowerCase();
+  return eligibleClients.filter(c => (c.name || '').toLowerCase().includes(lq) || c.email.toLowerCase().includes(lq));
+}
+
+function assignRenderDropdown(clients) {
+  assignDropdown.innerHTML = '';
+  if (!clients.length) {
+    const li = document.createElement('li'); li.className = 'assign-combobox__empty';
+    li.textContent = eligibleClients.length ? 'No matching clients.' : 'No other clients available.';
+    assignDropdown.appendChild(li);
+  } else {
+    clients.forEach(c => {
+      const li = document.createElement('li'); li.className = 'assign-combobox__option';
+      li.setAttribute('role', 'option'); li.dataset.userId = c.id;
+      li.textContent = c.name ? `${c.name} (${c.email})` : c.email;
+      assignDropdown.appendChild(li);
+    });
+  }
+  assignActiveIdx = -1;
+  assignDropdown.hidden = false;
+  assignSearch.setAttribute('aria-expanded', 'true');
+}
+
+function assignPickOption(li) {
+  assignUserId.value = li.dataset.userId;
+  assignSearch.value = li.textContent;
+  assignDropdown.hidden = true;
+  assignSearch.setAttribute('aria-expanded', 'false');
+  assignActiveIdx = -1;
+}
+
+assignSearch.addEventListener('input', () => {
+  assignUserId.value = '';
+  assignRenderDropdown(assignFilteredClients(assignSearch.value));
+});
+
+assignSearch.addEventListener('focus', () => {
+  if (eligibleClients.length || assignSearch.value) assignRenderDropdown(assignFilteredClients(assignSearch.value));
+});
+
+assignDropdown.addEventListener('mousedown', (e) => {
+  const li = e.target.closest('.assign-combobox__option'); if (!li) return;
+  e.preventDefault(); assignPickOption(li);
+});
+
+assignSearch.addEventListener('keydown', (e) => {
+  const options = Array.from(assignDropdown.querySelectorAll('.assign-combobox__option'));
+  if (e.key === 'Escape') {
+    assignDropdown.hidden = true; assignSearch.setAttribute('aria-expanded', 'false'); assignActiveIdx = -1;
+  } else if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    if (assignDropdown.hidden) assignRenderDropdown(assignFilteredClients(assignSearch.value));
+    assignActiveIdx = Math.min(assignActiveIdx + 1, options.length - 1);
+    options.forEach((o, i) => o.classList.toggle('assign-combobox__option--active', i === assignActiveIdx));
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    assignActiveIdx = Math.max(assignActiveIdx - 1, 0);
+    options.forEach((o, i) => o.classList.toggle('assign-combobox__option--active', i === assignActiveIdx));
+  } else if (e.key === 'Enter' && !assignDropdown.hidden) {
+    const active = options[assignActiveIdx];
+    if (active) { e.preventDefault(); assignPickOption(active); }
+  }
+});
+
+document.addEventListener('click', (e) => {
+  if (!assignSearch.closest('.assign-combobox').contains(e.target)) {
+    assignDropdown.hidden = true;
+    assignSearch.setAttribute('aria-expanded', 'false');
+    assignActiveIdx = -1;
+    if (!assignUserId.value) assignSearch.value = '';
+  }
+});
 
 assignForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   assignError.hidden = true; assignSuccess.hidden = true;
-  const userId = Number(assignSelect.value);
-  if (!userId) { assignError.textContent = 'Select a client.'; assignError.hidden = false; return; }
+  const userId = Number(assignUserId.value);
+  if (!userId) { assignError.textContent = 'Select a client from the list.'; assignError.hidden = false; return; }
   const orig = assignSubmit.textContent; assignSubmit.disabled = true; assignSubmit.textContent = 'Adding...';
   try {
     const res  = await fetch(`/api/admin/projects/${currentSlug}/assign`, {
