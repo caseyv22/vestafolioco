@@ -671,6 +671,15 @@ async function loadAssignClients() {
     assignDropdown.hidden = true;
     assignSearch.setAttribute('aria-expanded', 'false');
     assignActiveIdx = -1;
+    if (eligibleClients.length === 0) {
+      assignSearch.disabled = true;
+      assignSearch.placeholder = 'All clients already have access.';
+      assignSubmit.disabled = true;
+    } else {
+      assignSearch.disabled = false;
+      assignSearch.placeholder = 'Search by name or email...';
+      assignSubmit.disabled = false;
+    }
   } catch { /* non-blocking */ }
 }
 
@@ -684,7 +693,7 @@ function assignRenderDropdown(clients) {
   assignDropdown.innerHTML = '';
   if (!clients.length) {
     const li = document.createElement('li'); li.className = 'assign-combobox__empty';
-    li.textContent = eligibleClients.length ? 'No matching clients.' : 'No other clients available.';
+    li.textContent = eligibleClients.length ? 'No clients match your search.' : 'All clients already have access.';
     assignDropdown.appendChild(li);
   } else {
     clients.forEach(c => {
