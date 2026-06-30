@@ -254,6 +254,23 @@ export default {
       return cors(new Response('Method not allowed', { status: 405 }));
     }
 
+    const cpAssignMatch = path.match(/^\/api\/admin\/client-projects\/(\d+)\/assign$/);
+    if (cpAssignMatch) {
+      const id = Number(cpAssignMatch[1]);
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'POST')    return cors(await handleAssignToClientProject(request, env, id));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
+    // /api/admin/projects/:slug/assign
+    const portfolioAssignMatch = path.match(/^\/api\/admin\/projects\/([^/]+)\/assign$/);
+    if (portfolioAssignMatch) {
+      const slug = portfolioAssignMatch[1];
+      if (request.method === 'OPTIONS') return cors(new Response(null, { status: 204 }));
+      if (request.method === 'POST')    return cors(await handleAssignToPortfolioProject(request, env, slug));
+      return cors(new Response('Method not allowed', { status: 405 }));
+    }
+
     const cpClientsMatch = path.match(/^\/api\/admin\/client-projects\/(\d+)\/clients$/);
     if (cpClientsMatch) {
       const id = Number(cpClientsMatch[1]);
@@ -1623,6 +1640,61 @@ async function handleRevokeClientProjectAccess(request, env, userId, projectId) 
   } catch (err) {
     console.error('Revoke client project access error:', err);
     return json({ error: 'Could not revoke access.' }, 500);
+  }
+}
+
+// POST /api/admin/client-projects/:id/assign
+// Grants an existing client user access to a client project without sending an invite email.
+async function handleAssignToClientProject(request, env, id) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+
+  const userId = Number(data?.user_id);
+  if (!userId) return json({ error: 'user_id is required.' }, 400);
+
+  try {
+    const project = await env.DB.prepare('SELECT id FROM client_projects WHERE id = ?').bind(id).first();
+    if (!project) return json({ error: 'Project not found.' }, 404);
+
+    const user = await env.DB.prepare('SELECT id, role FROM users WHERE id = ?').bind(userId).first();
+    if (!user) return json({ error: 'Client not found.' }, 404);
+    if (user.role !== 'client') return json({ error: 'Only client accounts can be assigned.' }, 400);
+
+    await env.DB.prepare('INSERT OR IGNORE INTO client_project_access_v2 (user_id, client_project_id) VALUES (?, ?)').bind(userId, id).run();
+    return json({ ok: true });
+  } catch (err) {
+    console.error('Assign to client project error:', err);
+    return json({ error: 'Could not grant access.' }, 500);
+  }
+}
+
+// POST /api/admin/projects/:slug/assign
+// Grants an existing client user access to a portfolio project without sending an invite email.
+async function handleAssignToPortfolioProject(request, env, slug) {
+  const { response } = await requireAdmin(request, env);
+  if (response) return response;
+  if (!env.DB) return json({ error: 'Service unavailable.' }, 500);
+
+  let data;
+  try { data = await request.json(); } catch { return json({ error: 'Invalid request body.' }, 400); }
+
+  const userId = Number(data?.user_id);
+  if (!userId) return json({ error: 'user_id is required.' }, 400);
+
+  try {
+    const user = await env.DB.prepare('SELECT id, role FROM users WHERE id = ?').bind(userId).first();
+    if (!user) return json({ error: 'Client not found.' }, 404);
+    if (user.role !== 'client') return json({ error: 'Only client accounts can be assigned.' }, 400);
+
+    await env.DB.prepare('INSERT OR IGNORE INTO client_project_access (user_id, project_slug) VALUES (?, ?)').bind(userId, slug).run();
+    return json({ ok: true });
+  } catch (err) {
+    console.error('Assign to portfolio project error:', err);
+    return json({ error: 'Could not grant access.' }, 500);
   }
 }
 

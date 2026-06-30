@@ -48,6 +48,12 @@ const clientsWrap   = document.getElementById('clients-wrap');
 const clientsList   = document.getElementById('clients-list');
 const clientsEmpty  = document.getElementById('clients-empty');
 
+const assignForm    = document.getElementById('assign-form');
+const assignSelect  = document.getElementById('assign-select');
+const assignSubmit  = document.getElementById('assign-submit');
+const assignError   = document.getElementById('assign-error');
+const assignSuccess = document.getElementById('assign-success');
+
 // Status sidebar
 const statusSelect    = document.getElementById('status-select');
 const saveStatusBtn   = document.getElementById('save-status-btn');
@@ -555,7 +561,48 @@ async function loadClients() {
     });
     clientsList.appendChild(list);
   } catch { /* non-blocking */ }
+  await loadAssignSelect();
 }
+
+async function loadAssignSelect() {
+  try {
+    const res  = await fetch('/api/admin/clients', { headers: { Accept: 'application/json' } });
+    const body = res.ok ? await res.json() : null;
+    if (!body) return;
+
+    // Find which client IDs already have access
+    const accessedRes  = await fetch(`/api/admin/client-projects/${currentId}/clients`, { headers: { Accept: 'application/json' } });
+    const accessedBody = accessedRes.ok ? await accessedRes.json() : {};
+    const accessedIds  = new Set((accessedBody.clients || []).map(c => c.id));
+
+    const eligible = (body.clients || []).filter(c => !accessedIds.has(c.id));
+
+    assignSelect.innerHTML = eligible.length
+      ? '<option value="">Select a client...</option>' +
+        eligible.map(c => `<option value="${c.id}">${escHtml(c.name || c.email)} (${escHtml(c.email)})</option>`).join('')
+      : '<option value="">No other clients available</option>';
+  } catch { assignSelect.innerHTML = '<option value="">Could not load clients</option>'; }
+}
+
+assignForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  assignError.hidden = true; assignSuccess.hidden = true;
+  const userId = Number(assignSelect.value);
+  if (!userId) { assignError.textContent = 'Select a client.'; assignError.hidden = false; return; }
+  const orig = assignSubmit.textContent; assignSubmit.disabled = true; assignSubmit.textContent = 'Adding...';
+  try {
+    const res  = await fetch(`/api/admin/client-projects/${currentId}/assign`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ user_id: userId }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) { assignError.textContent = body.error || 'Could not add access.'; assignError.hidden = false; return; }
+    assignSuccess.textContent = 'Access granted.'; assignSuccess.hidden = false;
+    setTimeout(() => assignSuccess.hidden = true, 4000);
+    await loadClients();
+  } catch { assignError.textContent = 'Could not connect.'; assignError.hidden = false; }
+  finally { assignSubmit.disabled = false; assignSubmit.textContent = orig; }
+});
 
 inviteForm.addEventListener('submit', async (e) => {
   e.preventDefault(); clearInviteMessages();

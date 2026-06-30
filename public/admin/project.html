@@ -58,7 +58,7 @@
                     aria-controls="panel-details" type="button">Details</button>
             <button class="project-edit__tab"
                     id="tab-images" role="tab" aria-selected="false"
-                    aria-controls="panel-images" type="button">Images</button>
+                    aria-controls="panel-images" type="button">Media</button>
             <button class="project-edit__tab"
                     id="tab-originals" role="tab" aria-selected="false"
                     aria-controls="panel-originals" type="button">Originals</button>
@@ -179,6 +179,24 @@
                 </div>
                 <div class="project-edit__actions" style="align-self:flex-end;padding-bottom:var(--space-2);">
                   <button class="admin__btn-primary" type="submit" id="invite-submit">Send invite</button>
+                </div>
+              </div>
+            </form>
+
+            <!-- assign-form is a SIBLING of invite-form and project-form, never nested -->
+            <p class="admin__label" style="margin-top:var(--space-6);margin-bottom:var(--space-3);">OR ASSIGN EXISTING CLIENT</p>
+            <p class="admin__error"   id="assign-error"   hidden></p>
+            <p class="admin__success" id="assign-success" hidden></p>
+            <form class="project-edit__invite-form" id="assign-form" novalidate>
+              <div class="project-edit__invite-fields">
+                <div class="admin__field" style="flex:1;">
+                  <label class="admin__label-input" for="assign-select">Client</label>
+                  <select class="portal__select" id="assign-select" required>
+                    <option value="">Loading clients...</option>
+                  </select>
+                </div>
+                <div class="project-edit__actions" style="align-self:flex-end;padding-bottom:var(--space-2);">
+                  <button class="admin__btn-primary" type="submit" id="assign-submit">Add access</button>
                 </div>
               </div>
             </form>
